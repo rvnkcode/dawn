@@ -1,0 +1,12 @@
+{
+  "name": "dawn",
+  "version": "0.0.1",
+  "description": "GTD based task management application",
+  "repository": "https://github.com/rvnkcode/dawn.git",
+  "author": "KSY <sykim.p508@gmail.com>",
+  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ]
+}
