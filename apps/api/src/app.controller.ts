@@ -1,12 +1,35 @@
-import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
+import { Controller, Get, Post, Body, Patch, Param, Delete } from "@nestjs/common";
+import { AppService } from "./app.service";
+import { CreateTaskDto } from "./dto/create-task.dto";
+import { Task } from "./entities/task.entity";
+// import { UpdateAppDto } from "./dto/update-task.dto";
 
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
+  @Post()
+  async createTask(@Body() createTaskDto: CreateTaskDto) {
+    return await this.appService.createTask(createTaskDto);
   }
+
+  @Get()
+  async getTaskList(): Promise<Task[]> {
+    return await this.appService.getTaskList();
+  }
+
+  @Delete()
+  async deleteAllTask() {
+    return await this.appService.deleteAllTask();
+  }
+
+  // @get(":id")
+  // findone(@param("id") id: string) {
+  //   return this.appservice.findone(+id);
+  // }
+  //
+  // @patch(":id")
+  // update(@param("id") id: string, @body() updateappdto: updateappdto) {
+  //   return this.appservice.update(+id, updateappdto);
+  // }
 }
