@@ -1,0 +1,51 @@
+{
+  "name": "dawn",
+  // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+  // "image": "mcr.microsoft.com/devcontainers/typescript-node:0-18",
+  // "dockerComposeFile": "./docker-compose.yml",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "features": {
+    // https://containers.dev/features
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers-contrib/features/nestjs-cli:2": {},
+    "ghcr.io/warrenbuckley/codespace-features/sqlite:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+		"dbaeumer.vscode-eslint",
+		"esbenp.prettier-vscode",
+		"streetsidesoftware.code-spell-checker",
+		"ms-azuretools.vscode-docker",
+		"VisualStudioExptTeam.vscodeintellicode",
+		"VisualStudioExptTeam.intellicode-api-usage-examples",
+		"Prisma.prisma",
+		"humao.rest-client",
+		"redhat.vscode-yaml",
+		"Arjun.swagger-viewer",
+		"formulahendry.auto-rename-tag",
+		"ecmel.vscode-html-css",
+		"styled-components.vscode-styled-components",
+		"ritwickdey.LiveServer",
+		"folke.vscode-monorepo-workspace"
+	],
+      "settings": {
+        "typescript.preferences.importModuleSpecifier": "relative",
+        "editor.formatOnSave": true
+      }
+    }
+  },
+  "mounts": [
+    "source=${localWorkspaceFolderBasename}-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
+    "source=dawn-memo,target=/memo,type=volume"
+  ],
+  "remoteUser": "node",
+  "postCreateCommand": "sudo chown node node_modules && sudo chown node /memo && yarn install"
+  // Or if exists postCreateCommand.sh file, then
+  // "postCreateCommand": ".devcontainer/postCreateCommand.sh"
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  // "forwardPorts": [],
+}
