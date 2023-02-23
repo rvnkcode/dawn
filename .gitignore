@@ -19,3 +19,6 @@ dist
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+.test.http
+apps/api/swagger.yaml
