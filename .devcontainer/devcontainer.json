@@ -34,7 +34,8 @@
 	],
       "settings": {
         "typescript.preferences.importModuleSpecifier": "relative",
-        "editor.formatOnSave": true
+        "editor.formatOnSave": true,
+        "editor.linkedEditing": true
       }
     }
   },
