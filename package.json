@@ -1,5 +1,5 @@
 {
-  "name": "dawn",
+  "name": "@dawn/root",
   "version": "0.0.1",
   "description": "GTD based task management application",
   "repository": "https://github.com/rvnkcode/dawn.git",
