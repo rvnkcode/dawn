@@ -1,6 +1,7 @@
 import { Api, CreateTaskDto, Task } from "../Api";
 import { InboxOutlined, PlusOutlined, DeleteFilled } from "@ant-design/icons";
 import { Button, Checkbox, Form, Input, Layout, List, message, Typography } from "antd";
+import { CheckboxChangeEvent } from "antd/es/checkbox";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -41,12 +42,24 @@ function App() {
       });
   };
 
+  // DELETE
   const clearList = () => {
     api
       .appControllerDeleteAllTask()
       .then(() => {
         setList([]);
       })
+      .catch((error) => {
+        console.error(error);
+        message.error(`${error}`);
+      });
+  };
+
+  const toggleChecked = (e: CheckboxChangeEvent) => {
+    // message.info(`${e.target.value}`);
+    api.id
+      .appControllerUpdateTask(e.target.value, { isDone: e.target.checked })
+      .then(() => {})
       .catch((error) => {
         console.error(error);
         message.error(`${error}`);
@@ -98,7 +111,9 @@ function App() {
           split={false}
           renderItem={(task) => (
             <List.Item style={{ padding: "0", marginBottom: "0.25rem" }}>
-              <Checkbox>{task.title}</Checkbox>
+              <Checkbox defaultChecked={task.isDone} onChange={toggleChecked} value={task.id}>
+                {task.title}
+              </Checkbox>
             </List.Item>
           )}
         ></List>
