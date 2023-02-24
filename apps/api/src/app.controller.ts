@@ -1,7 +1,7 @@
 import { AppService } from "./app.service";
-import { CreateTaskDto } from "./dto/create-task.dto";
-import { UpdateTaskDto } from "./dto/update-task.dto";
-import { Task } from "./entities/task.entity";
+import { CreateTaskDto } from "./task/dto/create-task.dto";
+import { UpdateTaskDto } from "./task/dto/update-task.dto";
+import { Task } from "./task/entities/task.entity";
 import { Controller, Get, Post, Body, Patch, Param, Delete, Put } from "@nestjs/common";
 import { ApiOkResponse } from "@nestjs/swagger";
 
