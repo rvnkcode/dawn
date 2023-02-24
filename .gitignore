@@ -22,3 +22,4 @@ dist
 
 .test.http
 apps/api/swagger.yaml
+apps/client/Api.ts
