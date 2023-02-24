@@ -1,5 +1,7 @@
+import { Api, CreateTaskDto, Task } from "../Api";
 import { InboxOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Checkbox, Form, Input, Layout, List, Typography } from "antd";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
 
 // CSS
@@ -16,9 +18,29 @@ const Header = styled.header`
 const { Title } = Typography;
 const { Content, Footer } = Layout;
 
+// API
+const api = new Api({
+  baseUrl: "http://localhost:3000"
+});
+
 function App() {
   const [form] = Form.useForm();
-  const list: string[] = [];
+  const [list, setList] = useState<any[]>([]);
+
+  // POST
+  const createTask = (value: CreateTaskDto) => {
+    api.appControllerCreateTask(value).then((response) => {
+      setList(list.concat(response.data));
+      form.resetFields();
+    });
+  };
+
+  // GET
+  useEffect(() => {
+    api.appControllerGetTaskList().then((response) => {
+      setList(response.data);
+    });
+  }, []);
 
   return (
     <Layout
@@ -34,10 +56,10 @@ function App() {
           <InboxOutlined style={{ color: "#1677FF" }} />
           Inbox
         </Title>
-        <Form layout="inline" form={form}>
+        <Form onFinish={createTask} form={form}>
           <Input.Group compact>
             <Form.Item name="title" noStyle rules={[{ required: true }]}>
-              <Input style={{ width: "calc(100% - 46px)" }} autoFocus placeholder="New To-Do" />
+              <Input style={{ width: "calc(100% - 46px)" }} autoFocus placeholder="New To-Do" required />
             </Form.Item>
             <Button type="primary" htmlType="submit">
               <PlusOutlined />
@@ -52,7 +74,7 @@ function App() {
           split={false}
           renderItem={(task) => (
             <List.Item style={{ padding: "0", marginBottom: "0.25rem" }}>
-              <Checkbox>{task}</Checkbox>
+              <Checkbox>{task.title}</Checkbox>
             </List.Item>
           )}
         ></List>
