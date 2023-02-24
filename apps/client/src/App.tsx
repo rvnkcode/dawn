@@ -1,8 +1,8 @@
-import { Api, CreateTaskDto, Task } from "../Api";
-import { InboxOutlined, PlusOutlined, DeleteFilled, EditOutlined } from "@ant-design/icons";
+import { Api, CreateTaskDto, Task, UpdateTaskDto } from "../Api";
+import { InboxOutlined, PlusOutlined, DeleteFilled, EditFilled } from "@ant-design/icons";
 import { Button, Checkbox, Form, Input, Layout, List, message, Modal, Typography } from "antd";
 import { CheckboxChangeEvent } from "antd/es/checkbox";
-import { useEffect, useState } from "react";
+import { MouseEvent, useEffect, useState } from "react";
 import styled from "styled-components";
 
 // CSS
@@ -59,39 +59,36 @@ function App() {
 
   const toggleChecked = (e: CheckboxChangeEvent) => {
     // message.info(`${e.target.value}`);
-    api.id
-      .appControllerUpdateTask(e.target.value, { isDone: e.target.checked })
-      .then(() => {})
-      .catch((error) => {
-        console.error(error);
-        message.error(`${error}`);
-      });
+    api.id.appControllerUpdateTask(e.target.value, { isDone: e.target.checked }).catch((error) => {
+      console.error(error);
+      message.error(`Cannot complete task`);
+    });
   };
 
   // Task edit modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalInputValue, setModalInputValue] = useState(``);
-  const openTaskEditModal = (e: any) => {
-    // message.info(`${e.currentTarget.value}`);
-    setModalInputValue(e.currentTarget.value);
+  const [selectedTaskId, setSelectedTaskId] = useState(``);
+
+  const openTaskEditModal = (e: MouseEvent<HTMLAnchorElement> | MouseEvent<HTMLButtonElement>) => {
+    setModalInputValue(e.currentTarget.innerText);
+    setSelectedTaskId((e.currentTarget as HTMLButtonElement).value);
     setIsModalOpen(true);
   };
-  const edit = () => {
-    console.log();
-  };
-  const { confirm } = Modal;
 
-  const showConfirm = () => {
-    confirm({
-      title: "Do you Want to delete these items?",
-      content: "Some descriptions",
-      onOk() {
-        console.log("OK");
-      },
-      onCancel() {
-        console.log("Cancel");
-      }
-    });
+  const editTask = (value: UpdateTaskDto) => {
+    api.id
+      .appControllerUpdateTask(selectedTaskId, value)
+      .then((response) => {
+        const updateList = [...list];
+        updateList[updateList.findIndex((task) => task.id === +selectedTaskId)] = response.data;
+        setList(updateList);
+        setIsModalOpen(false);
+      })
+      .catch((error) => {
+        console.error(error);
+        message.error(`Cannot update task`);
+      });
   };
 
   // GET
@@ -103,7 +100,7 @@ function App() {
       })
       .catch((error) => {
         console.error(error);
-        message.error(`${error}`);
+        message.error(`Cannot get to-do list`);
       });
   }, []);
 
@@ -138,14 +135,16 @@ function App() {
           size="small"
           split={false}
           renderItem={(task) => (
-            <List.Item style={{ padding: "0", marginBottom: "0.25rem", justifyContent: "normal" }}>
-              <Checkbox defaultChecked={task.isDone} onChange={toggleChecked} value={task.id} />
-              {/* Conditional rendering between button and span */}
-              <Button type="text" size="small" onClick={openTaskEditModal} value={task.title}>
-                {task.title}
-              </Button>
-              <Button onClick={showConfirm} style={{ border: "none" }} size="small" value={task.title}>
-                <EditOutlined />
+            <List.Item style={{ padding: "0", marginBottom: "0.25rem" }}>
+              <Checkbox defaultChecked={task.isDone} onChange={toggleChecked} value={task.id}>
+                {/* TODO: Conditional rendering between button and span */}
+                <Button type="text" size="small" onClick={(e) => openTaskEditModal(e)} value={task.id}>
+                  {task.title}
+                </Button>
+              </Checkbox>
+              {/* TODO: Delete selected task */}
+              <Button>
+                <DeleteFilled />
               </Button>
             </List.Item>
           )}
@@ -156,6 +155,9 @@ function App() {
           <DeleteFilled />
         </Button>
       </Footer>
+
+      {/* Editor modal component */}
+      {/* TODO: draggable? */}
       <Modal
         open={isModalOpen}
         footer={null}
@@ -164,16 +166,16 @@ function App() {
         }}
         closable={false}
         destroyOnClose={true}
-        centered
-        onOk={edit}
       >
-        <Form>
-          <Form.Item name="title" noStyle initialValue={modalInputValue}>
-            <Input />
+        <Form onFinish={editTask}>
+          <Form.Item name="title" initialValue={modalInputValue}>
+            <Input required />
           </Form.Item>
-          <Form.Item name="id" noStyle initialValue={`test`}>
-            <input type="hidden" />
-          </Form.Item>
+          <div style={{ textAlign: "right" }}>
+            <Button htmlType="submit" type="primary">
+              <EditFilled />
+            </Button>
+          </div>
         </Form>
       </Modal>
     </Layout>
