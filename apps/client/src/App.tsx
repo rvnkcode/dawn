@@ -25,7 +25,7 @@ const api = new Api({
 
 function App() {
   const [form] = Form.useForm();
-  const [list, setList] = useState<any[]>([]);
+  const [list, setList] = useState<Task[]>([]);
 
   // POST
   const createTask = (value: CreateTaskDto) => {
