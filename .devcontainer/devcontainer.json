@@ -30,7 +30,9 @@
 		"ecmel.vscode-html-css",
 		"styled-components.vscode-styled-components",
 		"ritwickdey.LiveServer",
-		"folke.vscode-monorepo-workspace"
+		"folke.vscode-monorepo-workspace",
+		"Gruntfuggly.todo-tree",
+		"wayou.vscode-todo-highlight"
 	],
       "settings": {
         "typescript.preferences.importModuleSpecifier": "relative",
