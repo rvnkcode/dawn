@@ -1,5 +1,5 @@
-import { Injectable } from "@nestjs/common";
 import { PrismaService } from "./prisma/prisma.service";
+import { Injectable } from "@nestjs/common";
 import { Task, Prisma } from "@prisma/client";
 
 @Injectable()
@@ -18,12 +18,16 @@ export class AppService {
     return await this.prisma.task.deleteMany({});
   }
 
+  async updateTask(params: { where: Prisma.TaskWhereUniqueInput; data: Prisma.TaskUpdateInput }): Promise<Task> {
+    const { where, data } = params;
+    return await this.prisma.task.update({
+      where,
+      data
+    });
+  }
+
   // findOne(id: number) {
   //   return `This action returns a #${id} app`;
-  // }
-
-  // update(id: number, updateAppDto: UpdateAppDto) {
-  //   return `This action updates a #${id} app`;
   // }
 
   // remove(id: number) {
