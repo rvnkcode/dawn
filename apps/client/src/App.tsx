@@ -44,15 +44,17 @@ function App() {
 
   // DELETE
   const clearList = () => {
-    api
-      .appControllerDeleteAllTask()
-      .then(() => {
-        setList([]);
-      })
-      .catch((error) => {
-        console.error(error);
-        message.error(`${error}`);
-      });
+    if (list.length > 0) {
+      api
+        .appControllerDeleteAllTask()
+        .then(() => {
+          setList([]);
+        })
+        .catch((error) => {
+          console.error(error);
+          message.error(`${error}`);
+        });
+    }
   };
 
   const toggleChecked = (e: CheckboxChangeEvent) => {
