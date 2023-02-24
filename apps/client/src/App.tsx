@@ -1,5 +1,5 @@
 import { Api, CreateTaskDto, Task } from "../Api";
-import { InboxOutlined, PlusOutlined } from "@ant-design/icons";
+import { InboxOutlined, PlusOutlined, DeleteFilled } from "@ant-design/icons";
 import { Button, Checkbox, Form, Input, Layout, List, message, Typography } from "antd";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
@@ -34,6 +34,18 @@ function App() {
       .then((response) => {
         setList(list.concat(response.data));
         form.resetFields();
+      })
+      .catch((error) => {
+        console.error(error);
+        message.error(`${error}`);
+      });
+  };
+
+  const clearList = () => {
+    api
+      .appControllerDeleteAllTask()
+      .then(() => {
+        setList([]);
       })
       .catch((error) => {
         console.error(error);
@@ -91,6 +103,11 @@ function App() {
           )}
         ></List>
       </Content>
+      <Footer style={{ position: "fixed", bottom: "0", left: "0", width: "100%", textAlign: "center" }}>
+        <Button htmlType="button" onClick={clearList}>
+          <DeleteFilled />
+        </Button>
+      </Footer>
     </Layout>
   );
 }
