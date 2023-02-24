@@ -1,6 +1,6 @@
 import { Api, CreateTaskDto, Task } from "../Api";
 import { InboxOutlined, PlusOutlined } from "@ant-design/icons";
-import { Button, Checkbox, Form, Input, Layout, List, Typography } from "antd";
+import { Button, Checkbox, Form, Input, Layout, List, message, Typography } from "antd";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -29,17 +29,29 @@ function App() {
 
   // POST
   const createTask = (value: CreateTaskDto) => {
-    api.appControllerCreateTask(value).then((response) => {
-      setList(list.concat(response.data));
-      form.resetFields();
-    });
+    api
+      .appControllerCreateTask(value)
+      .then((response) => {
+        setList(list.concat(response.data));
+        form.resetFields();
+      })
+      .catch((error) => {
+        console.error(error);
+        message.error(`${error}`);
+      });
   };
 
   // GET
   useEffect(() => {
-    api.appControllerGetTaskList().then((response) => {
-      setList(response.data);
-    });
+    api
+      .appControllerGetTaskList()
+      .then((response) => {
+        setList(response.data);
+      })
+      .catch((error) => {
+        console.error(error);
+        message.error(`${error}`);
+      });
   }, []);
 
   return (
