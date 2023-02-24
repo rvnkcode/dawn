@@ -1,6 +1,6 @@
 import { Api, CreateTaskDto, Task } from "../Api";
-import { InboxOutlined, PlusOutlined, DeleteFilled } from "@ant-design/icons";
-import { Button, Checkbox, Form, Input, Layout, List, message, Typography } from "antd";
+import { InboxOutlined, PlusOutlined, DeleteFilled, EditOutlined } from "@ant-design/icons";
+import { Button, Checkbox, Form, Input, Layout, List, message, Modal, Typography } from "antd";
 import { CheckboxChangeEvent } from "antd/es/checkbox";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
@@ -68,6 +68,32 @@ function App() {
       });
   };
 
+  // Task edit modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalInputValue, setModalInputValue] = useState(``);
+  const openTaskEditModal = (e: any) => {
+    // message.info(`${e.currentTarget.value}`);
+    setModalInputValue(e.currentTarget.value);
+    setIsModalOpen(true);
+  };
+  const edit = () => {
+    console.log();
+  };
+  const { confirm } = Modal;
+
+  const showConfirm = () => {
+    confirm({
+      title: "Do you Want to delete these items?",
+      content: "Some descriptions",
+      onOk() {
+        console.log("OK");
+      },
+      onCancel() {
+        console.log("Cancel");
+      }
+    });
+  };
+
   // GET
   useEffect(() => {
     api
@@ -112,19 +138,44 @@ function App() {
           size="small"
           split={false}
           renderItem={(task) => (
-            <List.Item style={{ padding: "0", marginBottom: "0.25rem" }}>
-              <Checkbox defaultChecked={task.isDone} onChange={toggleChecked} value={task.id}>
+            <List.Item style={{ padding: "0", marginBottom: "0.25rem", justifyContent: "normal" }}>
+              <Checkbox defaultChecked={task.isDone} onChange={toggleChecked} value={task.id} />
+              {/* Conditional rendering between button and span */}
+              <Button type="text" size="small" onClick={openTaskEditModal} value={task.title}>
                 {task.title}
-              </Checkbox>
+              </Button>
+              <Button onClick={showConfirm} style={{ border: "none" }} size="small" value={task.title}>
+                <EditOutlined />
+              </Button>
             </List.Item>
           )}
         ></List>
       </Content>
       <Footer style={{ position: "fixed", bottom: "0", left: "0", width: "100%", textAlign: "center" }}>
-        <Button htmlType="button" onClick={clearList}>
+        <Button onClick={clearList}>
           <DeleteFilled />
         </Button>
       </Footer>
+      <Modal
+        open={isModalOpen}
+        footer={null}
+        onCancel={() => {
+          setIsModalOpen(false);
+        }}
+        closable={false}
+        destroyOnClose={true}
+        centered
+        onOk={edit}
+      >
+        <Form>
+          <Form.Item name="title" noStyle initialValue={modalInputValue}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="id" noStyle initialValue={`test`}>
+            <input type="hidden" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </Layout>
   );
 }
