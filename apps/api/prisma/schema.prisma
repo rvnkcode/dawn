@@ -14,5 +14,6 @@ model Task {
   id        Int      @id @default(autoincrement())
   title     String
   isDone    Boolean  @default(false)
+  // TODO: locale?
   createdAt DateTime @default(now())
 }
