@@ -125,6 +125,7 @@ function App() {
         maxWidth: "960px"
       }}
     >
+      {/* TODO: Add today's date in header */}
       <Header style={{ width: "100%" }}>
         <Title style={{ fontSize: "1.8rem" }}>
           <InboxOutlined style={{ color: "#1677FF" }} />
@@ -149,7 +150,7 @@ function App() {
           renderItem={(task) => (
             <List.Item style={{ padding: "0", marginBottom: "0.25rem" }}>
               <Checkbox defaultChecked={task.isDone} onChange={toggleChecked} value={task.id}>
-                {/* TODO: Conditional rendering between button and span */}
+                {/* TODO: Conditional rendering between button and span or change button status */}
                 <Button type="text" size="small" onClick={(e) => openTaskEditModal(e)} value={task.id}>
                   {task.title}
                 </Button>
@@ -161,6 +162,7 @@ function App() {
           )}
         ></List>
       </Content>
+      {/* TODO: Add task counter and progress to footer */}
       <Footer style={{ position: "fixed", bottom: "0", left: "0", width: "100%", textAlign: "center" }}>
         <Button onClick={clearList}>
           <DeleteFilled />
