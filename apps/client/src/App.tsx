@@ -2,7 +2,9 @@ import { Api, CreateTaskDto, Task, UpdateTaskDto } from "../Api";
 import { InboxOutlined, PlusOutlined, DeleteFilled, EditFilled } from "@ant-design/icons";
 import { Button, Checkbox, Form, Input, Layout, List, message, Modal, Typography } from "antd";
 import { CheckboxChangeEvent } from "antd/es/checkbox";
-import { MouseEvent, useEffect, useState } from "react";
+import { MouseEvent, useEffect, useRef, useState } from "react";
+import type { DraggableData, DraggableEvent } from "react-draggable";
+import Draggable from "react-draggable";
 import styled from "styled-components";
 
 // CSS
@@ -69,11 +71,31 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalInputValue, setModalInputValue] = useState(``);
   const [selectedTaskId, setSelectedTaskId] = useState(``);
+  // Draggable modal states
+  const draggableRef = useRef<HTMLDivElement>(null);
+  const [bounds, setBounds] = useState({ left: 0, top: 0, bottom: 0, right: 0 });
+  const [isDragEnabled, setIsDragEnabled] = useState(false);
 
   const openTaskEditModal = (e: MouseEvent<HTMLAnchorElement> | MouseEvent<HTMLButtonElement>) => {
     setModalInputValue(e.currentTarget.innerText);
     setSelectedTaskId((e.currentTarget as HTMLButtonElement).value);
     setIsModalOpen(true);
+  };
+
+  //Draggable modal
+  const onModalStart = (_event: DraggableEvent, uiData: DraggableData) => {
+    const { clientWidth, clientHeight } = window.document.documentElement;
+    const targetRect = draggableRef.current?.getBoundingClientRect();
+    if (!targetRect) {
+      return;
+    }
+
+    setBounds({
+      left: -targetRect.left + uiData.x,
+      right: clientWidth - (targetRect.right - uiData.x),
+      top: -targetRect.top + uiData.y,
+      bottom: clientHeight - (targetRect.bottom - uiData.y)
+    });
   };
 
   const editTask = (value: UpdateTaskDto) => {
@@ -170,8 +192,21 @@ function App() {
       </Footer>
 
       {/* Editor modal component */}
-      {/* TODO: draggable? */}
       <Modal
+        title={
+          <div
+            onMouseOver={() => {
+              if (!isDragEnabled) {
+                setIsDragEnabled(true);
+              }
+            }}
+            onMouseOut={() => {
+              setIsDragEnabled(false);
+            }}
+          >
+            Edit To-Do
+          </div>
+        }
         open={isModalOpen}
         footer={null}
         onCancel={() => {
@@ -179,10 +214,20 @@ function App() {
         }}
         closable={false}
         destroyOnClose={true}
+        modalRender={(modal) => (
+          <Draggable disabled={isDragEnabled} bounds={bounds} onStart={(event, uiData) => onModalStart(event, uiData)}>
+            <div ref={draggableRef}>{modal}</div>
+          </Draggable>
+        )}
       >
-        <Form onFinish={editTask}>
+        <Form
+          onFinish={editTask}
+          style={{
+            cursor: "move"
+          }}
+        >
           <Form.Item name="title" initialValue={modalInputValue}>
-            <Input required />
+            <Input required placeholder="To-Do" />
           </Form.Item>
           <div style={{ textAlign: "right" }}>
             <Button htmlType="submit" type="primary">
