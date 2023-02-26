@@ -14,15 +14,21 @@ export class AppService {
     return await this.prisma.task.findMany();
   }
 
-  async deleteAllTask() {
-    return await this.prisma.task.deleteMany({});
-  }
-
   async updateTask(params: { where: Prisma.TaskWhereUniqueInput; data: Prisma.TaskUpdateInput }): Promise<Task> {
     const { where, data } = params;
     return await this.prisma.task.update({
       where,
       data
+    });
+  }
+
+  async deleteAllTask() {
+    return await this.prisma.task.deleteMany({});
+  }
+
+  async removeTask(where: Prisma.TaskWhereUniqueInput) {
+    return await this.prisma.task.delete({
+      where
     });
   }
 
