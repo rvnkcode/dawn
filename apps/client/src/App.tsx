@@ -52,7 +52,7 @@ function App() {
         })
         .catch((error) => {
           console.error(error);
-          message.error(`${error}`);
+          message.error(`Cannot clear to-do list`);
         });
     }
   };
@@ -88,6 +88,18 @@ function App() {
       .catch((error) => {
         console.error(error);
         message.error(`Cannot update task`);
+      });
+  };
+
+  const deleteSelectedTask = (e: MouseEvent<HTMLAnchorElement> | MouseEvent<HTMLButtonElement>) => {
+    api.id
+      .appControllerDeleteTask((e.currentTarget as HTMLButtonElement).value)
+      .then((response) => {
+        setList(list.filter((task) => task.id !== response.data.id));
+      })
+      .catch((error) => {
+        console.error(error);
+        message.error(`Cannot remove selected task`);
       });
   };
 
@@ -142,8 +154,7 @@ function App() {
                   {task.title}
                 </Button>
               </Checkbox>
-              {/* TODO: Delete selected task */}
-              <Button>
+              <Button type="text" size="small" value={task.id} onClick={(e) => deleteSelectedTask(e)}>
                 <DeleteFilled />
               </Button>
             </List.Item>

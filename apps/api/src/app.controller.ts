@@ -34,6 +34,12 @@ export class AppController {
     return await this.appService.deleteAllTask();
   }
 
+  @Delete(":id")
+  @ApiOkResponse({ type: Task })
+  async deleteTask(@Param("id") id: string) {
+    return await this.appService.removeTask({ id: Number(id) });
+  }
+
   // @get(":id")
   // findone(@param("id") id: string) {
   //   return this.appservice.findone(+id);
