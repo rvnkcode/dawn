@@ -11,7 +11,8 @@
   ],
   "dependencies": {
     "concurrently": "^7.6.0",
-    "date-fns": "^2.29.3"
+    "date-fns": "^2.29.3",
+    "date-fns-tz": "^2.0.0"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^4.0.0",
@@ -27,6 +28,6 @@
     "client": "yarn workspace @dawn/client dev",
     "api": "yarn workspace @dawn/api start:dev",
     "dev": "concurrently --kill-others-on-fail \"yarn api\" \"yarn client\"",
-    "c:api": "yarn workspace @dawn/client api"    
+    "c:api": "yarn workspace @dawn/client api"
   }
 }
