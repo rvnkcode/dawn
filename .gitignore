@@ -20,6 +20,6 @@ dist
 !.vscode/launch.json
 !.vscode/extensions.json
 
-.test.http
+apps/api/.test.http
 apps/api/swagger.yaml
 apps/client/Api.ts
