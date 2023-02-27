@@ -195,7 +195,6 @@ function App() {
       </Footer>
 
       {/* Editor modal component */}
-      {/* TODO: Warning: findDOMNode is deprecated in StrictMode. findDOMNode was passed an instance of Draggable which is inside StrictMode. Instead, add a ref directly to the element you want to reference. Learn more about using refs safely here: https://reactjs.org/link/strict-mode-find-node */}
       <Modal
         title={
           <div
