@@ -2,6 +2,8 @@ import { PrismaService } from "./prisma/prisma.service";
 import { Injectable } from "@nestjs/common";
 import { Task, Prisma } from "@prisma/client";
 
+// TODO: write test
+
 @Injectable()
 export class AppService {
   constructor(private prisma: PrismaService) {}
