@@ -1,4 +1,4 @@
-import { Api, CreateTaskDto, Task, UpdateTaskDto } from "../Api";
+import { Api, CreateTaskDto, TaskEntity, UpdateTaskDto } from "../Api";
 import { InboxOutlined, PlusOutlined, DeleteFilled, EditFilled } from "@ant-design/icons";
 import { Button, Checkbox, Form, Input, Layout, List, message, Modal, Typography } from "antd";
 import { CheckboxChangeEvent } from "antd/es/checkbox";
@@ -26,9 +26,12 @@ const api = new Api({
   baseUrl: "http://localhost:3000"
 });
 
+// Locale
+// const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 function App() {
   const [form] = Form.useForm();
-  const [list, setList] = useState<Task[]>([]);
+  const [list, setList] = useState<TaskEntity[]>([]);
 
   // POST
   const createTask = (value: CreateTaskDto) => {
@@ -192,6 +195,7 @@ function App() {
       </Footer>
 
       {/* Editor modal component */}
+      {/* TODO: Warning: findDOMNode is deprecated in StrictMode. findDOMNode was passed an instance of Draggable which is inside StrictMode. Instead, add a ref directly to the element you want to reference. Learn more about using refs safely here: https://reactjs.org/link/strict-mode-find-node */}
       <Modal
         title={
           <div

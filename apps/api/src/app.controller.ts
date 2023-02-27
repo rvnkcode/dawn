@@ -1,7 +1,7 @@
 import { AppService } from "./app.service";
 import { CreateTaskDto } from "./task/dto/create-task.dto";
 import { UpdateTaskDto } from "./task/dto/update-task.dto";
-import { Task } from "./task/entities/task.entity";
+import { TaskEntity } from "./task/entities/task.entity";
 import { Controller, Get, Post, Body, Patch, Param, Delete, Put } from "@nestjs/common";
 import { ApiOkResponse } from "@nestjs/swagger";
 
@@ -10,18 +10,18 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Post()
-  @ApiOkResponse({ type: Task })
+  @ApiOkResponse({ type: TaskEntity })
   async createTask(@Body() createTaskDto: CreateTaskDto) {
     return await this.appService.createTask(createTaskDto);
   }
 
   @Get()
-  async getTaskList(): Promise<Task[]> {
+  async getTaskList(): Promise<TaskEntity[]> {
     return await this.appService.getTaskList();
   }
 
   @Put(":id")
-  @ApiOkResponse({ type: Task })
+  @ApiOkResponse({ type: TaskEntity })
   async updateTask(@Param("id") id: string, @Body() updateTaskDto: UpdateTaskDto) {
     return await this.appService.updateTask({
       where: { id: Number(id) },
@@ -35,7 +35,7 @@ export class AppController {
   }
 
   @Delete(":id")
-  @ApiOkResponse({ type: Task })
+  @ApiOkResponse({ type: TaskEntity })
   async deleteTask(@Param("id") id: string) {
     return await this.appService.removeTask({ id: Number(id) });
   }
