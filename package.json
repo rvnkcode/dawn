@@ -28,6 +28,9 @@
     "client": "yarn workspace @dawn/client dev",
     "api": "yarn workspace @dawn/api start:dev",
     "dev": "concurrently --kill-others-on-fail \"yarn api\" \"yarn client\"",
-    "c:api": "yarn workspace @dawn/client api"
+    "c:api": "yarn workspace @dawn/client api",
+    "api:build": "yarn workspace @dawn/api build",
+    "client:build": "yarn workspace @dawn/client build",
+    "build": "concurrently --kill-others-on-fail \"yarn api:build\" \"yarn client:build\""
   }
 }
