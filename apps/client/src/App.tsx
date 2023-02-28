@@ -141,6 +141,24 @@ function App() {
       });
   }, []);
 
+  const todoListComponent = (list: Array<TaskEntity>) => {
+    const listItems = list.map((task) => (
+      <li key={task.id} style={{ display: "flex", justifyContent: "space-between" }}>
+        <Checkbox defaultChecked={task.isDone} onChange={toggleChecked} value={task.id}>
+          {/* TODO: Conditional rendering between button and span or change button status */}
+          <Button type="text" size="small" onClick={(e) => openTaskEditModal(e)} value={task.id}>
+            {task.title}
+          </Button>
+        </Checkbox>
+        <Button type="text" size="small" value={task.id} onClick={(e) => deleteSelectedTask(e)}>
+          <DeleteFilled />
+        </Button>
+      </li>
+    ));
+
+    return <ul>{listItems}</ul>;
+  };
+
   return (
     <Layout
       style={{
@@ -167,26 +185,7 @@ function App() {
           </Input.Group>
         </Form>
       </Header>
-      <Content>
-        <List
-          dataSource={list}
-          size="small"
-          split={false}
-          renderItem={(task) => (
-            <List.Item style={{ padding: "0", marginBottom: "0.25rem" }}>
-              <Checkbox defaultChecked={task.isDone} onChange={toggleChecked} value={task.id}>
-                {/* TODO: Conditional rendering between button and span or change button status */}
-                <Button type="text" size="small" onClick={(e) => openTaskEditModal(e)} value={task.id}>
-                  {task.title}
-                </Button>
-              </Checkbox>
-              <Button type="text" size="small" value={task.id} onClick={(e) => deleteSelectedTask(e)}>
-                <DeleteFilled />
-              </Button>
-            </List.Item>
-          )}
-        ></List>
-      </Content>
+      <Content>{todoListComponent(list)}</Content>
       {/* TODO: Add task counter and progress to footer */}
       <Footer style={{ position: "fixed", bottom: "0", left: "0", width: "100%", textAlign: "center" }}>
         <Button onClick={clearList}>
