@@ -35,7 +35,7 @@ function App() {
 
   // POST
   const createTask = (value: CreateTaskDto) => {
-    api
+    api.task
       .appControllerCreateTask(value)
       .then((response) => {
         setList(list.concat(response.data));
@@ -50,7 +50,7 @@ function App() {
   // DELETE
   const clearList = () => {
     if (list.length > 0) {
-      api
+      api.task
         .appControllerDeleteAllTask()
         .then(() => {
           setList([]);
@@ -64,7 +64,7 @@ function App() {
 
   const toggleChecked = (e: CheckboxChangeEvent) => {
     // message.info(`${e.target.value}`);
-    api.id.appControllerUpdateTask(e.target.value, { isDone: e.target.checked }).catch((error) => {
+    api.task.appControllerUpdateTask(e.target.value, { isDone: e.target.checked }).catch((error) => {
       console.error(error);
       message.error(`Cannot complete task`);
     });
@@ -102,7 +102,7 @@ function App() {
   };
 
   const editTask = (value: UpdateTaskDto) => {
-    api.id
+    api.task
       .appControllerUpdateTask(selectedTaskId, value)
       .then((response) => {
         const updateList = [...list];
@@ -117,7 +117,7 @@ function App() {
   };
 
   const deleteSelectedTask = (e: MouseEvent<HTMLAnchorElement> | MouseEvent<HTMLButtonElement>) => {
-    api.id
+    api.task
       .appControllerDeleteTask((e.currentTarget as HTMLButtonElement).value)
       .then((response) => {
         setList(list.filter((task) => task.id !== response.data.id));
@@ -130,7 +130,7 @@ function App() {
 
   // GET
   useEffect(() => {
-    api
+    api.task
       .appControllerGetTaskList()
       .then((response) => {
         setList(response.data);
