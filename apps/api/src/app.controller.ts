@@ -7,7 +7,7 @@ import { ApiOkResponse } from "@nestjs/swagger";
 
 // TODO: Write test
 
-@Controller()
+@Controller("task")
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
