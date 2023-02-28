@@ -21,6 +21,5 @@ dist
 !.vscode/extensions.json
 
 apps/api/.test.http
-apps/api/swagger.yaml
 apps/api/client
 apps/client/Api.ts

@@ -1,0 +1,126 @@
+openapi: 3.0.0
+paths:
+  /task:
+    post:
+      operationId: AppController_createTask
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskEntity'
+        '201':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+    get:
+      operationId: AppController_getTaskList
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskEntity'
+    delete:
+      operationId: AppController_deleteAllTask
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+  /task/{id}:
+    put:
+      operationId: AppController_updateTask
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskEntity'
+    delete:
+      operationId: AppController_deleteTask
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskEntity'
+info:
+  title: GTD API
+  description: Getting Things Done API description
+  version: 0.0.1
+  contact: {}
+tags:
+  - name: Task
+    description: ''
+servers: []
+components:
+  schemas:
+    CreateTaskDto:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+    TaskEntity:
+      type: object
+      properties:
+        id:
+          type: number
+        title:
+          type: string
+        isDone:
+          type: boolean
+        createdAt:
+          format: date-time
+          type: string
+      required:
+        - id
+        - title
+        - isDone
+        - createdAt
+    UpdateTaskDto:
+      type: object
+      properties:
+        title:
+          type: string
+        isDone:
+          type: boolean
