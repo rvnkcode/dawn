@@ -1,18 +1,29 @@
-FROM node:18
+FROM node:lts-alpine AS build
 
-WORKDIR /dawn
-# TODO:
-# COPY ["package.json", "yarn.lock", "./"]
-# COPY apps/api/package.json /app/api/
-# COPY apps/client/package.json /app/client/
+WORKDIR /usr/src/dawn
+COPY --chown=node:node ["package.json", "yarn.lock", "./"]
+COPY apps/api/package.json ./apps/api/
+COPY apps/client/package.json ./apps/client/
 
-# RUN echo 
+RUN yarn install --frozen-lockfile
+
 COPY . .
 
-RUN yarn install
-RUN mkdir /memo && chown node /memo
-RUN yarn db
+RUN yarn workspace @dawn/api prisma generate
+
+# RUN mkdir /memo && chown node /memo
+# RUN yarn workspace @dawn/api prisma db push
 RUN yarn c:api
-EXPOSE 3000
 RUN yarn build
-CMD [ "node", "apps/api/dist/main" ]
+
+# FROM node:lts-alpine AS prod
+
+# WORKDIR /usr/src/dawn
+# COPY --from=build /usr/src/dawn/apps/api/dist ./dist
+# COPY --from=build /usr/src/dawn/apps/api/client ./client
+# COPY --chown=node:node --from=build /memo /memo
+
+EXPOSE 3000
+
+# CMD [ "node", "./dist/main" ]
+CMD [ "node", "./apps/api/dist/main" ]
