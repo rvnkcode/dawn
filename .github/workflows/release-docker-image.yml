@@ -2,7 +2,7 @@ name: Release Docker Image
 
 on:
   release:
-    types: [published]
+    types: [created]
 
 jobs:
   build-and-push-release-image:
