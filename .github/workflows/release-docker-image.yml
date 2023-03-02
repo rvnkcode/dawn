@@ -2,7 +2,7 @@ name: Release Docker Image
 
 on:
   release:
-    types: [created]
+    types: [published]
 
 jobs:
   build-and-push-release-image:
@@ -40,7 +40,7 @@ jobs:
         push: true
         tags: |
           rvnk/dawn:latest
-          rvnk/dawn:${{ github.ref }}
+          rvnk/dawn:${{ github.event.release.tag_name }}
           ghcr.io/rvnk/dawn:latest
-          ghcr.io/rvnk/dawn:${{ github.ref }}
+          ghcr.io/rvnk/dawn:${{ github.event.release.tag_name }}
  
