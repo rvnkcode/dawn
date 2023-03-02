@@ -38,4 +38,4 @@ jobs:
         file: ./Dockerfile
         platforms: linux/amd64,linux/arm64
         push: true
-        tags: rvnk/dawn:latest ${{ github.ref }}
+        tags: rvnk/dawn:latest,rvnk/dawn:${{ github.ref }}
