@@ -20,13 +20,6 @@ jobs:
       with:
         username: rvnk
         password: ${{ secrets.DOCKER_TOKEN }}
-        
-    - name: Login to Container registry
-      uses: docker/login-action@v2.1.0
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
        
     - name: Build and Push
       uses: docker/build-push-action@v4.0.0
@@ -37,6 +30,4 @@ jobs:
         tags: |
           rvnk/dawn:latest
           rvnk/dawn:${{ github.event.release.tag_name }}
-          ghcr.io/rvnk/dawn:latest
-          ghcr.io/rvnk/dawn:${{ github.event.release.tag_name }}
  
