@@ -25,12 +25,14 @@
     "typescript": "^4.9.5"
   },
   "scripts": {
+    "server": "yarn workspace @dawn/api start:dev",
+    "api": "yarn workspace @dawn/client api",
     "client": "yarn workspace @dawn/client dev",
-    "api": "yarn workspace @dawn/api start:dev",
-    "dev": "concurrently --kill-others-on-fail \"yarn api\" \"yarn client\"",
-    "c:api": "yarn workspace @dawn/client api",
-    "api:build": "yarn workspace @dawn/api build",
+    "dev": "yarn api && concurrently --kill-others-on-fail \"yarn server\" \"yarn client\"",
+    "server:build": "yarn workspace @dawn/api build",
     "client:build": "yarn workspace @dawn/client build --emptyOutDir",
-    "build": "concurrently --kill-others-on-fail \"yarn api:build\" \"yarn client:build\""
+    "build": "concurrently --kill-others-on-fail \"yarn server:build\" \"yarn client:build\"",
+    "db": "yarn workspace @dawn/api prisma db push && yarn workspace @dawn/api prisma generate",
+    "start": "yarn workspace @dawn/api prisma db push && node ./apps/api/dist/main"
   }
 }

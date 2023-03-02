@@ -1,0 +1,9 @@
+version: '3.0'
+services:
+  dawn:
+    image: rvnk/dawn:latest
+    container_name: dawn
+    volumes:
+      - ~/.dawn:/memo
+    ports:
+      - 3000:80

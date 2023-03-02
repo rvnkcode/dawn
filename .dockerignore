@@ -1,0 +1,10 @@
+node_modules
+apps/api/node_modules
+apps/api/dist
+apps/api/client
+apps/api/.test.http
+apps/client/node_modules
+apps/client/Api.ts
+.gitignore
+.git
+*.log
