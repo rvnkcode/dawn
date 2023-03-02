@@ -8,3 +8,4 @@ apps/client/Api.ts
 .gitignore
 .git
 *.log
+.github
