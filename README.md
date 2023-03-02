@@ -1,5 +1,7 @@
 # Dawn
 
+[![Release Docker Image](https://github.com/rvnkcode/dawn/actions/workflows/release-docker-image.yml/badge.svg)](https://github.com/rvnkcode/dawn/actions/workflows/release-docker-image.yml)
+
 ## Deploy with Docker
 
 ### Docker Run
