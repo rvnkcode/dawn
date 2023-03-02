@@ -10,7 +10,7 @@ RUN yarn install --frozen-lockfile
 COPY . .
 
 RUN yarn workspace @dawn/api prisma generate
-RUN yarn c:api
+RUN yarn api
 
 RUN yarn build
 
@@ -29,8 +29,7 @@ RUN yarn install --production=true
 RUN yarn cache clean
 
 RUN mkdir /memo && chown node /memo
-RUN yarn workspace @dawn/api prisma db push
 
 EXPOSE 3000
 
-CMD [ "node", "./apps/api/dist/main" ]
+CMD [ "yarn", "start" ]
