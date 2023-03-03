@@ -5,7 +5,8 @@ COPY ["package.json", "yarn.lock", "./"]
 COPY apps/api/package.json ./apps/api/
 COPY apps/client/package.json ./apps/client/
 
-RUN yarn install --frozen-lockfile
+RUN yarn config delete proxy && yarn config delete https-proxy
+RUN yarn install --frozen-lockfile --network-timeout 1000000
 
 COPY . .
 
