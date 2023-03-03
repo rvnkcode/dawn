@@ -149,7 +149,6 @@ function App() {
     const listItems = list.map((task) => (
       <li key={task.id} style={{ display: "flex", justifyContent: "space-between" }}>
         <Checkbox defaultChecked={task.isDone} onChange={toggleChecked} value={task.id}>
-          {/* TODO: Conditional rendering between button and span or change button status */}
           <Button type="text" size="small" onClick={(e) => openTaskEditModal(e)} value={task.id}>
             <span>{task.title}</span>
           </Button>
