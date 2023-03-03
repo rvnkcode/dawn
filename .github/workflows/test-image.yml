@@ -2,9 +2,11 @@ name: Test Docker Image
 
 on:
   push:
-    branches: [develop]
+    branches:
+      - "release/*.*.*"
   pull_request:
-    branches: [develop]
+    branches:
+      - "release/*.*.*"
     
 jobs:
   build:
