@@ -1,6 +1,6 @@
 import { Api, CreateTaskDto, TaskEntity, UpdateTaskDto } from "../Api";
 import { InboxOutlined, PlusOutlined, DeleteFilled, EditFilled } from "@ant-design/icons";
-import { Button, Checkbox, Form, Input, Layout, message, Modal, Typography } from "antd";
+import { Button, Checkbox, Empty, Form, Input, Layout, message, Modal, Typography } from "antd";
 import { CheckboxChangeEvent } from "antd/es/checkbox";
 import { format } from "date-fns-tz";
 import { MouseEvent, useEffect, useRef, useState } from "react";
@@ -191,8 +191,13 @@ function App() {
           </Input.Group>
         </Form>
       </Header>
-      {/* TODO: Add empty list from antd */}
-      <Content>{todoListComponent(list)}</Content>
+      <Content>
+        {list.length > 0 ? (
+          todoListComponent(list)
+        ) : (
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Your inbox is empty - time to celebrate!" />
+        )}
+      </Content>
       {/* TODO: Add task counter and progress to footer */}
       <Footer style={{ position: "fixed", bottom: "0", left: "0", width: "100%", textAlign: "center" }}>
         <Button onClick={clearList}>
