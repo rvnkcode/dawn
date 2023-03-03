@@ -2,6 +2,7 @@ import { Api, CreateTaskDto, TaskEntity, UpdateTaskDto } from "../Api";
 import { InboxOutlined, PlusOutlined, DeleteFilled, EditFilled } from "@ant-design/icons";
 import { Button, Checkbox, Form, Input, Layout, message, Modal, Typography } from "antd";
 import { CheckboxChangeEvent } from "antd/es/checkbox";
+import { format } from "date-fns-tz";
 import { MouseEvent, useEffect, useRef, useState } from "react";
 import type { DraggableData, DraggableEvent } from "react-draggable";
 import Draggable from "react-draggable";
@@ -27,7 +28,9 @@ const api = new Api({
 });
 
 // Locale
-// const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const today = format(new Date(), "YYY.M.d eee", { timeZone: timeZone });
+const week = format(new Date(), " (Io)", { timeZone: timeZone });
 
 function App() {
   const [form] = Form.useForm();
@@ -168,12 +171,15 @@ function App() {
         maxWidth: "960px"
       }}
     >
-      {/* TODO: Add today's date in header */}
       <Header style={{ width: "100%" }}>
-        <Title style={{ fontSize: "1.8rem" }}>
+        <Title style={{ fontSize: "1.8rem", marginBottom: "0.25rem" }}>
           <InboxOutlined style={{ color: "#1677FF" }} />
           Inbox
         </Title>
+        <h2 style={{ marginBottom: "1rem", fontSize: "1.2rem", color: "#787a77" }}>
+          {today}
+          <span style={{ fontSize: "1rem" }}>{week}</span>
+        </h2>
         <Form onFinish={createTask} form={form}>
           <Input.Group compact>
             <Form.Item name="title" noStyle rules={[{ required: true }]}>
@@ -185,6 +191,7 @@ function App() {
           </Input.Group>
         </Form>
       </Header>
+      {/* TODO: Add empty list from antd */}
       <Content>{todoListComponent(list)}</Content>
       {/* TODO: Add task counter and progress to footer */}
       <Footer style={{ position: "fixed", bottom: "0", left: "0", width: "100%", textAlign: "center" }}>
