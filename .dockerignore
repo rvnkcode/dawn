@@ -9,3 +9,4 @@ apps/client/Api.ts
 .git
 *.log
 .github
+.devcontainer
