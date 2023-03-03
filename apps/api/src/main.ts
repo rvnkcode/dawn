@@ -2,7 +2,7 @@ import { AppModule } from "./app.module";
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
-import { existsSync, writeFileSync } from "fs";
+import { writeFileSync } from "fs";
 import { dump } from "js-yaml";
 
 async function bootstrap() {
@@ -27,15 +27,6 @@ async function bootstrap() {
     console.log(`swagger.yaml exported to project directory`);
   } catch (error) {
     console.error(`swagger.yaml could not export to project directory`, error);
-  }
-  // Export swagger.yaml for devcontainer
-  if (existsSync(`/memo`)) {
-    try {
-      writeFileSync(`/memo/swagger.yaml`, dump(document, {}));
-      console.log(`swagger.yaml exported to docker volume directory`);
-    } catch (error) {
-      console.error(`swagger.yaml could not exported to docker volume directory`, error);
-    }
   }
 
   await app.listen(3000);
