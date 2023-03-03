@@ -1,4 +1,5 @@
 import { Api, CreateTaskDto, TaskEntity, UpdateTaskDto } from "../Api";
+import "./style.css";
 import { InboxOutlined, PlusOutlined, DeleteFilled, EditFilled } from "@ant-design/icons";
 import { Button, Checkbox, Empty, Form, Input, Layout, message, Modal, Typography } from "antd";
 import { CheckboxChangeEvent } from "antd/es/checkbox";
@@ -150,7 +151,7 @@ function App() {
         <Checkbox defaultChecked={task.isDone} onChange={toggleChecked} value={task.id}>
           {/* TODO: Conditional rendering between button and span or change button status */}
           <Button type="text" size="small" onClick={(e) => openTaskEditModal(e)} value={task.id}>
-            {task.title}
+            <span>{task.title}</span>
           </Button>
         </Checkbox>
         <Button type="text" size="small" value={task.id} onClick={(e) => deleteSelectedTask(e)}>
