@@ -200,7 +200,7 @@ function App() {
       </Content>
       {/* TODO: Add task counter and progress to footer */}
       <Footer style={{ position: "fixed", bottom: "0", left: "0", width: "100%", textAlign: "center" }}>
-        <Button onClick={clearList}>
+        <Button onClick={clearList} disabled={list.length == 0 ? true : false}>
           <DeleteFilled />
         </Button>
       </Footer>
