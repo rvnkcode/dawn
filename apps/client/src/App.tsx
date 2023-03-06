@@ -1,12 +1,12 @@
-import { Api, CreateTaskDto, TaskEntity, UpdateTaskDto } from "../Api";
+import { Api, CreateTaskDto, TaskEntity } from "../Api";
+import PageTitleComponent from "./Components/PageTitleComponent";
+import TaskEditModal from "./Components/TaskEditModal";
 import "./style.css";
-import { InboxOutlined, PlusOutlined, DeleteFilled, EditFilled } from "@ant-design/icons";
-import { Button, Checkbox, Empty, Form, Input, Layout, message, Modal, Typography } from "antd";
+import { PlusOutlined, DeleteFilled } from "@ant-design/icons";
+import { Button, Checkbox, Empty, Form, Input, Layout, message } from "antd";
 import { CheckboxChangeEvent } from "antd/es/checkbox";
-import { format } from "date-fns-tz";
-import { MouseEvent, useEffect, useRef, useState } from "react";
-import type { DraggableData, DraggableEvent } from "react-draggable";
-import Draggable from "react-draggable";
+import { MouseEvent, useEffect } from "react";
+import { atom, useRecoilState, useSetRecoilState } from "recoil";
 import styled from "styled-components";
 
 // CSS
@@ -20,7 +20,6 @@ const Header = styled.header`
   margin-bottom: 1.5rem;
 `;
 
-const { Title } = Typography;
 const { Content, Footer } = Layout;
 
 // API
@@ -28,14 +27,31 @@ const api = new Api({
   baseUrl: "http://localhost:3000"
 });
 
-// Locale
-const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-const today = format(new Date(), "YYY.M.d eee", { timeZone: timeZone });
-const week = format(new Date(), " (Io)", { timeZone: timeZone });
+// Atoms
+export const listState = atom({
+  key: "listState",
+  default: [] as TaskEntity[]
+});
 
+export const selectedTaskIdState = atom({
+  key: "selectedTaskIdState",
+  default: ``
+});
+
+export const isModalOpenState = atom({
+  key: "isModalOpenState",
+  default: false
+});
+
+export const modalInputValueState = atom({
+  key: "modalInputValueState",
+  default: ``
+});
+
+// Component
 function App() {
   const [form] = Form.useForm();
-  const [list, setList] = useState<TaskEntity[]>([]);
+  const [list, setList] = useRecoilState(listState);
 
   // POST
   const createTask = (value: CreateTaskDto) => {
@@ -65,61 +81,6 @@ function App() {
         });
     }
   };
-
-  const toggleChecked = (e: CheckboxChangeEvent) => {
-    // message.info(`${e.target.value}`);
-    api.task.appControllerUpdateTask(e.target.value, { isDone: e.target.checked }).catch((error) => {
-      console.error(error);
-      message.error(`Cannot complete task`);
-    });
-  };
-
-  // Task edit modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalInputValue, setModalInputValue] = useState(``);
-  const [selectedTaskId, setSelectedTaskId] = useState(``);
-  // Draggable modal states
-  const draggableRef = useRef<HTMLDivElement>(null);
-  const [bounds, setBounds] = useState({ left: 0, top: 0, bottom: 0, right: 0 });
-  const [isDragEnabled, setIsDragEnabled] = useState(false);
-
-  const openTaskEditModal = (e: MouseEvent<HTMLAnchorElement> | MouseEvent<HTMLButtonElement>) => {
-    setModalInputValue(e.currentTarget.innerText);
-    setSelectedTaskId((e.currentTarget as HTMLButtonElement).value);
-    setIsModalOpen(true);
-  };
-
-  //Draggable modal
-  const onModalStart = (_event: DraggableEvent, uiData: DraggableData) => {
-    const { clientWidth, clientHeight } = window.document.documentElement;
-    const targetRect = draggableRef.current?.getBoundingClientRect();
-    if (!targetRect) {
-      return;
-    }
-
-    setBounds({
-      left: -targetRect.left + uiData.x,
-      right: clientWidth - (targetRect.right - uiData.x),
-      top: -targetRect.top + uiData.y,
-      bottom: clientHeight - (targetRect.bottom - uiData.y)
-    });
-  };
-
-  const editTask = (value: UpdateTaskDto) => {
-    api.task
-      .appControllerUpdateTask(selectedTaskId, value)
-      .then((response) => {
-        const updateList = [...list];
-        updateList[updateList.findIndex((task) => task.id === +selectedTaskId)] = response.data;
-        setList(updateList);
-        setIsModalOpen(false);
-      })
-      .catch((error) => {
-        console.error(error);
-        message.error(`Cannot update task`);
-      });
-  };
-
   const deleteSelectedTask = (e: MouseEvent<HTMLAnchorElement> | MouseEvent<HTMLButtonElement>) => {
     api.task
       .appControllerDeleteTask((e.currentTarget as HTMLButtonElement).value)
@@ -130,6 +91,24 @@ function App() {
         console.error(error);
         message.error(`Cannot remove selected task`);
       });
+  };
+
+  const toggleChecked = (e: CheckboxChangeEvent) => {
+    api.task.appControllerUpdateTask(e.target.value, { isDone: e.target.checked }).catch((error) => {
+      console.error(error);
+      message.error(`Cannot complete task`);
+    });
+  };
+
+  // Task edit modal
+  const setIsModalOpen = useSetRecoilState(isModalOpenState);
+  const setModalInputValue = useSetRecoilState(modalInputValueState);
+  const setSelectedTaskIdState = useSetRecoilState(selectedTaskIdState);
+
+  const openTaskEditModal = (e: MouseEvent<HTMLAnchorElement> | MouseEvent<HTMLButtonElement>) => {
+    setModalInputValue(e.currentTarget.innerText);
+    setSelectedTaskIdState((e.currentTarget as HTMLButtonElement).value);
+    setIsModalOpen(true);
   };
 
   // GET
@@ -172,14 +151,8 @@ function App() {
       }}
     >
       <Header style={{ width: "100%" }}>
-        <Title style={{ fontSize: "1.8rem", marginBottom: "0.25rem" }}>
-          <InboxOutlined style={{ color: "#1677FF" }} />
-          Inbox
-        </Title>
-        <h2 style={{ marginBottom: "1rem", fontSize: "1rem", color: "grey", fontWeight: "lighter" }}>
-          {today}
-          <span style={{ fontSize: "0.8rem" }}>{week}</span>
-        </h2>
+        <PageTitleComponent />
+
         <Form onFinish={createTask} form={form}>
           <Input.Group compact>
             <Form.Item name="title" noStyle rules={[{ required: true }]}>
@@ -191,6 +164,7 @@ function App() {
           </Input.Group>
         </Form>
       </Header>
+
       <Content>
         {list.length > 0 ? (
           todoListComponent(list)
@@ -198,6 +172,7 @@ function App() {
           <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Your inbox is empty - time to celebrate!" />
         )}
       </Content>
+
       {/* TODO: Add task counter and progress to footer */}
       <Footer style={{ position: "fixed", bottom: "0", left: "0", width: "100%", textAlign: "center" }}>
         <Button onClick={clearList} disabled={list.length == 0 ? true : false}>
@@ -205,51 +180,7 @@ function App() {
         </Button>
       </Footer>
 
-      {/* Editor modal component */}
-      <Modal
-        title={
-          <div
-            onMouseOver={() => {
-              if (!isDragEnabled) {
-                setIsDragEnabled(true);
-              }
-            }}
-            onMouseOut={() => {
-              setIsDragEnabled(false);
-            }}
-          >
-            Edit To-Do
-          </div>
-        }
-        open={isModalOpen}
-        footer={null}
-        onCancel={() => {
-          setIsModalOpen(false);
-        }}
-        closable={false}
-        destroyOnClose={true}
-        modalRender={(modal) => (
-          <Draggable disabled={isDragEnabled} bounds={bounds} onStart={(event, uiData) => onModalStart(event, uiData)}>
-            <div ref={draggableRef}>{modal}</div>
-          </Draggable>
-        )}
-      >
-        <Form
-          onFinish={editTask}
-          style={{
-            cursor: "move"
-          }}
-        >
-          <Form.Item name="title" initialValue={modalInputValue}>
-            <Input required placeholder="To-Do" />
-          </Form.Item>
-          <div style={{ textAlign: "right" }}>
-            <Button htmlType="submit" type="primary">
-              <EditFilled />
-            </Button>
-          </div>
-        </Form>
-      </Modal>
+      <TaskEditModal />
     </Layout>
   );
 }
