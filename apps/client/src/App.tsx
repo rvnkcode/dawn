@@ -176,9 +176,9 @@ function App() {
           <InboxOutlined style={{ color: "#1677FF" }} />
           Inbox
         </Title>
-        <h2 style={{ marginBottom: "1rem", fontSize: "1.2rem", color: "#787a77" }}>
+        <h2 style={{ marginBottom: "1rem", fontSize: "1rem", color: "grey", fontWeight: "lighter" }}>
           {today}
-          <span style={{ fontSize: "1rem" }}>{week}</span>
+          <span style={{ fontSize: "0.8rem" }}>{week}</span>
         </h2>
         <Form onFinish={createTask} form={form}>
           <Input.Group compact>
