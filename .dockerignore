@@ -10,3 +10,4 @@ apps/client/Api.ts
 *.log
 .github
 .devcontainer
+.vscode
