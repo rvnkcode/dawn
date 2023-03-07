@@ -1,12 +1,13 @@
-import { Api, CreateTaskDto, TaskEntity } from "../Api";
+import { CreateTaskDto, TaskEntity } from "../Api";
 import PageTitleComponent from "./Components/PageTitleComponent";
 import TaskEditModal from "./Components/TaskEditModal";
+import { api, listState, selectedTaskIdState, isModalOpenState, modalInputValueState } from "./selectors/task";
 import "./style.css";
 import { PlusOutlined, DeleteFilled } from "@ant-design/icons";
 import { Button, Checkbox, Empty, Form, Input, Layout, message } from "antd";
 import { CheckboxChangeEvent } from "antd/es/checkbox";
-import { MouseEvent, useEffect } from "react";
-import { atom, useRecoilState, useSetRecoilState } from "recoil";
+import { MouseEvent } from "react";
+import { useRecoilState, useSetRecoilState } from "recoil";
 import styled from "styled-components";
 
 // CSS
@@ -22,33 +23,6 @@ const Header = styled.header`
 
 const { Content, Footer } = Layout;
 
-// API
-const api = new Api({
-  baseUrl: "http://localhost:3000"
-});
-
-// Atoms
-export const listState = atom({
-  key: "listState",
-  default: [] as TaskEntity[]
-});
-
-export const selectedTaskIdState = atom({
-  key: "selectedTaskIdState",
-  default: ``
-});
-
-export const isModalOpenState = atom({
-  key: "isModalOpenState",
-  default: false
-});
-
-export const modalInputValueState = atom({
-  key: "modalInputValueState",
-  default: ``
-});
-
-// Component
 function App() {
   const [form] = Form.useForm();
   const [list, setList] = useRecoilState(listState);
@@ -111,19 +85,6 @@ function App() {
     setIsModalOpen(true);
   };
 
-  // GET
-  useEffect(() => {
-    api.task
-      .appControllerGetTaskList()
-      .then((response) => {
-        setList(response.data);
-      })
-      .catch((error) => {
-        console.error(error);
-        message.error(`Cannot get to-do list`);
-      });
-  }, [setList]);
-
   const todoListComponent = (list: Array<TaskEntity>) => {
     const listItems = list.map((task) => (
       <li key={task.id} style={{ display: "flex", justifyContent: "space-between" }}>
@@ -156,7 +117,13 @@ function App() {
         <Form onFinish={createTask} form={form}>
           <Input.Group compact>
             <Form.Item name="title" noStyle rules={[{ required: true }]}>
-              <Input style={{ width: "calc(100% - 46px)" }} autoFocus placeholder="New To-Do" required />
+              <Input
+                style={{ width: "calc(100% - 46px)" }}
+                autoFocus
+                placeholder="New To-Do"
+                required
+                autoComplete="off"
+              />
             </Form.Item>
             <Button type="primary" htmlType="submit">
               <PlusOutlined />
