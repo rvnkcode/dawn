@@ -122,7 +122,7 @@ function App() {
         console.error(error);
         message.error(`Cannot get to-do list`);
       });
-  }, []);
+  }, [setList]);
 
   const todoListComponent = (list: Array<TaskEntity>) => {
     const listItems = list.map((task) => (
