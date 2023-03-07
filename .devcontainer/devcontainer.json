@@ -26,13 +26,9 @@
         "humao.rest-client",
         "redhat.vscode-yaml",
         "Arjun.swagger-viewer",
-        "formulahendry.auto-rename-tag",
-        "ecmel.vscode-html-css",
         "styled-components.vscode-styled-components",
-        "ritwickdey.LiveServer",
         "folke.vscode-monorepo-workspace",
-        "Gruntfuggly.todo-tree",
-        "wayou.vscode-todo-highlight"
+        "Gruntfuggly.todo-tree"
       ],
       "settings": {
         "typescript.preferences.importModuleSpecifier": "relative",
