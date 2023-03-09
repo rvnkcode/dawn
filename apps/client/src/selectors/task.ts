@@ -9,7 +9,7 @@ export const api = new Api({
 // Atoms
 export const listAtom = atom<TaskEntity[]>({
   key: "todoList",
-  default: await api.task
+  default: api.task
     .appControllerGetTaskList()
     .then((response) => {
       return response.data;
