@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "ritwickdey.liveserver",
+    "ecmel.vscode-html-css",
+    "pranaygp.vscode-css-peek",
+    "burkeholland.simple-react-snippets",
+    "formulahendry.auto-rename-tag",
+    "wayou.vscode-todo-highlight"
+  ]
+}

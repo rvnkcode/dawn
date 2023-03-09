@@ -1,0 +1,5 @@
+span.ant-checkbox-checked + span > button > span {
+  text-decoration: line-through;
+  color: grey;
+  font-style: oblique;
+}
