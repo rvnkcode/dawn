@@ -1,12 +1,10 @@
-import { Api, CreateTaskDto, TaskEntity } from "../Api";
+import FooterComponent from "./Components/FooterComponent";
+import ListComponent from "./Components/ListComponent";
 import PageTitleComponent from "./Components/PageTitleComponent";
 import TaskEditModal from "./Components/TaskEditModal";
+import TaskInputForm from "./Components/TaskInputForm";
 import "./style.css";
-import { PlusOutlined, DeleteFilled } from "@ant-design/icons";
-import { Button, Checkbox, Empty, Form, Input, Layout, message } from "antd";
-import { CheckboxChangeEvent } from "antd/es/checkbox";
-import { MouseEvent, useEffect } from "react";
-import { atom, useRecoilState, useSetRecoilState } from "recoil";
+import Layout from "antd/es/layout/layout";
 import styled from "styled-components";
 
 // CSS
@@ -20,127 +18,7 @@ const Header = styled.header`
   margin-bottom: 1.5rem;
 `;
 
-const { Content, Footer } = Layout;
-
-// API
-const api = new Api({
-  baseUrl: "http://localhost:3000"
-});
-
-// Atoms
-export const listState = atom({
-  key: "listState",
-  default: [] as TaskEntity[]
-});
-
-export const selectedTaskIdState = atom({
-  key: "selectedTaskIdState",
-  default: ``
-});
-
-export const isModalOpenState = atom({
-  key: "isModalOpenState",
-  default: false
-});
-
-export const modalInputValueState = atom({
-  key: "modalInputValueState",
-  default: ``
-});
-
-// Component
 function App() {
-  const [form] = Form.useForm();
-  const [list, setList] = useRecoilState(listState);
-
-  // POST
-  const createTask = (value: CreateTaskDto) => {
-    api.task
-      .appControllerCreateTask(value)
-      .then((response) => {
-        setList(list.concat(response.data));
-        form.resetFields();
-      })
-      .catch((error) => {
-        console.error(error);
-        message.error(`${error}`);
-      });
-  };
-
-  // DELETE
-  const clearList = () => {
-    if (list.length > 0) {
-      api.task
-        .appControllerDeleteAllTask()
-        .then(() => {
-          setList([]);
-        })
-        .catch((error) => {
-          console.error(error);
-          message.error(`Cannot clear to-do list`);
-        });
-    }
-  };
-  const deleteSelectedTask = (e: MouseEvent<HTMLAnchorElement> | MouseEvent<HTMLButtonElement>) => {
-    api.task
-      .appControllerDeleteTask((e.currentTarget as HTMLButtonElement).value)
-      .then((response) => {
-        setList(list.filter((task) => task.id !== response.data.id));
-      })
-      .catch((error) => {
-        console.error(error);
-        message.error(`Cannot remove selected task`);
-      });
-  };
-
-  const toggleChecked = (e: CheckboxChangeEvent) => {
-    api.task.appControllerUpdateTask(e.target.value, { isDone: e.target.checked }).catch((error) => {
-      console.error(error);
-      message.error(`Cannot complete task`);
-    });
-  };
-
-  // Task edit modal
-  const setIsModalOpen = useSetRecoilState(isModalOpenState);
-  const setModalInputValue = useSetRecoilState(modalInputValueState);
-  const setSelectedTaskIdState = useSetRecoilState(selectedTaskIdState);
-
-  const openTaskEditModal = (e: MouseEvent<HTMLAnchorElement> | MouseEvent<HTMLButtonElement>) => {
-    setModalInputValue(e.currentTarget.innerText);
-    setSelectedTaskIdState((e.currentTarget as HTMLButtonElement).value);
-    setIsModalOpen(true);
-  };
-
-  // GET
-  useEffect(() => {
-    api.task
-      .appControllerGetTaskList()
-      .then((response) => {
-        setList(response.data);
-      })
-      .catch((error) => {
-        console.error(error);
-        message.error(`Cannot get to-do list`);
-      });
-  }, [setList]);
-
-  const todoListComponent = (list: Array<TaskEntity>) => {
-    const listItems = list.map((task) => (
-      <li key={task.id} style={{ display: "flex", justifyContent: "space-between" }}>
-        <Checkbox defaultChecked={task.isDone} onChange={toggleChecked} value={task.id}>
-          <Button type="text" size="small" onClick={(e) => openTaskEditModal(e)} value={task.id}>
-            <span>{task.title}</span>
-          </Button>
-        </Checkbox>
-        <Button type="text" size="small" value={task.id} onClick={(e) => deleteSelectedTask(e)}>
-          <DeleteFilled />
-        </Button>
-      </li>
-    ));
-
-    return <ul>{listItems}</ul>;
-  };
-
   return (
     <Layout
       style={{
@@ -152,35 +30,11 @@ function App() {
     >
       <Header style={{ width: "100%" }}>
         <PageTitleComponent />
-
-        <Form onFinish={createTask} form={form}>
-          <Input.Group compact>
-            <Form.Item name="title" noStyle rules={[{ required: true }]}>
-              <Input style={{ width: "calc(100% - 46px)" }} autoFocus placeholder="New To-Do" required />
-            </Form.Item>
-            <Button type="primary" htmlType="submit">
-              <PlusOutlined />
-            </Button>
-          </Input.Group>
-        </Form>
+        <TaskInputForm />
       </Header>
-
-      <Content>
-        {list.length > 0 ? (
-          todoListComponent(list)
-        ) : (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Your inbox is empty - time to celebrate!" />
-        )}
-      </Content>
-
-      {/* TODO: Add task counter and progress to footer */}
-      <Footer style={{ position: "fixed", bottom: "0", left: "0", width: "100%", textAlign: "center" }}>
-        <Button onClick={clearList} disabled={list.length == 0 ? true : false}>
-          <DeleteFilled />
-        </Button>
-      </Footer>
-
+      <ListComponent />
       <TaskEditModal />
+      <FooterComponent />
     </Layout>
   );
 }

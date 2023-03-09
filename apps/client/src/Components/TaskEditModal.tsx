@@ -1,16 +1,11 @@
-import { Api, UpdateTaskDto } from "../../Api";
-import { isModalOpenState, listState, modalInputValueState, selectedTaskIdState } from "../App";
+import { UpdateTaskDto } from "../../Api";
+import { api, listAtom, isModalOpenAtom, modalInputValueAtom, selectedTaskIdAtom } from "../selectors/task";
 import { EditFilled } from "@ant-design/icons";
 import { Button, Form, Input, message, Modal } from "antd";
 import { useRef, useState } from "react";
 import Draggable from "react-draggable";
 import type { DraggableData, DraggableEvent } from "react-draggable";
 import { useRecoilState, useRecoilValue } from "recoil";
-
-// API
-const api = new Api({
-  baseUrl: "http://localhost:3000"
-});
 
 export default function TaskEditModal() {
   // Draggable
@@ -33,10 +28,10 @@ export default function TaskEditModal() {
     });
   };
 
-  const [list, setList] = useRecoilState(listState);
-  const selectedTaskId = useRecoilValue(selectedTaskIdState);
-  const [isModalOpen, setIsModalOpen] = useRecoilState(isModalOpenState);
-  const modalInputValue = useRecoilValue(modalInputValueState);
+  const [list, setList] = useRecoilState(listAtom);
+  const selectedTaskId = useRecoilValue(selectedTaskIdAtom);
+  const [isModalOpen, setIsModalOpen] = useRecoilState(isModalOpenAtom);
+  const modalInputValue = useRecoilValue(modalInputValueAtom);
 
   const editTask = (value: UpdateTaskDto) => {
     api.task
@@ -89,7 +84,7 @@ export default function TaskEditModal() {
         }}
       >
         <Form.Item name="title" initialValue={modalInputValue}>
-          <Input required placeholder="To-Do" />
+          <Input required placeholder="To-Do" autoComplete="off" />
         </Form.Item>
         <div style={{ textAlign: "right" }}>
           <Button htmlType="submit" type="primary">
