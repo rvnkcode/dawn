@@ -7,7 +7,7 @@ export const api = new Api({
 });
 
 // Atoms
-export const listState = atom<TaskEntity[]>({
+export const listAtom = atom<TaskEntity[]>({
   key: "todoList",
   default: await api.task
     .appControllerGetTaskList()
@@ -20,17 +20,17 @@ export const listState = atom<TaskEntity[]>({
     })
 });
 
-export const selectedTaskIdState = atom({
+export const selectedTaskIdAtom = atom({
   key: "selectedTaskIdState",
   default: ``
 });
 
-export const isModalOpenState = atom({
+export const isModalOpenAtom = atom({
   key: "isModalOpenState",
   default: false
 });
 
-export const modalInputValueState = atom({
+export const modalInputValueAtom = atom({
   key: "modalInputValueState",
   default: ``
 });

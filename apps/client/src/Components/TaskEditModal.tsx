@@ -1,5 +1,5 @@
 import { UpdateTaskDto } from "../../Api";
-import { api, listState, isModalOpenState, modalInputValueState, selectedTaskIdState } from "../selectors/task";
+import { api, listAtom, isModalOpenAtom, modalInputValueAtom, selectedTaskIdAtom } from "../selectors/task";
 import { EditFilled } from "@ant-design/icons";
 import { Button, Form, Input, message, Modal } from "antd";
 import { useRef, useState } from "react";
@@ -28,10 +28,10 @@ export default function TaskEditModal() {
     });
   };
 
-  const [list, setList] = useRecoilState(listState);
-  const selectedTaskId = useRecoilValue(selectedTaskIdState);
-  const [isModalOpen, setIsModalOpen] = useRecoilState(isModalOpenState);
-  const modalInputValue = useRecoilValue(modalInputValueState);
+  const [list, setList] = useRecoilState(listAtom);
+  const selectedTaskId = useRecoilValue(selectedTaskIdAtom);
+  const [isModalOpen, setIsModalOpen] = useRecoilState(isModalOpenAtom);
+  const modalInputValue = useRecoilValue(modalInputValueAtom);
 
   const editTask = (value: UpdateTaskDto) => {
     api.task
