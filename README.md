@@ -1,4 +1,6 @@
 # Dawn
+
+![Docker Pulls](https://img.shields.io/docker/pulls/rvnk/dawn)  
 [![Test Docker Image](https://github.com/rvnkcode/dawn/actions/workflows/test-image.yml/badge.svg)](https://github.com/rvnkcode/dawn/actions/workflows/test-image.yml)
 [![Release Docker Image](https://github.com/rvnkcode/dawn/actions/workflows/release-docker-image.yml/badge.svg)](https://github.com/rvnkcode/dawn/actions/workflows/release-docker-image.yml)  
 Self-hosted GTD based task management application
