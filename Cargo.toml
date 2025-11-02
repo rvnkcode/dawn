@@ -1,0 +1,13 @@
+# https://doc.rust-lang.org/cargo/reference/workspaces.html
+[workspace]
+resolver = "3"
+members = ["libs/dawn", "inbounds/cli"]
+
+[workspace.dependencies]
+dawn = { path = "libs/dawn" }
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+repository = "https://github.com/rvnkcode/dawn"
+license = "MIT"
