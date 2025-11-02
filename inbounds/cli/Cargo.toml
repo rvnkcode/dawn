@@ -11,4 +11,5 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = { workspace = true }
+clap = { version = "4.5.51", features = ["derive"] }
 dawn = { workspace = true }
