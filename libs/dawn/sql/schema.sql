@@ -15,6 +15,10 @@ BEGIN
     WHERE id = new.id;
 END;
 
+CREATE INDEX IF NOT EXISTS idx_task_pending
+ON task (created_at, id)
+WHERE deleted_at IS NULL AND completed_at IS NULL;
+
 CREATE VIEW IF NOT EXISTS task_pending_row_id AS
 SELECT
     id,
