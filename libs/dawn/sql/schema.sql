@@ -10,6 +10,10 @@ CREATE TABLE task (
 );
 
 CREATE TRIGGER IF NOT EXISTS task_updated_at AFTER UPDATE ON task
+WHEN
+    old.description != new.description
+    OR old.completed_at != new.completed_at
+    OR old.deleted_at != new.deleted_at
 BEGIN
     UPDATE task SET updated_at = unixepoch()
     WHERE id = new.id;
