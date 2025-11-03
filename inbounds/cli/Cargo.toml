@@ -5,6 +5,10 @@ edition.workspace = true
 repository.workspace = true
 license.workspace = true
 
+[lib]
+name = "dawn_cli"
+path = "src/lib/lib.rs"
+
 [[bin]]
 name = "dawn"
 path = "src/main.rs"
