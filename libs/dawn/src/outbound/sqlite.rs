@@ -35,7 +35,9 @@ impl SQLite {
     fn initialize_schema(conn: &Connection) -> anyhow::Result<()> {
         let user_version = Self::get_user_version(conn);
         if user_version != DB_VERSION {
+            // TODO: Backup data
             conn.execute_batch(include_str!("../../sql/schema.sql"))?;
+            // TODO: Restore data
         }
         Ok(())
     }
