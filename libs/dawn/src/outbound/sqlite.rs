@@ -1,6 +1,8 @@
 use rusqlite::Connection;
 use std::{fs, path::PathBuf};
 
+use crate::domain::task::port::TaskRepository;
+
 const DB_VERSION: u8 = 1;
 
 pub struct SQLite {
@@ -38,3 +40,5 @@ impl SQLite {
         Ok(())
     }
 }
+
+impl TaskRepository for SQLite {}

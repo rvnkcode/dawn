@@ -1,4 +1,9 @@
 use clap::Parser;
+use dawn::domain::task::port::TaskService;
+
+struct AppContext<TS: TaskService> {
+    task_service: TS,
+}
 
 #[derive(Parser)]
 #[command(about = "A command line todo manager.", long_about = None, subcommand_precedence_over_arg = true, version)]
@@ -9,7 +14,8 @@ impl Cli {
         Cli::parse()
     }
 
-    pub fn handle_command(&self) -> anyhow::Result<()> {
+    pub fn handle_command(&self, task_service: impl TaskService) -> anyhow::Result<()> {
+        let _context = AppContext { task_service };
         Ok(())
     }
 }
