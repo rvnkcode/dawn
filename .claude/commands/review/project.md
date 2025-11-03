@@ -7,7 +7,8 @@ Review the diff between the `origin/temp` branch(the default branch of the Repos
 3. Does the code follow functional programming principles?
 3-1. Does the `docs/class.md` accurately describe the classes and their relationships?
 4. Does the code follow DDD principles?
-5. Is the code well tested with unit and integration tests? (if needed)
+5. Are the SQL queries optimized and secure? Indexes used properly? Schema design appropriate?
+6. Is the code well tested with unit and integration tests? (if needed)
 
 For more information about development principles, refer to the project's `CLAUDE.md` file.
 
