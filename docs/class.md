@@ -3,11 +3,31 @@ title: Class Diagram
 ---
 
 ```mermaid
-classDiagram
+  AppContext~TS~ --> TaskService
+  Cli ..> AppContext~TS~
+  Cli ..> TaskService
   namespace Inbound {
+    class AppContext~TS~ {
+      -TS task_service
+    }
     class Cli {
       +new() Self
-      +handle_command(&self) Result~_~
+      +handle_command(&self, task_service) Result~_~
+    }
+  }
+  TaskService <|.. Service
+  Service~R~ --> TaskRepository
+  TaskRepository <|.. SQLite
+  namespace Domain {
+    class TaskService {
+      <<interface>>
+    }
+    class Service~R~ {
+      -R repo
+      +new(repo) Self
+    }
+    class TaskRepository {
+      <<interface>>
     }
   }
   namespace Outbound {
