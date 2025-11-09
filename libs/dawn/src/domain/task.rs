@@ -1,5 +1,6 @@
 pub mod port;
 pub mod service;
+use nanoid::nanoid;
 pub use service::Service;
 use thiserror::Error;
 
@@ -28,6 +29,6 @@ pub struct UniqueId(String);
 
 impl UniqueId {
     pub fn new() -> Self {
-        Self(nanoid::nanoid!(ID_LENGTH))
+        Self(nanoid!(ID_LENGTH))
     }
 }
