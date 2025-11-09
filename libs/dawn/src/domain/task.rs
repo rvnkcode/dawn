@@ -1,3 +1,21 @@
 pub mod port;
 pub mod service;
 pub use service::Service;
+use thiserror::Error;
+
+pub struct Description(String);
+
+#[derive(Debug, Error)]
+#[error("Additional Text must be provided.")]
+struct DescriptionEmptyError;
+
+impl Description {
+    pub fn new(raw: &str) -> Result<Self, DescriptionEmptyError> {
+        let trimmed = raw.trim();
+        if trimmed.is_empty() {
+            Err(DescriptionEmptyError)
+        } else {
+            Ok(Description(trimmed.to_string()))
+        }
+    }
+}
