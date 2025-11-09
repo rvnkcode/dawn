@@ -3,6 +3,7 @@ pub mod service;
 pub use service::Service;
 use thiserror::Error;
 
+// task description
 pub struct Description(String);
 
 #[derive(Debug, Error)]
