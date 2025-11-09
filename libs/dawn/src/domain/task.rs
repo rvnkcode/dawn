@@ -9,7 +9,7 @@ pub struct Description(String);
 
 #[derive(Debug, Error)]
 #[error("Additional Text must be provided.")]
-struct DescriptionEmptyError;
+pub struct DescriptionEmptyError;
 
 impl Description {
     pub fn new(raw: &str) -> Result<Self, DescriptionEmptyError> {
