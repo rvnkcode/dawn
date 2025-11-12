@@ -32,3 +32,19 @@ impl UniqueID {
         Self(nanoid!(ID_LENGTH))
     }
 }
+
+pub struct Index(usize);
+
+#[derive(Debug, Error)]
+#[error("Invalid range")]
+pub struct IndexError;
+
+impl Index {
+    pub fn new(raw: usize) -> Result<Self, IndexError> {
+        if raw < 1 {
+            Err(IndexError)
+        } else {
+            Ok(Index(raw))
+        }
+    }
+}
