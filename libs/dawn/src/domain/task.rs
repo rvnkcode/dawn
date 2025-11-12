@@ -25,9 +25,9 @@ impl Description {
 // task ID
 const ID_LENGTH: usize = 11;
 
-pub struct UniqueId(String);
+pub struct UniqueID(String);
 
-impl UniqueId {
+impl UniqueID {
     pub fn new() -> Self {
         Self(nanoid!(ID_LENGTH))
     }
