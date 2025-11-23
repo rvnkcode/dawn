@@ -1,6 +1,7 @@
 use crate::context::AppContext;
 use crate::handler::Handler;
 use clap::{Args, Parser, Subcommand};
+use colored::Colorize;
 use dawn::domain::task::port::TaskService;
 
 #[derive(Parser)]
@@ -31,9 +32,15 @@ impl Cli {
         let handler = Handler::new(context);
 
         match &self.command {
-            Some(Commands::Add(modification)) => {
-                handler.add(&self.filters, modification);
-            }
+            Some(Commands::Add(modification)) => match handler.add(&self.filters, modification) {
+                Ok(task) => {
+                    println!("Created task {}.", task.index);
+                }
+                Err(e) => {
+                    eprintln!("{}", e.to_string().white().on_red());
+                    std::process::exit(1);
+                }
+            },
             None => {
                 // TODO: next list
             }

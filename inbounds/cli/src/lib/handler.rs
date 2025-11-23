@@ -1,8 +1,7 @@
 use crate::cli::Modification;
 use crate::context::AppContext;
-use colored::Colorize;
-use dawn::domain::task::Description;
 use dawn::domain::task::port::TaskService;
+use dawn::domain::task::{Description, Task};
 
 /// Handler that processes all CLI commands
 pub struct Handler<TS: TaskService> {
@@ -14,34 +13,22 @@ impl<TS: TaskService> Handler<TS> {
         Self { context }
     }
 
-    pub fn add(&self, filters: &[String], args: &Modification) {
-        let description =
-            Self::compose_description(filters, &args.description).unwrap_or_else(|e| {
-                eprintln!("{}", e.to_string().white().on_red());
-                std::process::exit(1);
-            });
-
-        let task = self
-            .context
-            .task_service
-            .add(description)
-            .unwrap_or_else(|e| {
-                eprintln!("Error: {}", e.to_string().white().on_red());
-                std::process::exit(1);
-            });
-
-        println!("Created task {}.", task.index);
+    pub fn add(&self, filters: &[String], args: &Modification) -> anyhow::Result<Task> {
+        let description = Self::compose_description(filters, &args.description)?;
+        self.context.task_service.add(description)
     }
 
     fn compose_description(
         filters: &[String],
         description: &[String],
     ) -> anyhow::Result<Description> {
-        let mut parts = Vec::new();
-        parts.extend_from_slice(filters);
-        parts.extend_from_slice(description);
+        let description_text = filters
+            .iter()
+            .chain(description.iter())
+            .map(|s| s.as_str())
+            .collect::<Vec<_>>()
+            .join(" ");
 
-        let description_text = parts.join(" ");
         Ok(Description::new(&description_text)?)
     }
 }
