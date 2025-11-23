@@ -1,7 +1,6 @@
-use rusqlite::Connection;
+use crate::domain::task::{Description, Index, Task, UniqueID, port::TaskRepository};
+use rusqlite::{Connection, params};
 use std::{fs, path::PathBuf};
-
-use crate::domain::task::port::TaskRepository;
 
 const DB_VERSION: u8 = 1;
 
@@ -43,4 +42,24 @@ impl SQLite {
     }
 }
 
-impl TaskRepository for SQLite {}
+impl TaskRepository for SQLite {
+    fn create_task(&self, id: UniqueID, description: Description) -> anyhow::Result<Task> {
+        self.conn.execute(
+            "INSERT INTO task (id, description) VALUES (?1, ?2)",
+            params![id.to_string(), description.to_string()],
+        )?;
+        Ok(Task {
+            uid: id,
+            index: Index::new(self.count_pending_tasks()?)?,
+            description,
+        })
+    }
+
+    fn count_pending_tasks(&self) -> anyhow::Result<usize> {
+        let mut stmt = self.conn.prepare(
+            "SELECT COUNT(*) FROM task WHERE deleted_at IS NULL AND completed_at IS NULL",
+        )?;
+        let count: usize = stmt.query_row([], |row| row.get(0))?;
+        Ok(count)
+    }
+}
