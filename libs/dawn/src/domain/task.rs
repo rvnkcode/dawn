@@ -38,6 +38,10 @@ impl UniqueID {
     pub fn new() -> Self {
         Self(nanoid!(ID_LENGTH))
     }
+
+    pub fn from_str(raw: &str) -> Self {
+        Self(raw.to_string())
+    }
 }
 
 impl Display for UniqueID {
