@@ -25,10 +25,97 @@ impl<TS: TaskService> Handler<TS> {
         let description_text = filters
             .iter()
             .chain(description.iter())
-            .map(|s| s.as_str())
+            .map(|s| s.trim())
             .collect::<Vec<_>>()
             .join(" ");
-
         Ok(Description::new(&description_text)?)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Mock TaskService for testing
+    struct MockTaskService;
+    impl TaskService for MockTaskService {
+        fn add(&self, _description: Description) -> anyhow::Result<Task> {
+            unimplemented!("Not needed for compose_description tests")
+        }
+    }
+
+    type TestHandler = Handler<MockTaskService>;
+
+    // Test utility: Convert &[&str] to Vec<String>
+    fn strs(arr: &[&str]) -> Vec<String> {
+        arr.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn test_compose_description_with_filters_and_description() {
+        let filters = strs(&["urgent", "work"]);
+        let description = strs(&["complete", "project"]);
+
+        let result = TestHandler::compose_description(&filters, &description);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().to_string(), "urgent work complete project");
+    }
+
+    #[test]
+    fn test_compose_description_with_only_description() {
+        let filters = strs(&[]);
+        let description = strs(&["buy", "milk"]);
+
+        let result = TestHandler::compose_description(&filters, &description);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().to_string(), "buy milk");
+    }
+
+    #[test]
+    fn test_compose_description_with_only_filters() {
+        let filters = strs(&["urgent", "task"]);
+        let description = strs(&[]);
+
+        let result = TestHandler::compose_description(&filters, &description);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().to_string(), "urgent task");
+    }
+
+    #[test]
+    fn test_compose_description_empty_arrays() {
+        let filters = strs(&[]);
+        let description = strs(&[]);
+
+        let result = TestHandler::compose_description(&filters, &description);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_compose_description_whitespace_only() {
+        let filters = strs(&["  "]);
+        let description = strs(&["   "]);
+
+        let result = TestHandler::compose_description(&filters, &description);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_compose_description_trims_whitespace() {
+        let filters = strs(&["  urgent  "]);
+        let description = strs(&["  task  "]);
+
+        let result = TestHandler::compose_description(&filters, &description);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().to_string(), "urgent task");
+    }
+
+    #[test]
+    fn test_compose_description_single_word() {
+        let filters = strs(&[]);
+        let description = strs(&["hello"]);
+
+        let result = TestHandler::compose_description(&filters, &description);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().to_string(), "hello");
     }
 }

@@ -74,3 +74,53 @@ pub struct Task {
     pub index: Index,
     pub description: Description,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_description_new_valid() {
+        let result = Description::new("Valid description");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_description_new_empty_string() {
+        let result = Description::new("");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_description_new_whitespace_only() {
+        let result = Description::new("   ");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_description_new_trims_whitespace() {
+        let result = Description::new("  hello world  ");
+        assert!(result.is_ok());
+        let desc = result.unwrap();
+        assert_eq!(desc.to_string(), "hello world");
+    }
+
+    #[test]
+    fn test_index_new_valid() {
+        let result = Index::new(1);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_index_new_zero() {
+        let result = Index::new(0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_unique_id_new() {
+        let id = UniqueID::new();
+        let id_str = id.to_string();
+        assert_eq!(id_str.len(), ID_LENGTH);
+    }
+}
