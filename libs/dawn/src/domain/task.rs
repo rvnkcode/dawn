@@ -63,6 +63,12 @@ impl Index {
     }
 }
 
+impl Display for Index {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 pub struct Task {
     pub uid: UniqueID,
     pub index: Index,
