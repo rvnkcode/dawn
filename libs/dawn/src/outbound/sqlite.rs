@@ -48,18 +48,21 @@ impl TaskRepository for SQLite {
             "INSERT INTO task (id, description) VALUES (?1, ?2)",
             params![id.to_string(), description.to_string()],
         )?;
+        let count = self.count_pending_tasks();
         Ok(Task {
             uid: id,
-            index: Index::new(self.count_pending_tasks()?)?,
+            index: Index::new(count)?,
             description,
         })
     }
 
-    fn count_pending_tasks(&self) -> anyhow::Result<usize> {
-        let mut stmt = self.conn.prepare(
-            "SELECT COUNT(*) FROM task WHERE deleted_at IS NULL AND completed_at IS NULL",
-        )?;
-        let count: usize = stmt.query_row([], |row| row.get(0))?;
-        Ok(count)
+    fn count_pending_tasks(&self) -> usize {
+        let count: usize = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM task_pending_row_id", [], |row| {
+                row.get(0)
+            })
+            .unwrap_or(0);
+        count
     }
 }
