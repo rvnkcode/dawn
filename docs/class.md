@@ -26,6 +26,11 @@ classDiagram
       +new() Self
       +handle_command(&self, task_service) Result~_~
     }
+    class Handler {
+      +new(context) Self
+      +add(&self, filters, args)
+      -compose_description(&self, filters, description) Result~Description~
+    }
   }
   Task *.. UniqueID
   Task *.. Index
