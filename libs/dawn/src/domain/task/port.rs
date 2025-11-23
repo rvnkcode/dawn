@@ -6,5 +6,5 @@ pub trait TaskService {
 
 pub trait TaskRepository {
     fn create_task(&self, id: UniqueID, description: Description) -> anyhow::Result<Task>;
-    fn count_pending_tasks(&self) -> anyhow::Result<usize>;
+    fn count_pending_tasks(&self) -> usize;
 }
