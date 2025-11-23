@@ -63,6 +63,7 @@ classDiagram
     class TaskService {
       <<interface>>
       +add(&self, description) Result~Task~
+      +next(&self) Result~Vec~Task~~
     }
     class Service~R~ {
       -R repo
@@ -72,6 +73,7 @@ classDiagram
       <<interface>>
       +create_task(&self, id, description) Result~Task~
       +count_pending_tasks(&self) Result~usize~
+      +get_pending_tasks(&self) Result~Vec~Task~~
     }
   }
   namespace Outbound {

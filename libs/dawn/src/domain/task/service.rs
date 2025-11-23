@@ -27,4 +27,9 @@ where
         let id = UniqueID::new();
         self.repo.create_task(id, description)
     }
+
+    fn next(&self) -> anyhow::Result<Vec<Task>> {
+        // TODO: parse filters and handling?
+        self.repo.get_pending_tasks()
+    }
 }

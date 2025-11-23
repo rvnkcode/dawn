@@ -65,4 +65,29 @@ impl TaskRepository for SQLite {
             .unwrap_or(0);
         count
     }
+
+    fn get_pending_tasks(&self) -> anyhow::Result<Vec<Task>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT t.id, t.description, tpr.row_id \
+            FROM task AS t \
+                INNER JOIN task_pending_row_id AS tpr ON tpr.id = t.id ",
+        )?;
+        let tasks = stmt
+            .query_map([], |row| {
+                let id_str: String = row.get(0)?;
+                let description_str: String = row.get(1)?;
+                let row_id: usize = row.get(2)?;
+                Ok((id_str, description_str, row_id))
+            })?
+            .map(|result| {
+                let (id_str, description_str, row_id) = result?;
+                Ok(Task {
+                    uid: UniqueID::from_str(&id_str),
+                    index: Index::new(row_id)?,
+                    description: Description::new(&description_str)?,
+                })
+            })
+            .collect::<anyhow::Result<Vec<Task>>>()?;
+        Ok(tasks)
+    }
 }
