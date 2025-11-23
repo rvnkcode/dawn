@@ -2,6 +2,7 @@ pub mod port;
 pub mod service;
 use nanoid::nanoid;
 pub use service::Service;
+use std::fmt::{self, Display, Formatter};
 use thiserror::Error;
 
 // task description
@@ -22,6 +23,12 @@ impl Description {
     }
 }
 
+impl Display for Description {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 // task ID
 const ID_LENGTH: usize = 11;
 
@@ -30,6 +37,12 @@ pub struct UniqueID(String);
 impl UniqueID {
     pub fn new() -> Self {
         Self(nanoid!(ID_LENGTH))
+    }
+}
+
+impl Display for UniqueID {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
