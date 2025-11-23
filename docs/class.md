@@ -6,12 +6,16 @@ title: Class Diagram
 classDiagram
   AppContext~TS~ o-- TaskService
   Cli ..> AppContext~TS~
-  Cli ..> TaskService
+  Cli ..> Handler~TS~
   Cli o-- Commands
+  Handler~TS~ o-- AppContext~TS~
+  Handler~TS~ ..> Task
+  Handler~TS~ ..> Description
   Commands ..> Modification
   namespace Inbound {
     class AppContext~TS~ {
-      -TS task_service
+      +TS task_service
+      +new(task_service) Self
     }
     class Commands {
       <<enumeration>>
@@ -20,16 +24,17 @@ classDiagram
     class Modification {
       +Vec~String~ description
     }
+    class Handler~TS~ {
+      -AppContext~TS~ context
+      +new(context) Self
+      +add(&self, filters, args) Result~Task~
+      -compose_description(filters, description) Result~Description~
+    }
     class Cli {
       -Vec~String~ filters
       -Options~Commands~ command
       +new() Self
       +handle_command(&self, task_service) Result~_~
-    }
-    class Handler {
-      +new(context) Self
-      +add(&self, filters, args)
-      -compose_description(&self, filters, description) Result~Description~
     }
   }
   Task *.. UniqueID
@@ -38,6 +43,8 @@ classDiagram
   TaskService <|.. Service
   Service~R~ --> TaskRepository
   TaskRepository <|.. SQLite
+  TaskService ..> Task
+  TaskRepository ..> Task
   namespace Domain {
     class Description {
       +new(raw) Result~Self, DescriptionEmptyError~
