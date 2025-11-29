@@ -20,3 +20,4 @@ clap = { version = "4.5.53", features = ["derive"] }
 colored = "3.0.0"
 dawn = { workspace = true }
 tabled = "0.20.0"
+thiserror = { workspace = true }
