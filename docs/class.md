@@ -28,6 +28,7 @@ classDiagram
       -AppContext~TS~ context
       +new(context) Self
       +add(&self, filters, args) Result~_~
+      +next(&self) Result~_~
       -compose_description(filters, description) Result~Description~
     }
     class Cli {
@@ -38,11 +39,28 @@ classDiagram
     }
     class Age {
       +new(created_at, now) Result~Self, AgeError~
-  }
+    }
+    class NextRow {
+      +Index id
+      +Age age
+      +Description description
+      +new(task, now) Result~Self~
+    }
+    class NextTable {
+      -Vec~NextRow~ rows
+      +new(tasks) Result~Self~
+      +render(&self) Table
+    }
   }
   Task *.. UniqueID
   Task *.. Index
   Task *.. Description
+  NextRow *.. Index
+  NextRow *.. Age
+  NextRow *.. Description
+  NextRow ..> Task
+  NextTable o-- NextRow
+  Handler~TS~ ..> NextTable
   TaskService <|.. Service
   Service~R~ --> TaskRepository
   TaskRepository <|.. SQLite
@@ -63,11 +81,12 @@ classDiagram
       +UniqueId uid
       +Index index
       +Description description
+      +i64 created_at
     }
     class TaskService {
       <<interface>>
       +add(&self, description) Result~_~
-      +count_pending(&self) Result~usize~
+      +count_pending(&self) usize
       +next(&self) Result~Vec~Task~~
     }
     class Service~R~ {
@@ -77,7 +96,7 @@ classDiagram
     class TaskRepository {
       <<interface>>
       +create_task(&self, id, description) Result~_~
-      +count_pending_tasks(&self) Result~usize~
+      +count_pending_tasks(&self) usize
       +get_pending_tasks(&self) Result~Vec~Task~~
     }
   }
