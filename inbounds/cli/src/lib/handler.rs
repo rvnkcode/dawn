@@ -1,7 +1,7 @@
 use crate::cli::Modification;
 use crate::context::AppContext;
+use dawn::domain::task::Description;
 use dawn::domain::task::port::TaskService;
-use dawn::domain::task::{Description, Task};
 
 /// Handler that processes all CLI commands
 pub struct Handler<TS: TaskService> {
@@ -13,9 +13,12 @@ impl<TS: TaskService> Handler<TS> {
         Self { context }
     }
 
-    pub fn add(&self, filters: &[String], args: &Modification) -> anyhow::Result<Task> {
+    pub fn add(&self, filters: &[String], args: &Modification) -> anyhow::Result<()> {
         let description = Self::compose_description(filters, &args.description)?;
-        self.context.task_service.add(description)
+        self.context.task_service.add(description)?;
+        let count = self.context.task_service.count_pending();
+        println!("Created task {}.", count);
+        Ok(())
     }
 
     fn compose_description(
@@ -35,11 +38,15 @@ impl<TS: TaskService> Handler<TS> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use dawn::domain::task::Task;
 
     // Mock TaskService for testing
     struct MockTaskService;
     impl TaskService for MockTaskService {
-        fn add(&self, _description: Description) -> anyhow::Result<Task> {
+        fn add(&self, _description: Description) -> anyhow::Result<()> {
+            unimplemented!("Not needed for the tests")
+        }
+        fn count_pending(&self) -> usize {
             unimplemented!("Not needed for the tests")
         }
         fn next(&self) -> anyhow::Result<Vec<Task>> {
