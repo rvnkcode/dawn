@@ -2,5 +2,16 @@
   "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
   "version": "0.2",
   "ignorePaths": ["target", ".claude", ".git", ".github"],
-  "words": ["tauri", "taskwarrior", "hexarch", "RIIR", "rusqlite", "unixepoch", "sqlfluff", "thiserror", "usize"]
+  "words": [
+    "chrono",
+    "tauri",
+    "taskwarrior",
+    "hexarch",
+    "RIIR",
+    "rusqlite",
+    "unixepoch",
+    "sqlfluff",
+    "thiserror",
+    "usize"
+  ]
 }
