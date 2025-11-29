@@ -34,13 +34,21 @@ const ID_LENGTH: usize = 11;
 
 pub struct UniqueID(String);
 
+#[derive(Debug, Error)]
+#[error("Invalid UniqueID length")]
+pub struct UniqueIDLengthError;
+
 impl UniqueID {
     pub fn new() -> Self {
         Self(nanoid!(ID_LENGTH))
     }
 
-    pub fn from_str(raw: &str) -> Self {
-        Self(raw.to_string())
+    pub fn from_str(raw: &str) -> Result<Self, UniqueIDLengthError> {
+        if raw.len() != ID_LENGTH {
+            Err(UniqueIDLengthError)
+        } else {
+            Ok(Self(raw.to_string()))
+        }
     }
 }
 
