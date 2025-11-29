@@ -77,7 +77,7 @@ impl TaskRepository for SQLite {
             .map(|result| {
                 let (id_str, description_str, row_id) = result?;
                 Ok(Task {
-                    uid: UniqueID::from_str(&id_str),
+                    uid: UniqueID::from_str(&id_str)?,
                     index: Index::new(row_id)?,
                     description: Description::new(&description_str)?,
                 })
