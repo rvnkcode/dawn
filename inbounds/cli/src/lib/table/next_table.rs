@@ -22,8 +22,7 @@ impl NextTable {
 
     pub fn print(&self) {
         let primary = Color::default();
-        // TODO: Adjust color
-        let secondary = Color::new("\u{1b}[48;2;38;38;38m", "\u{1b}[49m");
+        let secondary = Color::new("\u{1b}[48;5;234m", "\u{1b}[49m");
         let mut table = Table::new(&self.rows);
         table
             .with(Style::empty())
