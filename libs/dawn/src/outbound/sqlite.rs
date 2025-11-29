@@ -65,7 +65,8 @@ impl TaskRepository for SQLite {
         let mut stmt = self.conn.prepare(
             "SELECT t.id, tpr.row_id, t.description, t.created_at \
             FROM task AS t \
-                INNER JOIN task_pending_row_id AS tpr ON tpr.id = t.id ",
+                INNER JOIN task_pending_row_id AS tpr ON tpr.id = t.id \
+            ORDER BY tpr.row_id",
         )?;
         let tasks = stmt
             .query_map([], |row| {
