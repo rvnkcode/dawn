@@ -2,7 +2,7 @@ use chrono::Local;
 use dawn::domain::task::Task;
 use tabled::{
     Table,
-    settings::{Color, Style, object::Rows, themes::Colorization},
+    settings::{Color, Padding, Style, object::Rows, themes::Colorization},
 };
 
 use crate::table::NextRow;
@@ -27,6 +27,7 @@ impl NextTable {
         table
             .with(Style::empty())
             .with(Colorization::rows([primary, secondary]))
+            .with(Padding::new(1, 0, 0, 0))
             .modify(Rows::first(), Color::UNDERLINE);
         println!("{}", table);
     }
