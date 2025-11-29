@@ -40,7 +40,10 @@ mod tests {
     struct MockTaskService;
     impl TaskService for MockTaskService {
         fn add(&self, _description: Description) -> anyhow::Result<Task> {
-            unimplemented!("Not needed for compose_description tests")
+            unimplemented!("Not needed for the tests")
+        }
+        fn next(&self) -> anyhow::Result<Vec<Task>> {
+            unimplemented!("Not needed for the tests")
         }
     }
 
