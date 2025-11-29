@@ -85,6 +85,7 @@ pub struct Task {
     pub uid: UniqueID,
     pub index: Index,
     pub description: Description,
+    pub created_at: i64,
 }
 
 #[cfg(test)]
