@@ -20,7 +20,7 @@ impl NextTable {
         Ok(Self { rows })
     }
 
-    pub fn print(&self) {
+    pub fn render(&self) -> Table {
         let primary = Color::default();
         let secondary = Color::new("\u{1b}[48;5;234m", "\u{1b}[49m");
         let mut table = Table::new(&self.rows);
@@ -29,6 +29,6 @@ impl NextTable {
             .with(Colorization::rows([primary, secondary]))
             .with(Padding::new(1, 0, 0, 0))
             .modify(Rows::first(), Color::UNDERLINE);
-        println!("{}", table);
+        table
     }
 }

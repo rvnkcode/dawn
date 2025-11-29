@@ -43,7 +43,7 @@ impl<TS: TaskService> Handler<TS> {
             return Ok(());
         }
         let table = NextTable::new(tasks.into_iter())?;
-        table.print();
+        println!("{}", table.render());
         Ok(())
     }
 }
