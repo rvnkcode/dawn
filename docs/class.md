@@ -27,7 +27,7 @@ classDiagram
     class Handler~TS~ {
       -AppContext~TS~ context
       +new(context) Self
-      +add(&self, filters, args) Result~Task~
+      +add(&self, filters, args) Result~_~
       -compose_description(filters, description) Result~Description~
     }
     class Cli {
@@ -51,6 +51,7 @@ classDiagram
     }
     class UniqueID {
       +new() Self
+      +from_str(raw) Result~Self, UniqueIDLengthError~
     }
     class Index {
       +new(raw) Result ~Self, IndexError~
@@ -62,7 +63,8 @@ classDiagram
     }
     class TaskService {
       <<interface>>
-      +add(&self, description) Result~Task~
+      +add(&self, description) Result~_~
+      +count_pending(&self) Result~usize~
       +next(&self) Result~Vec~Task~~
     }
     class Service~R~ {
@@ -71,7 +73,7 @@ classDiagram
     }
     class TaskRepository {
       <<interface>>
-      +create_task(&self, id, description) Result~Task~
+      +create_task(&self, id, description) Result~_~
       +count_pending_tasks(&self) Result~usize~
       +get_pending_tasks(&self) Result~Vec~Task~~
     }
