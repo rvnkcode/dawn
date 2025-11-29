@@ -33,7 +33,6 @@ where
     }
 
     fn next(&self) -> anyhow::Result<Vec<Task>> {
-        // TODO: parse filters and handling?
         self.repo.get_pending_tasks()
     }
 }
