@@ -36,6 +36,9 @@ classDiagram
       +new() Self
       +handle_command(&self, task_service) Result~_~
     }
+    class Age {
+      +new(created_at, now) Result~Self, AgeError~
+  }
   }
   Task *.. UniqueID
   Task *.. Index

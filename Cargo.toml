@@ -6,6 +6,7 @@ members = ["libs/dawn", "inbounds/cli"]
 [workspace.dependencies]
 anyhow = "1.0"
 dawn = { path = "libs/dawn" }
+thiserror = "2.0"
 
 [workspace.package]
 version = "0.1.0"
