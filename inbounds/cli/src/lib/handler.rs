@@ -1,9 +1,10 @@
 use crate::cli::Modification;
 use crate::context::AppContext;
+use crate::table::NextTable;
+use colored::Colorize;
 use dawn::domain::task::Description;
 use dawn::domain::task::port::TaskService;
 
-/// Handler that processes all CLI commands
 pub struct Handler<TS: TaskService> {
     context: AppContext<TS>,
 }
@@ -32,6 +33,18 @@ impl<TS: TaskService> Handler<TS> {
             .collect::<Vec<_>>()
             .join(" ");
         Ok(Description::new(&description_text)?)
+    }
+
+    // TODO: Filtering
+    pub fn next(&self) -> anyhow::Result<()> {
+        let tasks = self.context.task_service.next()?;
+        if tasks.is_empty() {
+            println!("{}", "No matches.".to_string().yellow());
+            return Ok(());
+        }
+        let table = NextTable::new(tasks.into_iter())?;
+        table.print();
+        Ok(())
     }
 }
 

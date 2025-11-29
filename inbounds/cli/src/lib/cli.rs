@@ -32,9 +32,7 @@ impl Cli {
 
         match &self.command {
             Some(Commands::Add(modification)) => handler.add(&self.filters, modification)?,
-            None => {
-                // TODO: next list
-            }
+            None => handler.next()?,
         }
         Ok(())
     }
