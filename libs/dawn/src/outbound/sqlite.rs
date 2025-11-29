@@ -43,17 +43,12 @@ impl SQLite {
 }
 
 impl TaskRepository for SQLite {
-    fn create_task(&self, id: UniqueID, description: Description) -> anyhow::Result<Task> {
+    fn create_task(&self, id: UniqueID, description: Description) -> anyhow::Result<()> {
         self.conn.execute(
             "INSERT INTO task (id, description) VALUES (?1, ?2)",
             params![id.to_string(), description.to_string()],
         )?;
-        let count = self.count_pending_tasks();
-        Ok(Task {
-            uid: id,
-            index: Index::new(count)?,
-            description,
-        })
+        Ok(())
     }
 
     fn count_pending_tasks(&self) -> usize {

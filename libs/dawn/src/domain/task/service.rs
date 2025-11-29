@@ -23,9 +23,13 @@ impl<R> TaskService for Service<R>
 where
     R: TaskRepository,
 {
-    fn add(&self, description: Description) -> anyhow::Result<Task> {
+    fn add(&self, description: Description) -> anyhow::Result<()> {
         let id = UniqueID::new();
         self.repo.create_task(id, description)
+    }
+
+    fn count_pending(&self) -> usize {
+        self.repo.count_pending_tasks()
     }
 
     fn next(&self) -> anyhow::Result<Vec<Task>> {
