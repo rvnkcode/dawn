@@ -28,7 +28,7 @@ const FORMATS: &[(i64, i64, &str)] = &[
     (DAY, DAY, "d"),
     (HOUR, HOUR, "h"),
     (MINUTE, MINUTE, "min"),
-    (1, 1, "s"),
+    (0, 1, "s"),
 ];
 
 #[derive(Debug, PartialEq, Error)]
@@ -123,11 +123,15 @@ mod tests {
     }
 
     #[test]
+    fn test_age_zero_delta() {
+        let now = 1_000_000;
+        let age = Age::new(&now, &now).unwrap();
+        assert_eq!(age.to_string(), "0s");
+    }
+
+    #[test]
     fn test_age_invalid_delta() {
         let now = 1_000_000;
-        let result = Age::new(&now, &now);
-        assert_eq!(result.unwrap_err(), AgeError::InvalidDelta(0));
-
         let result = Age::new(&(now + 100), &now);
         assert_eq!(result.unwrap_err(), AgeError::InvalidDelta(-100));
     }
