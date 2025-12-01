@@ -43,7 +43,14 @@ impl<TS: TaskService> Handler<TS> {
             return Ok(());
         }
         let table = NextTable::new(tasks.into_iter())?;
+        let count = table.len();
         println!("{}", table.render());
+        println!();
+        if count == 1 {
+            println!("{} task", count);
+        } else {
+            println!("{} tasks", count);
+        }
         Ok(())
     }
 }
