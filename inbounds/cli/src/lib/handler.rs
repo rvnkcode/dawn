@@ -39,7 +39,7 @@ impl<TS: TaskService> Handler<TS> {
     pub fn next(&self) -> anyhow::Result<()> {
         let tasks = self.context.task_service.next()?;
         if tasks.is_empty() {
-            println!("{}", "No matches.".to_string().yellow());
+            println!("{}", "No matches.".yellow());
             return Ok(());
         }
         let table = NextTable::new(tasks.into_iter())?;
