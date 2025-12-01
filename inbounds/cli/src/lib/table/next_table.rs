@@ -20,6 +20,10 @@ impl NextTable {
         Ok(Self { rows })
     }
 
+    pub fn len(&self) -> usize {
+        self.rows.len()
+    }
+
     pub fn render(&self) -> Table {
         let primary = Color::default();
         let secondary = Color::new("\u{1b}[48;5;234m", "\u{1b}[49m");
