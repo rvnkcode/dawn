@@ -3,3 +3,6 @@ pub use cli::Cli;
 pub mod context;
 pub mod handler;
 pub mod table;
+
+#[cfg(test)]
+pub mod utils;

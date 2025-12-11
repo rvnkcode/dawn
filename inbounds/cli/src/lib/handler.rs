@@ -74,12 +74,9 @@ mod tests {
         }
     }
 
-    type TestHandler = Handler<MockTaskService>;
+    use crate::utils::strs;
 
-    // Test utility: Convert &[&str] to Vec<String>
-    fn strs(arr: &[&str]) -> Vec<String> {
-        arr.iter().map(|s| s.to_string()).collect()
-    }
+    type TestHandler = Handler<MockTaskService>;
 
     #[test]
     fn test_compose_description_with_filters_and_description() {
