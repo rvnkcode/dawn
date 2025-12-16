@@ -1,4 +1,4 @@
-use crate::domain::task::{Description, Index, Task, UniqueID, port::TaskRepository};
+use crate::domain::task::{Description, Index, Task, TaskCreation, UniqueID, port::TaskRepository};
 use rusqlite::{Connection, params};
 use std::{fs, path::PathBuf};
 
@@ -46,11 +46,12 @@ impl SQLite {
     }
 }
 
+// TODO: Other properties e.g. project, tags, etc.
 impl TaskRepository for SQLite {
-    fn create_task(&self, id: UniqueID, description: Description) -> anyhow::Result<()> {
+    fn create_task(&self, id: UniqueID, req: TaskCreation) -> anyhow::Result<()> {
         self.conn.execute(
             "INSERT INTO task (id, description) VALUES (?1, ?2)",
-            params![id.to_string(), description.to_string()],
+            params![id.to_string(), req.description.to_string()],
         )?;
         Ok(())
     }

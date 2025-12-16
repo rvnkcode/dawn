@@ -27,9 +27,9 @@ classDiagram
     class Handler~TS~ {
       -AppContext~TS~ context
       +new(context) Self
-      +add(&self, filters, args) Result~_~
+      +add(&self, &filters, &args) Result~_~
+      -compose_description(&filters, &description) Result~Description~
       +next(&self) Result~_~
-      -compose_description(filters, description) Result~Description~
     }
     class Cli {
       -Vec~String~ filters
@@ -85,7 +85,7 @@ classDiagram
     }
     class TaskService {
       <<interface>>
-      +add(&self, description) Result~_~
+      +add(&self, req) Result~_~
       +count_pending(&self) usize
       +next(&self) Result~Vec~Task~~
     }
@@ -95,7 +95,7 @@ classDiagram
     }
     class TaskRepository {
       <<interface>>
-      +create_task(&self, id, description) Result~_~
+      +create_task(&self, id, req) Result~_~
       +count_pending_tasks(&self) usize
       +get_pending_tasks(&self) Result~Vec~Task~~
     }

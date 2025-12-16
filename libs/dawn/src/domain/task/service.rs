@@ -1,5 +1,5 @@
 use crate::domain::task::{
-    Description, Task, UniqueID,
+    Task, TaskCreation, UniqueID,
     port::{TaskRepository, TaskService},
 };
 
@@ -23,9 +23,9 @@ impl<R> TaskService for Service<R>
 where
     R: TaskRepository,
 {
-    fn add(&self, description: Description) -> anyhow::Result<()> {
+    fn add(&self, req: TaskCreation) -> anyhow::Result<()> {
         let id = UniqueID::new();
-        self.repo.create_task(id, description)
+        self.repo.create_task(id, req)
     }
 
     fn count_pending(&self) -> usize {

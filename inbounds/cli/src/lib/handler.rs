@@ -2,8 +2,8 @@ use crate::cli::Modification;
 use crate::context::AppContext;
 use crate::table::NextTable;
 use colored::Colorize;
-use dawn::domain::task::Description;
 use dawn::domain::task::port::TaskService;
+use dawn::domain::task::{Description, TaskCreation};
 
 pub struct Handler<TS: TaskService> {
     context: AppContext<TS>,
@@ -16,7 +16,8 @@ impl<TS: TaskService> Handler<TS> {
 
     pub fn add(&self, filters: &[String], args: &Modification) -> anyhow::Result<()> {
         let description = Self::compose_description(filters, &args.description)?;
-        self.context.task_service.add(description)?;
+        let request = TaskCreation { description };
+        self.context.task_service.add(request)?;
         let count = self.context.task_service.count_pending();
         println!("Created task {}.", count);
         Ok(())
@@ -63,7 +64,7 @@ mod tests {
     // Mock TaskService for testing
     struct MockTaskService;
     impl TaskService for MockTaskService {
-        fn add(&self, _description: Description) -> anyhow::Result<()> {
+        fn add(&self, _req: TaskCreation) -> anyhow::Result<()> {
             unimplemented!("Not needed for the tests")
         }
         fn count_pending(&self) -> usize {

@@ -88,6 +88,10 @@ pub struct Task {
     pub created_at: i64,
 }
 
+pub struct TaskCreation {
+    pub description: Description,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
