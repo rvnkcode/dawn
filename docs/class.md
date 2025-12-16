@@ -55,6 +55,10 @@ classDiagram
   Task *.. UniqueID
   Task *.. Index
   Task *.. Description
+  TaskCreation *.. Description
+  Handler~TS~ ..> TaskCreation
+  TaskService ..> TaskCreation
+  TaskRepository ..> TaskCreation
   NextRow *.. Index
   NextRow *.. Age
   NextRow *.. Description
@@ -82,6 +86,9 @@ classDiagram
       +Index index
       +Description description
       +i64 created_at
+    }
+    class TaskCreation {
+      +Description description
     }
     class TaskService {
       <<interface>>
