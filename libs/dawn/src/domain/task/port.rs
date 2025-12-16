@@ -1,13 +1,13 @@
-use crate::domain::task::{Description, Task, UniqueID};
+use crate::domain::task::{Task, TaskCreation, UniqueID};
 
 pub trait TaskService {
-    fn add(&self, description: Description) -> anyhow::Result<()>;
+    fn add(&self, req: TaskCreation) -> anyhow::Result<()>;
     fn count_pending(&self) -> usize;
     fn next(&self) -> anyhow::Result<Vec<Task>>;
 }
 
 pub trait TaskRepository {
-    fn create_task(&self, id: UniqueID, description: Description) -> anyhow::Result<()>;
+    fn create_task(&self, id: UniqueID, req: TaskCreation) -> anyhow::Result<()>;
     fn count_pending_tasks(&self) -> usize;
     fn get_pending_tasks(&self) -> anyhow::Result<Vec<Task>>;
 }
