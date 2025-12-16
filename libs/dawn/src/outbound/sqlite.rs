@@ -16,9 +16,13 @@ impl SQLite {
     }
 
     fn get_path() -> anyhow::Result<PathBuf> {
-        let path = dirs::home_dir().unwrap_or(PathBuf::from(".")).join(".dawn");
-        fs::create_dir_all(&path)?;
-        Ok(path.join("dawn.db"))
+        if let Some(home_dir) = dirs::home_dir() {
+            let path = home_dir.join(".dawn");
+            fs::create_dir_all(&path)?;
+            Ok(path.join("dawn.db"))
+        } else {
+            Err(anyhow::anyhow!("Could not determine home directory"))
+        }
     }
 
     fn open_connection() -> anyhow::Result<Connection> {
