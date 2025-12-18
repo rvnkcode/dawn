@@ -16,7 +16,7 @@ impl NextTable {
         let now = Local::now().timestamp();
         let rows = tasks
             .map(|task| NextRow::new(task, &now))
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<anyhow::Result<Vec<NextRow>, anyhow::Error>>()?;
         Ok(Self { rows })
     }
 
