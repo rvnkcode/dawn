@@ -38,17 +38,18 @@ classDiagram
       +handle_command(&self, task_service) Result~_~
     }
     class Age {
-      +new(created_at, now) Result~Self, AgeError~
+      +new(&created_at, &now) Result~Self, AgeError~
     }
     class NextRow {
       +Index id
       +Age age
       +Description description
-      +new(task, now) Result~Self~
+      +new(task, &now) Result~Self~
     }
     class NextTable {
       -Vec~NextRow~ rows
       +new(tasks) Result~Self~
+      +len(&self) usize
       +render(&self) Table
     }
   }
