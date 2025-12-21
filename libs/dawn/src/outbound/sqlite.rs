@@ -85,7 +85,7 @@ impl TaskRepository for SQLite {
                 let (id_str, row_id, description_str, created_at) = result?;
                 Ok(Task {
                     uid: UniqueID::from_str(&id_str)?,
-                    index: Index::new(row_id)?,
+                    index: Some(Index::new(row_id)?),
                     description: Description::new(&description_str)?,
                     created_at,
                 })

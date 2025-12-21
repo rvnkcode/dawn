@@ -16,9 +16,15 @@ impl NextRow {
     pub fn new(task: Task, now: &i64) -> anyhow::Result<Self> {
         let age = Age::new(&task.created_at, now)?;
         Ok(Self {
-            id: task.index,
+            id: task.index.ok_or(NextRowError::EmptyIndex)?,
             age,
             description: task.description,
         })
     }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum NextRowError {
+    #[error("Index is None")]
+    EmptyIndex,
 }
