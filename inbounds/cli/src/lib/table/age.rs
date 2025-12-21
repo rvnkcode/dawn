@@ -44,6 +44,7 @@ impl Age {
     pub fn new(created_at: &i64, now: &i64) -> Result<Self, AgeError> {
         let delta = now - created_at;
 
+        // TODO: Change format like 1y2mo
         let age_str = if delta >= YEAR {
             format!("{:.1}y", delta as f64 / YEAR as f64)
         } else {
