@@ -14,6 +14,7 @@ pub struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Add(Modification),
+    All,
 }
 
 #[derive(Args)]
@@ -32,6 +33,7 @@ impl Cli {
 
         match &self.command {
             Some(Commands::Add(modification)) => handler.add(&self.filters, modification)?,
+            Some(Commands::All) => handler.all()?,
             None => handler.next()?,
         }
         Ok(())

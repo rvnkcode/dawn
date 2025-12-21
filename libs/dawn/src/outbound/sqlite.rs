@@ -46,8 +46,33 @@ impl SQLite {
     }
 }
 
-// TODO: Other properties e.g. project, tags, etc.
+impl SQLite {
+    fn fetch_tasks(&self, query: &str) -> anyhow::Result<Vec<Task>> {
+        let mut stmt = self.conn.prepare(query)?;
+        let tasks = stmt
+            .query_map([], |row| {
+                let id_str: String = row.get(0)?;
+                let row_id: Option<usize> = row.get(1)?;
+                let description_str: String = row.get(2)?;
+                let created_at: i64 = row.get(3)?;
+                Ok((id_str, row_id, description_str, created_at))
+            })?
+            .map(|result| {
+                let (id_str, row_id, description_str, created_at) = result?;
+                Ok(Task {
+                    uid: UniqueID::from_str(&id_str)?,
+                    index: row_id.map(Index::new).transpose()?,
+                    description: Description::new(&description_str)?,
+                    created_at,
+                })
+            })
+            .collect::<anyhow::Result<Vec<Task>>>()?;
+        Ok(tasks)
+    }
+}
+
 impl TaskRepository for SQLite {
+    // TODO: Other properties e.g. project, tags, etc.
     fn create_task(&self, id: UniqueID, req: TaskCreation) -> anyhow::Result<()> {
         self.conn.execute(
             "INSERT INTO task (id, description) VALUES (?1, ?2)",
@@ -57,40 +82,28 @@ impl TaskRepository for SQLite {
     }
 
     fn count_pending_tasks(&self) -> usize {
-        let count: usize = self
-            .conn
+        self.conn
             .query_row("SELECT COUNT(*) FROM task_pending_row_id", [], |row| {
                 row.get(0)
             })
-            .unwrap_or(0);
-        count
+            .unwrap_or(0)
     }
 
     fn get_pending_tasks(&self) -> anyhow::Result<Vec<Task>> {
-        let mut stmt = self.conn.prepare(
+        self.fetch_tasks(
             "SELECT t.id, tpr.row_id, t.description, t.created_at \
             FROM task AS t \
                 INNER JOIN task_pending_row_id AS tpr ON tpr.id = t.id \
-            ORDER BY tpr.row_id",
-        )?;
-        let tasks = stmt
-            .query_map([], |row| {
-                let id_str: String = row.get(0)?;
-                let row_id: usize = row.get(1)?;
-                let description_str: String = row.get(2)?;
-                let created_at: i64 = row.get(3)?;
-                Ok((id_str, row_id, description_str, created_at))
-            })?
-            .map(|result| {
-                let (id_str, row_id, description_str, created_at) = result?;
-                Ok(Task {
-                    uid: UniqueID::from_str(&id_str)?,
-                    index: Some(Index::new(row_id)?),
-                    description: Description::new(&description_str)?,
-                    created_at,
-                })
-            })
-            .collect::<anyhow::Result<Vec<Task>>>()?;
-        Ok(tasks)
+            ORDER BY t.created_at",
+        )
+    }
+
+    fn get_all_tasks(&self) -> anyhow::Result<Vec<Task>> {
+        self.fetch_tasks(
+            "SELECT t.id, tpr.row_id, t.description, t.created_at \
+            FROM task AS t \
+                LEFT JOIN task_pending_row_id AS tpr ON tpr.id = t.id \
+            ORDER BY t.created_at",
+        )
     }
 }
