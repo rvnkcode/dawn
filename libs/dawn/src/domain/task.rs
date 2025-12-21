@@ -83,7 +83,7 @@ impl Display for Index {
 
 pub struct Task {
     pub uid: UniqueID,
-    pub index: Index,
+    pub index: Option<Index>,
     pub description: Description,
     pub created_at: i64,
 }
