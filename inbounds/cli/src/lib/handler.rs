@@ -54,6 +54,18 @@ impl<TS: TaskService> Handler<TS> {
         }
         Ok(())
     }
+
+    // TODO: Filtering
+    pub fn all(&self) -> anyhow::Result<()> {
+        let tasks = self.context.task_service.all()?;
+        if tasks.is_empty() {
+            println!("{}", "No matches.".yellow());
+            return Ok(());
+        }
+        // TODO: Table for all tasks
+        println!("Listing all {} tasks.", tasks.len()); // Debug
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -71,6 +83,9 @@ mod tests {
             unimplemented!("Not needed for the tests")
         }
         fn next(&self) -> anyhow::Result<Vec<Task>> {
+            unimplemented!("Not needed for the tests")
+        }
+        fn all(&self) -> anyhow::Result<Vec<Task>> {
             unimplemented!("Not needed for the tests")
         }
     }

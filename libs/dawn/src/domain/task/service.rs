@@ -35,4 +35,8 @@ where
     fn next(&self) -> anyhow::Result<Vec<Task>> {
         self.repo.get_pending_tasks()
     }
+
+    fn all(&self) -> anyhow::Result<Vec<Task>> {
+        self.repo.get_all_tasks()
+    }
 }
