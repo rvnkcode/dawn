@@ -46,31 +46,6 @@ impl SQLite {
     }
 }
 
-impl SQLite {
-    fn fetch_tasks(&self, query: &str) -> anyhow::Result<Vec<Task>> {
-        let mut stmt = self.conn.prepare(query)?;
-        let tasks = stmt
-            .query_map([], |row| {
-                let id_str: String = row.get(0)?;
-                let row_id: Option<usize> = row.get(1)?;
-                let description_str: String = row.get(2)?;
-                let created_at: i64 = row.get(3)?;
-                Ok((id_str, row_id, description_str, created_at))
-            })?
-            .map(|result| {
-                let (id_str, row_id, description_str, created_at) = result?;
-                Ok(Task {
-                    uid: UniqueID::from_str(&id_str)?,
-                    index: row_id.map(Index::new).transpose()?,
-                    description: Description::new(&description_str)?,
-                    created_at,
-                })
-            })
-            .collect::<anyhow::Result<Vec<Task>>>()?;
-        Ok(tasks)
-    }
-}
-
 impl TaskRepository for SQLite {
     // TODO: Other properties e.g. project, tags, etc.
     fn create_task(&self, id: UniqueID, req: TaskCreation) -> anyhow::Result<()> {
@@ -90,20 +65,70 @@ impl TaskRepository for SQLite {
     }
 
     fn get_pending_tasks(&self) -> anyhow::Result<Vec<Task>> {
-        self.fetch_tasks(
-            "SELECT t.id, tpr.row_id, t.description, t.created_at \
+        let query = "SELECT t.id, tpr.row_id, t.description, t.created_at \
             FROM task AS t \
                 INNER JOIN task_pending_row_id AS tpr ON tpr.id = t.id \
-            ORDER BY t.created_at",
-        )
+            ORDER BY t.created_at";
+        let mut stmt = self.conn.prepare(query)?;
+        let tasks = stmt
+            .query_map([], |row| {
+                let id_str: String = row.get(0)?;
+                let row_id: usize = row.get(1)?;
+                let description_str: String = row.get(2)?;
+                let created_at: i64 = row.get(3)?;
+                Ok((id_str, row_id, description_str, created_at))
+            })?
+            .map(|result| {
+                let (id_str, row_id, description_str, created_at) = result?;
+                Ok(Task {
+                    uid: UniqueID::from_str(&id_str)?,
+                    index: Some(Index::new(row_id)?),
+                    description: Description::new(&description_str)?,
+                    created_at,
+                    completed_at: None,
+                    deleted_at: None,
+                })
+            })
+            .collect::<anyhow::Result<Vec<Task>>>()?;
+        Ok(tasks)
     }
 
     fn get_all_tasks(&self) -> anyhow::Result<Vec<Task>> {
-        self.fetch_tasks(
-            "SELECT t.id, tpr.row_id, t.description, t.created_at \
+        let query = "SELECT t.id, tpr.row_id, t.description, t.created_at, t.deleted_at, t.completed_at \
             FROM task AS t \
                 LEFT JOIN task_pending_row_id AS tpr ON tpr.id = t.id \
-            ORDER BY t.created_at",
-        )
+            ORDER BY t.created_at";
+        let mut stmt = self.conn.prepare(query)?;
+        let tasks = stmt
+            .query_map([], |row| {
+                let id_str: String = row.get(0)?;
+                let row_id: Option<usize> = row.get(1)?;
+                let description_str: String = row.get(2)?;
+                let created_at: i64 = row.get(3)?;
+                let deleted_at: Option<i64> = row.get(4)?;
+                let completed_at: Option<i64> = row.get(5)?;
+                Ok((
+                    id_str,
+                    row_id,
+                    description_str,
+                    created_at,
+                    deleted_at,
+                    completed_at,
+                ))
+            })?
+            .map(|result| {
+                let (id_str, row_id, description_str, created_at, deleted_at, completed_at) =
+                    result?;
+                Ok(Task {
+                    uid: UniqueID::from_str(&id_str)?,
+                    index: row_id.map(Index::new).transpose()?,
+                    description: Description::new(&description_str)?,
+                    created_at,
+                    completed_at,
+                    deleted_at,
+                })
+            })
+            .collect::<anyhow::Result<Vec<Task>>>()?;
+        Ok(tasks)
     }
 }
