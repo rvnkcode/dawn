@@ -27,6 +27,7 @@ impl<R: TableRow + Tabled> BaseTable<R> {
     }
 
     pub fn render(&self) -> Table {
+        // TODO: Change order of colors to fit with taskwarrior
         let primary = Color::default();
         let secondary = Color::new("\u{1b}[48;5;234m", "\u{1b}[49m");
         let mut table = Table::new(&self.rows);
