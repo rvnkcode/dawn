@@ -23,7 +23,7 @@ const YEAR: i64 = 365 * DAY;
 ///
 /// (threshold, divisor, unit)
 const FORMATS: &[(i64, i64, &str)] = &[
-    (3 * MONTH, MONTH, "mo"),
+    (3 * MONTH, MONTH, "mo"), // TODO: 3달을 좀 더 정확하게 비교
     (2 * WEEK, WEEK, "w"),
     (DAY, DAY, "d"),
     (HOUR, HOUR, "h"),
