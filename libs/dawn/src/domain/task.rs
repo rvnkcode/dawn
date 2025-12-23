@@ -86,6 +86,8 @@ pub struct Task {
     pub index: Option<Index>,
     pub description: Description,
     pub created_at: i64,
+    pub completed_at: Option<i64>,
+    pub deleted_at: Option<i64>,
 }
 
 pub struct TaskCreation {

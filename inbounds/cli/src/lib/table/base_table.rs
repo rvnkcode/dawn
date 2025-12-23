@@ -1,22 +1,24 @@
 use chrono::Local;
 use dawn::domain::task::Task;
 use tabled::{
-    Table,
+    Table, Tabled,
     settings::{Color, Padding, Style, object::Rows, themes::Colorization},
 };
 
-use crate::table::NextRow;
-
-pub struct NextTable {
-    rows: Vec<NextRow>,
+pub trait TableRow: Sized {
+    fn new(task: Task, now: &i64) -> anyhow::Result<Self>;
 }
 
-impl NextTable {
+pub struct BaseTable<R> {
+    rows: Vec<R>,
+}
+
+impl<R: TableRow + Tabled> BaseTable<R> {
     pub fn new(tasks: impl Iterator<Item = Task>) -> anyhow::Result<Self> {
         let now = Local::now().timestamp();
         let rows = tasks
-            .map(|task| NextRow::new(task, &now))
-            .collect::<anyhow::Result<Vec<NextRow>, anyhow::Error>>()?;
+            .map(|task| R::new(task, &now))
+            .collect::<anyhow::Result<Vec<R>, anyhow::Error>>()?;
         Ok(Self { rows })
     }
 

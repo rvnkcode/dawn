@@ -1,9 +1,10 @@
 use crate::cli::Modification;
 use crate::context::AppContext;
-use crate::table::NextTable;
+use crate::table::{AllRow, BaseTable, NextRow, TableRow};
 use colored::Colorize;
 use dawn::domain::task::port::TaskService;
-use dawn::domain::task::{Description, TaskCreation};
+use dawn::domain::task::{Description, Task, TaskCreation};
+use tabled::Tabled;
 
 pub struct Handler<TS: TaskService> {
     context: AppContext<TS>,
@@ -36,14 +37,12 @@ impl<TS: TaskService> Handler<TS> {
         Ok(Description::new(&description_text)?)
     }
 
-    // TODO: Filtering
-    pub fn next(&self) -> anyhow::Result<()> {
-        let tasks = self.context.task_service.next()?;
+    fn display_table<R: TableRow + Tabled>(&self, tasks: Vec<Task>) -> anyhow::Result<()> {
         if tasks.is_empty() {
             println!("{}", "No matches.".yellow());
             return Ok(());
         }
-        let table = NextTable::new(tasks.into_iter())?;
+        let table = BaseTable::<R>::new(tasks.into_iter())?;
         let count = table.len();
         println!("{}", table.render());
         println!();
@@ -56,15 +55,15 @@ impl<TS: TaskService> Handler<TS> {
     }
 
     // TODO: Filtering
+    pub fn next(&self) -> anyhow::Result<()> {
+        let tasks = self.context.task_service.next()?;
+        self.display_table::<NextRow>(tasks)
+    }
+
+    // TODO: Filtering
     pub fn all(&self) -> anyhow::Result<()> {
         let tasks = self.context.task_service.all()?;
-        if tasks.is_empty() {
-            println!("{}", "No matches.".yellow());
-            return Ok(());
-        }
-        // TODO: Table for all tasks
-        println!("Listing all {} tasks.", tasks.len()); // Debug
-        Ok(())
+        self.display_table::<AllRow>(tasks)
     }
 }
 
