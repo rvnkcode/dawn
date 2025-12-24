@@ -3,7 +3,8 @@ pub use cli::Cli;
 pub mod context;
 mod dict;
 pub mod handler;
-pub mod parser;
+mod parser;
+pub use parser::Parser;
 pub mod table;
 
 #[cfg(test)]

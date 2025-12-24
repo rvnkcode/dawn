@@ -1,3 +1,4 @@
+use crate::Parser;
 use crate::cli::Modification;
 use crate::context::AppContext;
 use crate::table::{AllRow, BaseTable, NextRow, TableRow};
@@ -54,15 +55,15 @@ impl<TS: TaskService> Handler<TS> {
         Ok(())
     }
 
-    // TODO: Filtering
-    pub fn next(&self) -> anyhow::Result<()> {
-        let tasks = self.context.task_service.next()?;
+    pub fn next(&self, raw_filters: &[String]) -> anyhow::Result<()> {
+        let filter = Parser::parse_filter(raw_filters);
+        let tasks = self.context.task_service.next(&filter)?;
         self.display_table::<NextRow>(tasks)
     }
 
-    // TODO: Filtering
-    pub fn all(&self) -> anyhow::Result<()> {
-        let tasks = self.context.task_service.all()?;
+    pub fn all(&self, raw_filters: &[String], args: &Modification) -> anyhow::Result<()> {
+        let filter = Parser::parse_en_passant_filter(raw_filters, &args.description);
+        let tasks = self.context.task_service.all(&filter)?;
         self.display_table::<AllRow>(tasks)
     }
 }
@@ -70,7 +71,7 @@ impl<TS: TaskService> Handler<TS> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dawn::domain::task::Task;
+    use dawn::domain::{Filter, task::Task};
 
     // Mock TaskService for testing
     struct MockTaskService;
@@ -81,10 +82,10 @@ mod tests {
         fn count_pending(&self) -> usize {
             unimplemented!("Not needed for the tests")
         }
-        fn next(&self) -> anyhow::Result<Vec<Task>> {
+        fn next(&self, _filter: &Filter) -> anyhow::Result<Vec<Task>> {
             unimplemented!("Not needed for the tests")
         }
-        fn all(&self) -> anyhow::Result<Vec<Task>> {
+        fn all(&self, _filter: &Filter) -> anyhow::Result<Vec<Task>> {
             unimplemented!("Not needed for the tests")
         }
     }

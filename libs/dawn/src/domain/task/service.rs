@@ -1,6 +1,9 @@
-use crate::domain::task::{
-    Task, TaskCreation, UniqueID,
-    port::{TaskRepository, TaskService},
+use crate::domain::{
+    Filter,
+    task::{
+        Task, TaskCreation, UniqueID,
+        port::{TaskRepository, TaskService},
+    },
 };
 
 // Generic type 'R' should implement 'TaskRepository' trait
@@ -32,11 +35,11 @@ where
         self.repo.count_pending_tasks()
     }
 
-    fn next(&self) -> anyhow::Result<Vec<Task>> {
-        self.repo.get_pending_tasks()
+    fn next(&self, filter: &Filter) -> anyhow::Result<Vec<Task>> {
+        self.repo.get_pending_tasks(filter)
     }
 
-    fn all(&self) -> anyhow::Result<Vec<Task>> {
-        self.repo.get_all_tasks()
+    fn all(&self, filter: &Filter) -> anyhow::Result<Vec<Task>> {
+        self.repo.get_all_tasks(filter)
     }
 }
