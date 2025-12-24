@@ -6,6 +6,7 @@ use std::fmt::{self, Display, Formatter};
 use thiserror::Error;
 
 // task description
+#[derive(Debug)]
 pub struct Description(String);
 
 #[derive(Debug, Error)]
@@ -32,6 +33,7 @@ impl Display for Description {
 // task ID
 const ID_LENGTH: usize = 11;
 
+#[derive(Debug)]
 pub struct UniqueID(String);
 
 #[derive(Debug, Error)]
@@ -59,6 +61,7 @@ impl Display for UniqueID {
 }
 
 // task index
+#[derive(Debug)]
 pub struct Index(usize);
 
 #[derive(Debug, Error)]

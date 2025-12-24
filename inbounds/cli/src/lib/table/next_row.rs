@@ -2,7 +2,7 @@ use crate::table::{Age, TableRow};
 use dawn::domain::task::{Description, Index, Task};
 use tabled::Tabled;
 
-#[derive(Tabled)]
+#[derive(Debug, Tabled)]
 #[tabled(rename_all = "PascalCase")]
 pub struct NextRow {
     #[tabled(rename = "ID")]
@@ -26,4 +26,26 @@ impl TableRow for NextRow {
 pub enum NextRowError {
     #[error("Index is None")]
     MissingIndex,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dawn::domain::task::UniqueID;
+
+    #[test]
+    fn test_missing_index_error() {
+        let task = Task {
+            uid: UniqueID::new(),
+            index: None,
+            description: Description::new("test task").unwrap(),
+            created_at: 1000,
+            completed_at: None,
+            deleted_at: None,
+        };
+        let now = 2000;
+        let result = NextRow::new(task, &now);
+        let err = result.unwrap_err();
+        assert!(err.downcast_ref::<NextRowError>().is_some());
+    }
 }
