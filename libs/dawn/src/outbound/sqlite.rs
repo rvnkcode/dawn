@@ -93,6 +93,8 @@ impl TaskRepository for SQLite {
         Ok(tasks)
     }
 
+    // TODO: No index covers `created_at` for all tasks (only partial index for pending).
+    // Consider adding `CREATE INDEX idx_task_created_at ON task (created_at)` if performance degrades.
     fn get_all_tasks(&self) -> anyhow::Result<Vec<Task>> {
         let query = "SELECT t.id, tpr.row_id, t.description, t.created_at, t.deleted_at, t.completed_at \
             FROM task AS t \
