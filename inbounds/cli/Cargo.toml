@@ -22,3 +22,4 @@ dawn = { workspace = true }
 regex = "1.12.2"
 tabled = "0.20.0"
 thiserror = { workspace = true }
+spellbook = "0.3"
