@@ -61,7 +61,7 @@ impl Display for UniqueID {
 }
 
 // task index
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Index(usize);
 
 #[derive(Debug, Error)]
