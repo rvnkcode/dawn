@@ -1,5 +1,11 @@
-use crate::domain::task::{Description, Index, Task, TaskCreation, UniqueID, port::TaskRepository};
-use rusqlite::{Connection, params};
+use crate::{
+    domain::{
+        Filter,
+        task::{Description, Index, Task, TaskCreation, UniqueID, port::TaskRepository},
+    },
+    outbound::QueryBuilder,
+};
+use rusqlite::{Connection, params, params_from_iter};
 use std::{fs, path::PathBuf};
 
 const DB_VERSION: u8 = 1;
@@ -64,14 +70,15 @@ impl TaskRepository for SQLite {
             .unwrap_or(0)
     }
 
-    fn get_pending_tasks(&self) -> anyhow::Result<Vec<Task>> {
-        let query = "SELECT t.id, tpr.row_id, t.description, t.created_at \
+    fn get_pending_tasks(&self, filter: &Filter) -> anyhow::Result<Vec<Task>> {
+        let select_clause = "SELECT t.id, tpr.row_id, t.description, t.created_at \
             FROM task AS t \
-                INNER JOIN task_pending_row_id AS tpr ON tpr.id = t.id \
-            ORDER BY t.created_at";
-        let mut stmt = self.conn.prepare(query)?;
+                INNER JOIN task_pending_row_id AS tpr ON tpr.id = t.id";
+        let (where_clause, params) = QueryBuilder::build_where_clause(filter)?;
+        let query = format!("{} {}", select_clause, where_clause);
+        let mut stmt = self.conn.prepare(&query)?;
         let tasks = stmt
-            .query_map([], |row| {
+            .query_map(params_from_iter(&params), |row| {
                 let id_str: String = row.get(0)?;
                 let row_id: usize = row.get(1)?;
                 let description_str: String = row.get(2)?;
@@ -95,14 +102,15 @@ impl TaskRepository for SQLite {
 
     // TODO: No index covers `created_at` for all tasks (only partial index for pending).
     // Consider adding `CREATE INDEX idx_task_created_at ON task (created_at)` if performance degrades.
-    fn get_all_tasks(&self) -> anyhow::Result<Vec<Task>> {
-        let query = "SELECT t.id, tpr.row_id, t.description, t.created_at, t.completed_at, t.deleted_at \
+    fn get_all_tasks(&self, filter: &Filter) -> anyhow::Result<Vec<Task>> {
+        let select_clause = "SELECT t.id, tpr.row_id, t.description, t.created_at, t.completed_at, t.deleted_at \
             FROM task AS t \
-                LEFT JOIN task_pending_row_id AS tpr ON tpr.id = t.id \
-            ORDER BY t.created_at";
-        let mut stmt = self.conn.prepare(query)?;
+                LEFT JOIN task_pending_row_id AS tpr ON tpr.id = t.id";
+        let (where_clause, params) = QueryBuilder::build_where_clause(filter)?;
+        let query = format!("{} {}", select_clause, where_clause);
+        let mut stmt = self.conn.prepare(&query)?;
         let tasks = stmt
-            .query_map([], |row| {
+            .query_map(params_from_iter(&params), |row| {
                 let id_str: String = row.get(0)?;
                 let row_id: Option<usize> = row.get(1)?;
                 let description_str: String = row.get(2)?;

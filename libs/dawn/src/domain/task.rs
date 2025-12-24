@@ -76,6 +76,10 @@ impl Index {
             Ok(Index(raw))
         }
     }
+
+    pub fn get(&self) -> usize {
+        self.0
+    }
 }
 
 impl Display for Index {
