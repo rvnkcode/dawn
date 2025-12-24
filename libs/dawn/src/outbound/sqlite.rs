@@ -96,7 +96,7 @@ impl TaskRepository for SQLite {
     // TODO: No index covers `created_at` for all tasks (only partial index for pending).
     // Consider adding `CREATE INDEX idx_task_created_at ON task (created_at)` if performance degrades.
     fn get_all_tasks(&self) -> anyhow::Result<Vec<Task>> {
-        let query = "SELECT t.id, tpr.row_id, t.description, t.created_at, t.deleted_at, t.completed_at \
+        let query = "SELECT t.id, tpr.row_id, t.description, t.created_at, t.completed_at, t.deleted_at \
             FROM task AS t \
                 LEFT JOIN task_pending_row_id AS tpr ON tpr.id = t.id \
             ORDER BY t.created_at";
@@ -107,19 +107,19 @@ impl TaskRepository for SQLite {
                 let row_id: Option<usize> = row.get(1)?;
                 let description_str: String = row.get(2)?;
                 let created_at: i64 = row.get(3)?;
-                let deleted_at: Option<i64> = row.get(4)?;
-                let completed_at: Option<i64> = row.get(5)?;
+                let completed_at: Option<i64> = row.get(4)?;
+                let deleted_at: Option<i64> = row.get(5)?;
                 Ok((
                     id_str,
                     row_id,
                     description_str,
                     created_at,
-                    deleted_at,
                     completed_at,
+                    deleted_at,
                 ))
             })?
             .map(|result| {
-                let (id_str, row_id, description_str, created_at, deleted_at, completed_at) =
+                let (id_str, row_id, description_str, created_at, completed_at, deleted_at) =
                     result?;
                 Ok(Task {
                     uid: UniqueID::from_str(&id_str)?,
