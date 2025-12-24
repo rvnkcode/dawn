@@ -15,63 +15,64 @@ enum ParsedFilter {
     UID(UniqueID),
 }
 
-fn parse_fragment(fragment: &str) -> Option<ParsedFilter> {
-    // Parse index range (e.g. "3-7")
-    if let Some(caps) = RANGE_RE.captures(fragment) {
-        let a = caps[1].parse::<usize>().ok()?;
-        let b = caps[2].parse::<usize>().ok()?;
-        let idx_a = Index::new(a).ok()?;
-        let idx_b = Index::new(b).ok()?;
-
-        return match IndexRange::new(idx_a, idx_b) {
-            Ok(range) => Some(ParsedFilter::Range(range)),
-            Err(_) => Some(ParsedFilter::Index(idx_a)),
-        };
-    }
-    // Parse single index (e.g. "5")
-    if let Some(caps) = INDEX_RE.captures(fragment) {
-        let n = caps[1].parse::<usize>().ok()?;
-        let index = Index::new(n).ok()?;
-        return Some(ParsedFilter::Index(index));
-    }
-    // UID parsing (11 characters, alphanumeric + _-)
-    if !UID_RE.is_match(fragment) {
-        return None;
-    }
-    // Pure alphabetic in dictionary -> not a UID
-    if ALPHA_RE.is_match(fragment) && dict::is_english_word(fragment) {
-        return None;
-    }
-    UniqueID::from_str(fragment).ok().map(ParsedFilter::UID)
-}
-
 pub struct Parser;
 
 impl Parser {
     pub fn parse_filter(raw_filters: &[String]) -> Filter {
-        let mut indices: Vec<Index> = Vec::new();
-        let mut ranges: Vec<IndexRange> = Vec::new();
-        let mut uids: Vec<UniqueID> = Vec::new();
-        let mut words: Vec<String> = Vec::new();
+        let mut filter = Filter::default();
+        Self::parse_chunks(raw_filters, &mut filter);
+        filter
+    }
 
-        for chunk in raw_filters {
+    pub fn parse_en_passant_filter(raw_filters: &[String], args: &[String]) -> Filter {
+        let mut filter = Filter::default();
+        Self::parse_chunks(raw_filters, &mut filter);
+        Self::parse_chunks(args, &mut filter);
+        filter
+    }
+
+    fn parse_chunks(chunks: &[String], filter: &mut Filter) {
+        for chunk in chunks {
             for fragment in chunk.split(',') {
                 let trimmed = fragment.trim();
-                match parse_fragment(trimmed) {
-                    Some(ParsedFilter::Index(idx)) => indices.push(idx),
-                    Some(ParsedFilter::Range(range)) => ranges.push(range),
-                    Some(ParsedFilter::UID(uid)) => uids.push(uid),
-                    None => words.push(trimmed.to_string()),
+                match Self::parse_fragment(trimmed) {
+                    Some(ParsedFilter::Index(idx)) => filter.indices.push(idx),
+                    Some(ParsedFilter::Range(range)) => filter.ranges.push(range),
+                    Some(ParsedFilter::UID(uid)) => filter.uids.push(uid),
+                    None => filter.words.push(trimmed.to_string()),
                 }
             }
         }
+    }
 
-        Filter {
-            indices,
-            ranges,
-            uids,
-            words,
+    fn parse_fragment(fragment: &str) -> Option<ParsedFilter> {
+        // Parse index range (e.g. "3-7")
+        if let Some(caps) = RANGE_RE.captures(fragment) {
+            let a = caps[1].parse::<usize>().ok()?;
+            let b = caps[2].parse::<usize>().ok()?;
+            let idx_a = Index::new(a).ok()?;
+            let idx_b = Index::new(b).ok()?;
+
+            return match IndexRange::new(idx_a, idx_b) {
+                Ok(range) => Some(ParsedFilter::Range(range)),
+                Err(_) => Some(ParsedFilter::Index(idx_a)),
+            };
         }
+        // Parse single index (e.g. "5")
+        if let Some(caps) = INDEX_RE.captures(fragment) {
+            let n = caps[1].parse::<usize>().ok()?;
+            let index = Index::new(n).ok()?;
+            return Some(ParsedFilter::Index(index));
+        }
+        // UID parsing (11 characters, alphanumeric + _-)
+        if !UID_RE.is_match(fragment) {
+            return None;
+        }
+        // Pure alphabetic in dictionary -> not a UID
+        if ALPHA_RE.is_match(fragment) && dict::is_english_word(fragment) {
+            return None;
+        }
+        UniqueID::from_str(fragment).ok().map(ParsedFilter::UID)
     }
 }
 
