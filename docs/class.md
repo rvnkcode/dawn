@@ -20,6 +20,7 @@ classDiagram
     class Commands {
       <<enumeration>>
       -Add(Modification)
+      -All
     }
     class Modification {
       +Vec~String~ description
@@ -29,7 +30,9 @@ classDiagram
       +new(context) Self
       +add(&self, &filters, &args) Result~_~
       -compose_description(&filters, &description) Result~Description~
+      -display_table~R~(&self, tasks) Result~_~
       +next(&self) Result~_~
+      +all(&self) Result~_~
     }
     class Cli {
       -Vec~String~ filters
@@ -40,17 +43,42 @@ classDiagram
     class Age {
       +new(&created_at, &now) Result~Self, AgeError~
     }
+    class TableRow {
+      <<interface>>
+      +new(task, &now) Result~Self~
+    }
     class NextRow {
       +Index id
       +Age age
       +Description description
-      +new(task, &now) Result~Self~
     }
-    class NextTable {
-      -Vec~NextRow~ rows
+    class Status {
+      <<enumeration>>
+      Pending
+      Completed
+      Deleted
+    }
+    class AllRow {
+      +Option~Index~ id
+      +Status status
+      +UniqueID uid
+      +Age age
+      +Option~Age~ done
+      +Description description
+    }
+    class BaseTable~R~ {
+      -Vec~R~ rows
       +new(tasks) Result~Self~
       +len(&self) usize
       +render(&self) Table
+    }
+    class NextTable {
+      <<type alias>>
+      BaseTable~NextRow~
+    }
+    class AllTable {
+      <<type alias>>
+      BaseTable~AllRow~
     }
   }
   Task *.. UniqueID
@@ -60,12 +88,21 @@ classDiagram
   Handler~TS~ ..> TaskCreation
   TaskService ..> TaskCreation
   TaskRepository ..> TaskCreation
+  TableRow <|.. NextRow
+  TableRow <|.. AllRow
   NextRow *.. Index
   NextRow *.. Age
   NextRow *.. Description
   NextRow ..> Task
+  AllRow *.. Status
+  AllRow *.. UniqueID
+  AllRow *.. Age
+  AllRow *.. Description
+  AllRow ..> Task
+  BaseTable~R~ o-- TableRow
   NextTable o-- NextRow
-  Handler~TS~ ..> NextTable
+  AllTable o-- AllRow
+  Handler~TS~ ..> BaseTable~R~
   TaskService <|.. Service
   Service~R~ --> TaskRepository
   TaskRepository <|.. SQLite
@@ -84,9 +121,11 @@ classDiagram
     }
     class Task {
       +UniqueId uid
-      +Index index
+      +Option~Index~ index
       +Description description
       +i64 created_at
+      +Option~i64~ completed_at
+      +Option~i64~ deleted_at
     }
     class TaskCreation {
       +Description description
@@ -96,6 +135,7 @@ classDiagram
       +add(&self, req) Result~_~
       +count_pending(&self) usize
       +next(&self) Result~Vec~Task~~
+      +all(&self) Result~Vec~Task~~
     }
     class Service~R~ {
       -R repo
@@ -106,6 +146,7 @@ classDiagram
       +create_task(&self, id, req) Result~_~
       +count_pending_tasks(&self) usize
       +get_pending_tasks(&self) Result~Vec~Task~~
+      +get_all_tasks(&self) Result~Vec~Task~~
     }
   }
   namespace Outbound {
