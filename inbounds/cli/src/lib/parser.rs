@@ -207,4 +207,51 @@ mod tests {
         assert_eq!(filter.ranges.len(), 1);
         assert_eq!(filter.uids.len(), 1);
     }
+
+    #[test]
+    fn parse_en_passant_combines_filters_and_args() {
+        let filter = Parser::parse_en_passant_filter(&strs(&["1,2"]), &strs(&["3,4"]));
+
+        assert_eq!(filter.indices.len(), 4);
+        assert_eq!(filter.indices[0], Index::new(1).unwrap());
+        assert_eq!(filter.indices[1], Index::new(2).unwrap());
+        assert_eq!(filter.indices[2], Index::new(3).unwrap());
+        assert_eq!(filter.indices[3], Index::new(4).unwrap());
+    }
+
+    #[test]
+    fn parse_en_passant_with_empty_filters() {
+        let filter = Parser::parse_en_passant_filter(&strs(&[]), &strs(&["1,2"]));
+
+        assert_eq!(filter.indices.len(), 2);
+        assert_eq!(filter.indices[0], Index::new(1).unwrap());
+        assert_eq!(filter.indices[1], Index::new(2).unwrap());
+    }
+
+    #[test]
+    fn parse_en_passant_with_empty_args() {
+        let filter = Parser::parse_en_passant_filter(&strs(&["1,2"]), &strs(&[]));
+
+        assert_eq!(filter.indices.len(), 2);
+        assert_eq!(filter.indices[0], Index::new(1).unwrap());
+        assert_eq!(filter.indices[1], Index::new(2).unwrap());
+    }
+
+    #[test]
+    fn parse_en_passant_with_mixed_types() {
+        let filter =
+            Parser::parse_en_passant_filter(&strs(&["1,abc12345678"]), &strs(&["3-5", "word"]));
+
+        assert_eq!(filter.indices.len(), 1);
+        assert_eq!(filter.uids.len(), 1);
+        assert_eq!(filter.ranges.len(), 1);
+        assert_eq!(filter.words, vec!["word"]);
+    }
+
+    #[test]
+    fn parse_en_passant_both_empty() {
+        let filter = Parser::parse_en_passant_filter(&strs(&[]), &strs(&[]));
+
+        assert!(filter.is_empty());
+    }
 }
