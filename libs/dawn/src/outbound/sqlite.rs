@@ -3,7 +3,7 @@ use crate::{
         Filter,
         task::{Description, Index, Task, TaskCreation, UniqueID, port::TaskRepository},
     },
-    outbound::QueryBuilder,
+    outbound::query_builder,
 };
 use rusqlite::{Connection, params, params_from_iter};
 use std::{fs, path::PathBuf};
@@ -74,7 +74,7 @@ impl TaskRepository for SQLite {
         let select_clause = "SELECT t.id, tpr.row_id, t.description, t.created_at \
             FROM task AS t \
                 INNER JOIN task_pending_row_id AS tpr ON tpr.id = t.id";
-        let (where_clause, params) = QueryBuilder::build_where_clause(filter)?;
+        let (where_clause, params) = query_builder::build_where_clause(filter)?;
         let query = format!("{} {}", select_clause, where_clause);
         let mut stmt = self.conn.prepare(&query)?;
         let tasks = stmt
@@ -106,7 +106,7 @@ impl TaskRepository for SQLite {
         let select_clause = "SELECT t.id, tpr.row_id, t.description, t.created_at, t.completed_at, t.deleted_at \
             FROM task AS t \
                 LEFT JOIN task_pending_row_id AS tpr ON tpr.id = t.id";
-        let (where_clause, params) = QueryBuilder::build_where_clause(filter)?;
+        let (where_clause, params) = query_builder::build_where_clause(filter)?;
         let query = format!("{} {}", select_clause, where_clause);
         let mut stmt = self.conn.prepare(&query)?;
         let tasks = stmt
