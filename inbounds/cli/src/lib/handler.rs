@@ -1,4 +1,4 @@
-use crate::Parser;
+use crate::parser;
 use crate::cli::Modification;
 use crate::context::AppContext;
 use crate::table::{AllRow, BaseTable, NextRow, TableRow};
@@ -56,13 +56,13 @@ impl<TS: TaskService> Handler<TS> {
     }
 
     pub fn next(&self, raw_filters: &[String]) -> anyhow::Result<()> {
-        let filter = Parser::parse_filter(raw_filters);
+        let filter = parser::parse_filter(raw_filters);
         let tasks = self.context.task_service.next(&filter)?;
         self.display_table::<NextRow>(tasks)
     }
 
     pub fn all(&self, raw_filters: &[String], args: &Modification) -> anyhow::Result<()> {
-        let filter = Parser::parse_en_passant_filter(raw_filters, &args.description);
+        let filter = parser::parse_en_passant_filter(raw_filters, &args.description);
         let tasks = self.context.task_service.all(&filter)?;
         self.display_table::<AllRow>(tasks)
     }
