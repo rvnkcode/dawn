@@ -8,6 +8,3 @@ mod next_row;
 pub use next_row::NextRow;
 mod status;
 pub use status::Status;
-
-pub type NextTable = BaseTable<NextRow>;
-pub type AllTable = BaseTable<AllRow>;
