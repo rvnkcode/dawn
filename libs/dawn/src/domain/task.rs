@@ -101,6 +101,16 @@ pub struct TaskCreation {
     pub description: Description,
 }
 
+pub struct TaskModification {
+    pub description: Option<Description>,
+}
+
+impl TaskModification {
+    pub fn is_empty(&self) -> bool {
+        self.description.is_none()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
