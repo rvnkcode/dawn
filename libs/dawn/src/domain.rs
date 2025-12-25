@@ -1,3 +1,4 @@
 pub mod filter;
-pub use filter::{Filter, IndexRange, IndexRangeError};
 pub mod task;
+
+pub use filter::Filter;
