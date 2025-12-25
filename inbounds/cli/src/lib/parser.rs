@@ -32,6 +32,9 @@ fn parse_chunks(chunks: &[String], filter: &mut Filter) {
     for chunk in chunks {
         for fragment in chunk.split(',') {
             let trimmed = fragment.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
             match parse_fragment(trimmed) {
                 Some(ParsedFilter::Index(idx)) => filter.indices.push(idx),
                 Some(ParsedFilter::Range(range)) => filter.ranges.push(range),
