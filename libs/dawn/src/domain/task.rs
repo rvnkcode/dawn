@@ -33,7 +33,7 @@ impl Display for Description {
 // task ID
 const ID_LENGTH: usize = 11;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct UniqueID(String);
 
 #[derive(Debug, Error)]
@@ -88,6 +88,7 @@ impl Display for Index {
     }
 }
 
+#[derive(PartialEq)]
 pub struct Task {
     pub uid: UniqueID,
     pub index: Option<Index>,
