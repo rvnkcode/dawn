@@ -1,7 +1,7 @@
 use crate::domain::{
     Filter,
     task::{
-        Task, TaskCreation, UniqueID,
+        Task, TaskCreation, TaskModification, UniqueID,
         port::{TaskRepository, TaskService},
     },
 };
@@ -41,5 +41,9 @@ where
 
     fn all(&self, filter: &Filter) -> anyhow::Result<Vec<Task>> {
         self.repo.get_all_tasks(filter)
+    }
+
+    fn modify(&self, modification: TaskModification, targets: &[&UniqueID]) -> anyhow::Result<()> {
+        self.repo.update_tasks(modification, targets)
     }
 }
