@@ -1,4 +1,7 @@
-use crate::domain::Filter;
+use crate::domain::{
+    Filter,
+    task::{TaskModification, UniqueID},
+};
 use rusqlite::ToSql;
 
 /// Escapes a term for FTS5 query by wrapping in double quotes
@@ -70,6 +73,34 @@ fn build_id_clause(filter: &Filter, params: &mut Vec<Box<dyn ToSql>>) -> String 
     }
 
     id_conditions.join(" OR ")
+}
+
+pub fn build_update_clause(
+    modification: TaskModification,
+    targets: &[&UniqueID],
+) -> anyhow::Result<(String, Vec<Box<dyn ToSql>>)> {
+    if modification.is_empty() {
+        return Err(anyhow::anyhow!("No modifications specified"));
+    }
+    if targets.is_empty() {
+        return Err(anyhow::anyhow!("No target tasks specified"));
+    }
+    let mut params: Vec<Box<dyn ToSql>> = Vec::new();
+    let mut clause = String::from("UPDATE task SET ");
+    let mut updates: Vec<String> = Vec::new();
+
+    if let Some(new_description) = modification.description {
+        updates.push("description = ?".to_string());
+        params.push(Box::new(new_description.to_string()));
+    }
+    clause.push_str(&updates.join(", "));
+    clause.push_str(" WHERE id IN (");
+    clause.push_str(&repeat_vars(targets.len()));
+    clause.push(')');
+    for uid in targets {
+        params.push(Box::new(uid.to_string()));
+    }
+    Ok((clause, params))
 }
 
 fn repeat_vars(count: usize) -> String {
@@ -267,5 +298,69 @@ mod tests {
     #[test]
     fn escape_fts5_term_empty() {
         assert_eq!(escape_fts5_term(""), "\"\"");
+    }
+
+    #[test]
+    fn update_clause_empty_modification_returns_error() {
+        let modification = TaskModification { description: None };
+        let uid = UniqueID::from_str("abc12345678").unwrap();
+        let targets = vec![&uid];
+
+        let result = build_update_clause(modification, &targets);
+
+        let err = result.err().expect("Expected error");
+        assert_eq!(err.to_string(), "No modifications specified");
+    }
+
+    #[test]
+    fn update_clause_empty_targets_returns_error() {
+        use crate::domain::task::Description;
+
+        let modification = TaskModification {
+            description: Some(Description::new("new description").unwrap()),
+        };
+        let targets: Vec<&UniqueID> = vec![];
+
+        let result = build_update_clause(modification, &targets);
+
+        let err = result.err().expect("Expected error");
+        assert_eq!(err.to_string(), "No target tasks specified");
+    }
+
+    #[test]
+    fn update_clause_single_target_with_description() {
+        use crate::domain::task::Description;
+
+        let modification = TaskModification {
+            description: Some(Description::new("updated task").unwrap()),
+        };
+        let uid = UniqueID::from_str("abc12345678").unwrap();
+        let targets = vec![&uid];
+
+        let (clause, params) = build_update_clause(modification, &targets).unwrap();
+
+        assert_eq!(clause, "UPDATE task SET description = ? WHERE id IN (?)");
+        assert_eq!(params.len(), 2);
+    }
+
+    #[test]
+    fn update_clause_multiple_targets_with_description() {
+        use crate::domain::task::Description;
+
+        let modification = TaskModification {
+            description: Some(Description::new("bulk update").unwrap()),
+        };
+        let uid1 = UniqueID::from_str("abc12345678").unwrap();
+        let uid2 = UniqueID::from_str("def12345678").unwrap();
+        let uid3 = UniqueID::from_str("ghi12345678").unwrap();
+        let targets = vec![&uid1, &uid2, &uid3];
+
+        let (clause, params) = build_update_clause(modification, &targets).unwrap();
+
+        assert_eq!(
+            clause,
+            "UPDATE task SET description = ? WHERE id IN (?,?,?)"
+        );
+        assert_eq!(params.len(), 4); // 1 description + 3 target IDs
     }
 }
