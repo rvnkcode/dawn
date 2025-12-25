@@ -1,6 +1,7 @@
+use crate::cli::Modification;
 use crate::dict;
 use dawn::domain::filter::{Filter, IndexRange};
-use dawn::domain::task::{Index, UniqueID};
+use dawn::domain::task::{Description, Index, TaskModification, UniqueID};
 use regex::Regex;
 use std::sync::LazyLock;
 
@@ -19,18 +20,25 @@ enum ParsedFilter {
 
 pub fn parse_filter(raw_filters: &[String]) -> Filter {
     let mut filter = Filter::default();
-    parse_chunks(raw_filters, &mut filter);
+    let mut words = Vec::new();
+    parse_chunks(raw_filters, &mut filter, &mut |w| words.push(w));
+    filter.words = words;
     filter
 }
 
 pub fn parse_en_passant_filter(raw_filters: &[String], args: &[String]) -> Filter {
     let mut filter = Filter::default();
-    parse_chunks(raw_filters, &mut filter);
-    parse_chunks(args, &mut filter);
+    let mut words = Vec::new();
+    parse_chunks(raw_filters, &mut filter, &mut |w| words.push(w));
+    parse_chunks(args, &mut filter, &mut |w| words.push(w));
+    filter.words = words;
     filter
 }
 
-fn parse_chunks(chunks: &[String], filter: &mut Filter) {
+fn parse_chunks<F>(chunks: &[String], filter: &mut Filter, on_word: &mut F)
+where
+    F: FnMut(String),
+{
     for chunk in chunks {
         let trimmed = chunk.trim();
         if trimmed.is_empty() {
@@ -40,15 +48,18 @@ fn parse_chunks(chunks: &[String], filter: &mut Filter) {
         // Only split on comma for pure ID set patterns (e.g., "1,2,3" or "1-5,7")
         if ID_SET_RE.is_match(trimmed) {
             for fragment in trimmed.split(',') {
-                process_fragment(fragment.trim(), filter);
+                process_fragment(fragment.trim(), filter, on_word);
             }
         } else {
-            process_fragment(trimmed, filter);
+            process_fragment(trimmed, filter, on_word);
         }
     }
 }
 
-fn process_fragment(fragment: &str, filter: &mut Filter) {
+fn process_fragment<F>(fragment: &str, filter: &mut Filter, on_word: &mut F)
+where
+    F: FnMut(String),
+{
     if fragment.is_empty() {
         return;
     }
@@ -56,8 +67,37 @@ fn process_fragment(fragment: &str, filter: &mut Filter) {
         Some(ParsedFilter::Index(idx)) => filter.indices.push(idx),
         Some(ParsedFilter::Range(range)) => filter.ranges.push(range),
         Some(ParsedFilter::UID(uid)) => filter.uids.push(uid),
-        None => filter.words.push(fragment.to_string()),
+        None => on_word(fragment.to_string()),
     }
+}
+
+pub fn parse_filter_with_modifications(
+    raw_filters: &[String],
+    mods: &Modification,
+) -> anyhow::Result<(Filter, TaskModification)> {
+    let mut filter = Filter::default();
+    let args = &mods.description;
+
+    let description = if raw_filters.is_empty() {
+        let mut words = Vec::new();
+        parse_chunks(args, &mut filter, &mut |w| words.push(w));
+        if words.is_empty() {
+            None
+        } else {
+            Some(Description::new(&words.join(" "))?)
+        }
+    } else {
+        let mut words = Vec::new();
+        parse_chunks(raw_filters, &mut filter, &mut |w| words.push(w));
+        filter.words = words;
+        if args.is_empty() {
+            None
+        } else {
+            Some(Description::new(&args.join(" "))?)
+        }
+    };
+
+    Ok((filter, TaskModification { description }))
 }
 
 fn parse_fragment(fragment: &str) -> Option<ParsedFilter> {
@@ -330,5 +370,106 @@ mod tests {
         assert!(filter.uids.is_empty());
         assert!(filter.indices.is_empty());
         assert_eq!(filter.words, vec!["abc12345678,1"]);
+    }
+
+    mod parse_filter_with_modifications_tests {
+        use super::*;
+        use crate::cli::Modification;
+        use dawn::domain::task::Description;
+
+        fn mods(desc: &[&str]) -> Modification {
+            Modification {
+                description: desc.iter().map(|s| s.to_string()).collect(),
+            }
+        }
+
+        fn desc(s: &str) -> Option<Description> {
+            Some(Description::new(s).unwrap())
+        }
+
+        #[test]
+        fn empty_filter_extracts_indices_from_args() {
+            let (filter, task_mod) =
+                parse_filter_with_modifications(&strs(&[]), &mods(&["1", "2"])).unwrap();
+
+            assert_eq!(filter.indices.len(), 2);
+            assert!(task_mod.description.is_none());
+        }
+
+        #[test]
+        fn empty_filter_with_words_returns_description() {
+            let (filter, task_mod) =
+                parse_filter_with_modifications(&strs(&[]), &mods(&["hello", "world"])).unwrap();
+
+            assert!(filter.indices.is_empty());
+            assert_eq!(task_mod.description, desc("hello world"));
+        }
+
+        #[test]
+        fn empty_filter_mixed_indices_and_words() {
+            let (filter, task_mod) =
+                parse_filter_with_modifications(&strs(&[]), &mods(&["1", "hello", "2"])).unwrap();
+
+            assert_eq!(filter.indices.len(), 2);
+            assert_eq!(task_mod.description, desc("hello"));
+        }
+
+        #[test]
+        fn with_filter_uses_args_as_description() {
+            let (filter, task_mod) =
+                parse_filter_with_modifications(&strs(&["1", "2"]), &mods(&["new", "description"]))
+                    .unwrap();
+
+            assert_eq!(filter.indices.len(), 2);
+            assert_eq!(task_mod.description, desc("new description"));
+        }
+
+        #[test]
+        fn with_filter_empty_args_no_description() {
+            let (filter, task_mod) =
+                parse_filter_with_modifications(&strs(&["1"]), &mods(&[])).unwrap();
+
+            assert_eq!(filter.indices.len(), 1);
+            assert!(task_mod.description.is_none());
+        }
+
+        #[test]
+        fn with_filter_parses_words_in_filter() {
+            let (filter, task_mod) =
+                parse_filter_with_modifications(&strs(&["1", "search"]), &mods(&["new", "desc"]))
+                    .unwrap();
+
+            assert_eq!(filter.indices.len(), 1);
+            assert_eq!(filter.words, vec!["search"]);
+            assert_eq!(task_mod.description, desc("new desc"));
+        }
+
+        #[test]
+        fn empty_filter_with_range() {
+            let (filter, task_mod) =
+                parse_filter_with_modifications(&strs(&[]), &mods(&["1-5", "update"])).unwrap();
+
+            assert_eq!(filter.ranges.len(), 1);
+            assert_eq!(task_mod.description, desc("update"));
+        }
+
+        #[test]
+        fn empty_filter_with_uid() {
+            let (filter, task_mod) =
+                parse_filter_with_modifications(&strs(&[]), &mods(&["abc12345678", "modify"]))
+                    .unwrap();
+
+            assert_eq!(filter.uids.len(), 1);
+            assert_eq!(task_mod.description, desc("modify"));
+        }
+
+        #[test]
+        fn both_empty() {
+            let (filter, task_mod) =
+                parse_filter_with_modifications(&strs(&[]), &mods(&[])).unwrap();
+
+            assert!(filter.is_empty());
+            assert!(task_mod.description.is_none());
+        }
     }
 }

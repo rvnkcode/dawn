@@ -6,7 +6,7 @@ use std::fmt::{self, Display, Formatter};
 use thiserror::Error;
 
 // task description
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Description(String);
 
 #[derive(Debug, Error)]
