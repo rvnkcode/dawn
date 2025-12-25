@@ -69,8 +69,11 @@ fn parse_fragment(fragment: &str) -> Option<ParsedFilter> {
         return None;
     }
     // Pure alphabetic in dictionary -> not a UID
-    if ALPHA_RE.is_match(fragment) && dict::is_english_word(fragment) {
-        return None;
+    if ALPHA_RE.is_match(fragment) {
+        let lower_fragment = fragment.to_lowercase();
+        if dict::is_english_word(&lower_fragment) {
+            return None;
+        }
     }
     UniqueID::from_str(fragment).ok().map(ParsedFilter::UID)
 }
