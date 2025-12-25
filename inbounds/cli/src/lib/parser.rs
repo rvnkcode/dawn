@@ -8,6 +8,8 @@ static INDEX_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(\d+)$").unwra
 static RANGE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(\d+)-(\d+)$").unwrap());
 static UID_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[A-Za-z0-9_-]{11}$").unwrap());
 static ALPHA_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[A-Za-z]{11}$").unwrap());
+static ID_SET_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\d+(-\d+)?(,\d+(-\d+)?)*$").unwrap());
 
 enum ParsedFilter {
     Index(Index),
@@ -30,18 +32,31 @@ pub fn parse_en_passant_filter(raw_filters: &[String], args: &[String]) -> Filte
 
 fn parse_chunks(chunks: &[String], filter: &mut Filter) {
     for chunk in chunks {
-        for fragment in chunk.split(',') {
-            let trimmed = fragment.trim();
-            if trimmed.is_empty() {
-                continue;
-            }
-            match parse_fragment(trimmed) {
-                Some(ParsedFilter::Index(idx)) => filter.indices.push(idx),
-                Some(ParsedFilter::Range(range)) => filter.ranges.push(range),
-                Some(ParsedFilter::UID(uid)) => filter.uids.push(uid),
-                None => filter.words.push(trimmed.to_string()),
-            }
+        let trimmed = chunk.trim();
+        if trimmed.is_empty() {
+            continue;
         }
+
+        // Only split on comma for pure ID set patterns (e.g., "1,2,3" or "1-5,7")
+        if ID_SET_RE.is_match(trimmed) {
+            for fragment in trimmed.split(',') {
+                process_fragment(fragment.trim(), filter);
+            }
+        } else {
+            process_fragment(trimmed, filter);
+        }
+    }
+}
+
+fn process_fragment(fragment: &str, filter: &mut Filter) {
+    if fragment.is_empty() {
+        return;
+    }
+    match parse_fragment(fragment) {
+        Some(ParsedFilter::Index(idx)) => filter.indices.push(idx),
+        Some(ParsedFilter::Range(range)) => filter.ranges.push(range),
+        Some(ParsedFilter::UID(uid)) => filter.uids.push(uid),
+        None => filter.words.push(fragment.to_string()),
     }
 }
 
@@ -161,11 +176,21 @@ mod tests {
 
     #[test]
     fn parse_whitespace_trimmed() {
-        let filter = parse_filter(&strs(&[" 1 , 2 "]));
+        // ID set without internal spaces
+        let filter = parse_filter(&strs(&[" 1,2 "]));
 
         assert_eq!(filter.indices.len(), 2);
         assert_eq!(filter.indices[0], Index::new(1).unwrap());
         assert_eq!(filter.indices[1], Index::new(2).unwrap());
+    }
+
+    #[test]
+    fn parse_spaces_around_comma_becomes_word() {
+        // "1 , 2" with spaces around comma is NOT a valid ID set
+        let filter = parse_filter(&strs(&["1 , 2"]));
+
+        assert!(filter.indices.is_empty());
+        assert_eq!(filter.words, vec!["1 , 2"]);
     }
 
     #[test]
@@ -203,11 +228,23 @@ mod tests {
 
     #[test]
     fn parse_mixed_indices_ranges_and_uids() {
-        let filter = parse_filter(&strs(&["1,abc12345678,3-5"]));
+        // Mixed types as separate arguments (not comma-joined)
+        let filter = parse_filter(&strs(&["1", "abc12345678", "3-5"]));
 
         assert_eq!(filter.indices.len(), 1);
         assert_eq!(filter.ranges.len(), 1);
         assert_eq!(filter.uids.len(), 1);
+    }
+
+    #[test]
+    fn parse_mixed_id_and_uid_comma_becomes_word() {
+        // "1,abc12345678,3-5" is NOT a pure ID set → becomes word
+        let filter = parse_filter(&strs(&["1,abc12345678,3-5"]));
+
+        assert!(filter.indices.is_empty());
+        assert!(filter.ranges.is_empty());
+        assert!(filter.uids.is_empty());
+        assert_eq!(filter.words, vec!["1,abc12345678,3-5"]);
     }
 
     #[test]
@@ -241,7 +278,8 @@ mod tests {
 
     #[test]
     fn parse_en_passant_with_mixed_types() {
-        let filter = parse_en_passant_filter(&strs(&["1,abc12345678"]), &strs(&["3-5", "word"]));
+        // Separate arguments for different types
+        let filter = parse_en_passant_filter(&strs(&["1", "abc12345678"]), &strs(&["3-5", "word"]));
 
         assert_eq!(filter.indices.len(), 1);
         assert_eq!(filter.uids.len(), 1);
@@ -250,9 +288,47 @@ mod tests {
     }
 
     #[test]
+    fn parse_en_passant_mixed_comma_becomes_word() {
+        // "1,abc12345678" is not a pure ID set
+        let filter = parse_en_passant_filter(&strs(&["1,abc12345678"]), &strs(&["3-5"]));
+
+        assert!(filter.indices.is_empty());
+        assert!(filter.uids.is_empty());
+        assert_eq!(filter.ranges.len(), 1);
+        assert_eq!(filter.words, vec!["1,abc12345678"]);
+    }
+
+    #[test]
     fn parse_en_passant_both_empty() {
         let filter = parse_en_passant_filter(&strs(&[]), &strs(&[]));
 
         assert!(filter.is_empty());
+    }
+
+    #[test]
+    fn parse_comma_in_non_id_preserved() {
+        let filter = parse_filter(&strs(&["foo,bar"]));
+
+        assert!(filter.indices.is_empty());
+        assert_eq!(filter.words, vec!["foo,bar"]);
+    }
+
+    #[test]
+    fn parse_mixed_id_and_word_not_split() {
+        // "1,foo" is NOT a pure ID set → becomes word
+        let filter = parse_filter(&strs(&["1,foo"]));
+
+        assert!(filter.indices.is_empty());
+        assert_eq!(filter.words, vec!["1,foo"]);
+    }
+
+    #[test]
+    fn parse_uid_comma_id_not_split() {
+        // "abc12345678,1" is NOT a pure ID set → becomes word
+        let filter = parse_filter(&strs(&["abc12345678,1"]));
+
+        assert!(filter.uids.is_empty());
+        assert!(filter.indices.is_empty());
+        assert_eq!(filter.words, vec!["abc12345678,1"]);
     }
 }
