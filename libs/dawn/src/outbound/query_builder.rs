@@ -1,6 +1,13 @@
 use crate::domain::Filter;
 use rusqlite::ToSql;
 
+/// Escapes a term for FTS5 query by wrapping in double quotes
+/// and escaping internal double quotes.
+fn escape_fts5_term(term: &str) -> String {
+    let escaped = term.replace('"', "\"\"");
+    format!("\"{}\"", escaped)
+}
+
 pub fn build_where_clause(filter: &Filter) -> anyhow::Result<(String, Vec<Box<dyn ToSql>>)> {
     let mut params: Vec<Box<dyn ToSql>> = Vec::new();
     if filter.is_empty() {
@@ -22,11 +29,11 @@ pub fn build_where_clause(filter: &Filter) -> anyhow::Result<(String, Vec<Box<dy
     }
 
     // Words filter with FTS5 (description search)
-    // TODO: Escape FTS5 special characters (*, ", OR, AND, NOT, etc.) to prevent unexpected query behavior
     if !filter.words.is_empty() {
         conditions.push("t.id IN (SELECT id FROM task_fts WHERE task_fts MATCH ?)".to_string());
-        // FTS5: words joined by space = AND search
-        params.push(Box::new(filter.words.join(" ")));
+        // FTS5: escaped words joined by space = AND search
+        let escaped: Vec<String> = filter.words.iter().map(|w| escape_fts5_term(w)).collect();
+        params.push(Box::new(escaped.join(" ")));
     }
 
     clause.push_str(&conditions.join(" AND "));
@@ -237,5 +244,28 @@ mod tests {
     #[should_panic]
     fn repeat_vars_zero_panics() {
         repeat_vars(0);
+    }
+
+    #[test]
+    fn escape_fts5_term_simple() {
+        assert_eq!(escape_fts5_term("hello"), "\"hello\"");
+    }
+
+    #[test]
+    fn escape_fts5_term_with_quotes() {
+        assert_eq!(
+            escape_fts5_term("hello \"world\""),
+            "\"hello \"\"world\"\"\""
+        );
+    }
+
+    #[test]
+    fn escape_fts5_term_with_special_chars() {
+        assert_eq!(escape_fts5_term("test* OR admin"), "\"test* OR admin\"");
+    }
+
+    #[test]
+    fn escape_fts5_term_empty() {
+        assert_eq!(escape_fts5_term(""), "\"\"");
     }
 }
