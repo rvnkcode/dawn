@@ -22,6 +22,7 @@ pub fn build_where_clause(filter: &Filter) -> anyhow::Result<(String, Vec<Box<dy
     }
 
     // Words filter with FTS5 (description search)
+    // TODO: Escape FTS5 special characters (*, ", OR, AND, NOT, etc.) to prevent unexpected query behavior
     if !filter.words.is_empty() {
         conditions.push("t.id IN (SELECT id FROM task_fts WHERE task_fts MATCH ?)".to_string());
         // FTS5: words joined by space = AND search
