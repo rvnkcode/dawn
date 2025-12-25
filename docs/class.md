@@ -21,6 +21,7 @@ classDiagram
       <<enumeration>>
       -Add(Modification)
       -All(Modification)
+      -Modify(Modification)
     }
     class Modification {
       +Vec~String~ description
@@ -33,6 +34,7 @@ classDiagram
       -display_table~R~(&self, tasks) Result~_~
       +next(&self, &raw_filters) Result~_~
       +all(&self, &raw_filters, &args) Result~_~
+      +modify(&self, &raw_filters, &args) Result~_~
     }
     class Cli {
       -Vec~String~ filters
@@ -77,9 +79,13 @@ classDiagram
   Task *.. Index
   Task *.. Description
   TaskCreation *.. Description
+  TaskModification *.. Description
   Handler~TS~ ..> TaskCreation
+  Handler~TS~ ..> TaskModification
   TaskService ..> TaskCreation
+  TaskService ..> TaskModification
   TaskRepository ..> TaskCreation
+  TaskRepository ..> TaskModification
   TableRow <|.. NextRow
   TableRow <|.. AllRow
   NextRow *.. Index
@@ -128,6 +134,10 @@ classDiagram
     class TaskCreation {
       +Description description
     }
+    class TaskModification {
+      +Option~Description~ description
+      +is_empty(&self) bool
+    }
     class Filter {
       +Vec~Index~ indices
       +Vec~IndexRange~ ranges
@@ -148,6 +158,7 @@ classDiagram
       +count_pending(&self) usize
       +next(&self, &filter) Result~Vec~Task~~
       +all(&self, &filter) Result~Vec~Task~~
+      +modify(&self, modification, targets) Result~_~
     }
     class Service~R~ {
       -R repo
@@ -159,6 +170,7 @@ classDiagram
       +count_pending_tasks(&self) usize
       +get_pending_tasks(&self, &filter) Result~Vec~Task~~
       +get_all_tasks(&self, &filter) Result~Vec~Task~~
+      +update_tasks(&self, modification, targets) Result~_~
     }
   }
   namespace Outbound {
