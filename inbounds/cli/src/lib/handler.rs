@@ -114,11 +114,14 @@ impl<TS: TaskService> Handler<TS> {
         }
 
         let approved_ids = self.collect_approved_ids(&candidates, &modification)?;
-        if !approved_ids.is_empty() {
-            self.context
-                .task_service
-                .modify(modification, &approved_ids)?;
+        if approved_ids.is_empty() {
+            Self::print_modify_result(0);
+            return Err(anyhow::anyhow!("Command prevented from running."));
         }
+
+        self.context
+            .task_service
+            .modify(modification, &approved_ids)?;
 
         Self::print_modify_result(approved_ids.len());
         Self::print_not_pending_for_ids(&tasks, &approved_ids);
