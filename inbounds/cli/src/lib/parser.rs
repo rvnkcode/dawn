@@ -235,8 +235,7 @@ mod tests {
 
     #[test]
     fn parse_en_passant_with_mixed_types() {
-        let filter =
-            parse_en_passant_filter(&strs(&["1,abc12345678"]), &strs(&["3-5", "word"]));
+        let filter = parse_en_passant_filter(&strs(&["1,abc12345678"]), &strs(&["3-5", "word"]));
 
         assert_eq!(filter.indices.len(), 1);
         assert_eq!(filter.uids.len(), 1);
