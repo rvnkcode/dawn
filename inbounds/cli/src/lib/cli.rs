@@ -1,5 +1,4 @@
-use crate::context::AppContext;
-use crate::handler::Handler;
+use crate::Handler;
 use clap::{Args, Parser, Subcommand};
 use dawn::domain::task::port::TaskService;
 
@@ -29,8 +28,7 @@ impl Cli {
     }
 
     pub fn handle_command(&self, task_service: impl TaskService) -> anyhow::Result<()> {
-        let context = AppContext::new(task_service);
-        let handler = Handler::new(context);
+        let handler = Handler::new(task_service);
 
         match &self.command {
             Some(Commands::Add(modification)) => handler.add(&self.filters, modification)?,
