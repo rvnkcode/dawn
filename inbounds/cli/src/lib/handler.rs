@@ -1,5 +1,4 @@
 use crate::cli::Modification;
-use crate::context::AppContext;
 use crate::parser;
 use crate::table::{AllRow, BaseTable, NextRow, TableRow};
 use colored::Colorize;
@@ -20,19 +19,19 @@ enum ConfirmResult {
 }
 
 pub struct Handler<TS: TaskService> {
-    context: AppContext<TS>,
+    task_service: TS,
 }
 
 impl<TS: TaskService> Handler<TS> {
-    pub fn new(context: AppContext<TS>) -> Self {
-        Self { context }
+    pub fn new(task_service: TS) -> Self {
+        Self { task_service }
     }
 
     pub fn add(&self, filters: &[String], args: &Modification) -> anyhow::Result<()> {
         let description = Self::compose_description(filters, &args.description)?;
         let request = TaskCreation { description };
-        self.context.task_service.add(request)?;
-        let count = self.context.task_service.count_pending();
+        self.task_service.add(request)?;
+        let count = self.task_service.count_pending();
         println!("Created task {}.", count);
         Ok(())
     }
@@ -69,13 +68,13 @@ impl<TS: TaskService> Handler<TS> {
 
     pub fn next(&self, raw_filters: &[String]) -> anyhow::Result<()> {
         let filter = parser::parse_filter(raw_filters);
-        let tasks = self.context.task_service.next(&filter)?;
+        let tasks = self.task_service.next(&filter)?;
         self.display_table::<NextRow>(tasks)
     }
 
     pub fn all(&self, raw_filters: &[String], args: &Modification) -> anyhow::Result<()> {
         let filter = parser::parse_en_passant_filter(raw_filters, &args.description);
-        let tasks = self.context.task_service.all(&filter)?;
+        let tasks = self.task_service.all(&filter)?;
         self.display_table::<AllRow>(tasks)
     }
 
@@ -90,7 +89,7 @@ impl<TS: TaskService> Handler<TS> {
             }
         }
 
-        let tasks = self.context.task_service.all(&filter)?;
+        let tasks = self.task_service.all(&filter)?;
         if tasks.is_empty() {
             println!("{}", "No tasks specified.".yellow());
             return Ok(());
@@ -119,9 +118,7 @@ impl<TS: TaskService> Handler<TS> {
             return Err(anyhow::anyhow!("Command prevented from running."));
         }
 
-        self.context
-            .task_service
-            .modify(modification, &approved_ids)?;
+        self.task_service.modify(modification, &approved_ids)?;
 
         Self::print_modify_result(approved_ids.len());
         Self::print_not_pending_for_ids(&tasks, &approved_ids);
