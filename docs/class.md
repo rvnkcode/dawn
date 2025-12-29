@@ -4,19 +4,7 @@ title: Class Diagram
 
 ```mermaid
 classDiagram
-  AppContext~TS~ o-- TaskService
-  Cli ..> AppContext~TS~
-  Cli ..> Handler~TS~
-  Cli o-- Commands
-  Handler~TS~ o-- AppContext~TS~
-  Handler~TS~ ..> Task
-  Handler~TS~ ..> Description
-  Commands ..> Modification
   namespace Inbound {
-    class AppContext~TS~ {
-      +TS task_service
-      +new(task_service) Self
-    }
     class Commands {
       <<enumeration>>
       -Add(Modification)
@@ -27,18 +15,22 @@ classDiagram
       +Vec~String~ description
     }
     class Handler~TS~ {
-      -AppContext~TS~ context
-      +new(context) Self
-      +add(&self, &filters, &args) Result~_~
-      -compose_description(&filters, &description) Result~Description~
-      -display_table~R~(&self, tasks) Result~_~
+      -TS task_service
+      +new(task_service) Self
+      +add(&self, &raw_filters, &args) Result~_~
       +next(&self, &raw_filters) Result~_~
       +all(&self, &raw_filters, &args) Result~_~
       +modify(&self, &raw_filters, &args) Result~_~
+      -display_table~R~(&self, tasks) Result~_~
+      -$has_changes(&Task, &TaskModification) bool
+      -$get_display_id(&Task) String
+      -$print_modify_result(count)
+      -$print_diff(&Task, &TaskModification)
+      -$confirm_bulk(&display_id, &description) Result~ConfirmResult~
     }
     class Cli {
       -Vec~String~ filters
-      -Options~Commands~ command
+      -Option~Commands~ command
       +new() Self
       +handle_command(&self, task_service) Result~_~
     }
@@ -74,43 +66,14 @@ classDiagram
       +len(&self) usize
       +render(&self) Table
     }
+    class ConfirmResult {
+      <<enumeration>>
+      Yes
+      No
+      All
+      Quit
+    }
   }
-  Task *.. UniqueID
-  Task *.. Index
-  Task *.. Description
-  TaskCreation *.. Description
-  TaskModification *.. Description
-  Handler~TS~ ..> TaskCreation
-  Handler~TS~ ..> TaskModification
-  TaskService ..> TaskCreation
-  TaskService ..> TaskModification
-  TaskRepository ..> TaskCreation
-  TaskRepository ..> TaskModification
-  TableRow <|.. NextRow
-  TableRow <|.. AllRow
-  NextRow *.. Index
-  NextRow *.. Age
-  NextRow *.. Description
-  NextRow ..> Task
-  AllRow *.. Status
-  AllRow *.. UniqueID
-  AllRow *.. Age
-  AllRow *.. Description
-  AllRow ..> Task
-  BaseTable~R~ o-- TableRow
-  Handler~TS~ ..> BaseTable~R~
-  Handler~TS~ ..> Filter
-  TaskService <|.. Service
-  Service~R~ --> TaskRepository
-  TaskRepository <|.. SQLite
-  TaskService ..> Task
-  TaskService ..> Filter
-  TaskRepository ..> Task
-  TaskRepository ..> Filter
-  Filter o-- Index
-  Filter o-- IndexRange
-  Filter o-- UniqueID
-  IndexRange *-- Index
   namespace Domain {
     class Description {
       +new(raw) Result~Self, DescriptionEmptyError~
@@ -124,7 +87,7 @@ classDiagram
       +get(&self) usize
     }
     class Task {
-      +UniqueId uid
+      +UniqueID uid
       +Option~Index~ index
       +Description description
       +i64 created_at
@@ -177,10 +140,44 @@ classDiagram
     class SQLite {
       -Connection conn
       +new() Result~Self~
-      -get_path() Result~PathBuf~
-      -open_connection() Result~Connection~
-      -get_user_version(&conn) u8
-      -initialize_schema(&conn) Result~_~
+      -$get_path() Result~PathBuf~
+      -$open_connection() Result~Connection~
+      -$get_user_version(&conn) u8
+      -$initialize_schema(&conn) Result~_~
     }
   }
+
+  %% Inbound Flow
+  Cli ..> Handler~TS~ : creates
+  Cli o-- Commands : has
+  Commands *-- Modification : has
+  Handler~TS~ o-- TaskService : uses
+
+  %% Handler Use Cases
+  Handler~TS~ ..> TaskCreation : creates
+  Handler~TS~ ..> TaskModification : creates
+  Handler~TS~ ..> Filter : parses
+  Handler~TS~ ..> BaseTable~R~ : renders
+
+  %% Table Polymorphism
+  BaseTable~R~ o-- TableRow : contains
+  TableRow <|.. NextRow : implements
+  TableRow <|.. AllRow : implements
+  NextRow ..> Task : from
+  AllRow ..> Task : from
+
+  %% Domain Entity
+  Task *-- UniqueID : has
+  Task *-- Description : has
+
+  %% Port Contract
+  TaskService ..> Task : returns
+  TaskService ..> TaskCreation : accepts
+  TaskService ..> TaskModification : accepts
+  TaskService ..> Filter : accepts
+
+  %% Hexagonal Implementation
+  TaskService <|.. Service~R~ : implements
+  Service~R~ --> TaskRepository : delegates
+  TaskRepository <|.. SQLite : implements
 ```
