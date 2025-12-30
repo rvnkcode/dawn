@@ -1,7 +1,7 @@
 mod index_range;
-pub use index_range::{IndexRange, IndexRangeError};
 
 use crate::domain::task::{Index, UniqueID};
+pub use index_range::{IndexRange, IndexRangeError};
 
 #[derive(Default)]
 pub struct Filter {
