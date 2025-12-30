@@ -7,16 +7,11 @@ use crate::domain::{
 };
 
 // Generic type 'R' should implement 'TaskRepository' trait
-pub struct Service<R>
-where
-    R: TaskRepository,
-{
+pub struct Service<R: TaskRepository> {
     repo: R,
 }
-impl<R> Service<R>
-where
-    R: TaskRepository,
-{
+
+impl<R: TaskRepository> Service<R> {
     pub fn new(repo: R) -> Self {
         Service { repo }
     }
