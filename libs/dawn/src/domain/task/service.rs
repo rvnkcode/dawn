@@ -13,7 +13,7 @@ pub struct Service<R: TaskRepository> {
 
 impl<R: TaskRepository> Service<R> {
     pub fn new(repo: R) -> Self {
-        Service { repo }
+        Self { repo }
     }
 }
 
