@@ -4,75 +4,115 @@ use crate::domain::{
 };
 use rusqlite::ToSql;
 
+pub fn build_where_clause(filter: &Filter) -> anyhow::Result<(String, Vec<Box<dyn ToSql>>)> {
+    if filter.is_empty() {
+        return Ok((String::from("ORDER BY t.created_at"), Vec::new()));
+    }
+
+    let (id_clause, id_params) = build_id_clause(filter);
+    let (words_clause, words_params) = build_words_clause(filter);
+
+    // ID clause needs parentheses only when combining with words (AND)
+    let conditions: Vec<String> = [
+        id_clause.map(|id| match words_clause {
+            Some(_) => format!("({})", id),
+            None => id,
+        }),
+        words_clause,
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
+
+    let params: Vec<Box<dyn ToSql>> = id_params.into_iter().chain(words_params).collect();
+
+    Ok((
+        format!("WHERE {} ORDER BY t.created_at", conditions.join(" AND ")),
+        params,
+    ))
+}
+
+fn build_id_clause(filter: &Filter) -> (Option<String>, Vec<Box<dyn ToSql>>) {
+    let uid_clause: Option<(String, Vec<Box<dyn ToSql>>)> = (!filter.uids.is_empty()).then(|| {
+        let params: Vec<Box<dyn ToSql>> = filter
+            .uids
+            .iter()
+            .map(|uid| Box::new(uid.to_string()) as Box<dyn ToSql>)
+            .collect();
+        (
+            format!("t.id IN ({})", repeat_vars(filter.uids.len())),
+            params,
+        )
+    });
+
+    let index_clause: Option<(String, Vec<Box<dyn ToSql>>)> =
+        (!filter.indices.is_empty()).then(|| {
+            let params: Vec<Box<dyn ToSql>> = filter
+                .indices
+                .iter()
+                .map(|idx| Box::new(idx.get()) as Box<dyn ToSql>)
+                .collect();
+            (
+                format!("tpr.row_id IN ({})", repeat_vars(filter.indices.len())),
+                params,
+            )
+        });
+
+    let range_clauses: Vec<(String, Vec<Box<dyn ToSql>>)> = filter
+        .ranges
+        .iter()
+        .map(|range| {
+            (
+                "(tpr.row_id BETWEEN ? AND ?)".to_string(),
+                vec![
+                    Box::new(range.start().get()) as Box<dyn ToSql>,
+                    Box::new(range.end().get()) as Box<dyn ToSql>,
+                ],
+            )
+        })
+        .collect();
+
+    let all_clauses: Vec<(String, Vec<Box<dyn ToSql>>)> = uid_clause
+        .into_iter()
+        .chain(index_clause)
+        .chain(range_clauses)
+        .collect();
+    if all_clauses.is_empty() {
+        return (None, Vec::new());
+    }
+
+    let (clauses, params): (Vec<String>, Vec<Vec<Box<dyn ToSql>>>) =
+        all_clauses.into_iter().unzip();
+
+    (
+        Some(clauses.join(" OR ")),
+        params.into_iter().flatten().collect(),
+    )
+}
+
+fn build_words_clause(filter: &Filter) -> (Option<String>, Vec<Box<dyn ToSql>>) {
+    if filter.words.is_empty() {
+        return (None, Vec::new());
+    }
+
+    let escaped = filter
+        .words
+        .iter()
+        .map(|w| escape_fts5_term(w))
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    (
+        Some("t.id IN (SELECT id FROM task_fts WHERE task_fts MATCH ?)".to_string()),
+        vec![Box::new(escaped) as Box<dyn ToSql>],
+    )
+}
+
 /// Escapes a term for FTS5 query by wrapping in double quotes
 /// and escaping internal double quotes.
 fn escape_fts5_term(term: &str) -> String {
     let escaped = term.replace('"', "\"\"");
     format!("\"{}\"", escaped)
-}
-
-pub fn build_where_clause(filter: &Filter) -> anyhow::Result<(String, Vec<Box<dyn ToSql>>)> {
-    let mut params: Vec<Box<dyn ToSql>> = Vec::new();
-    if filter.is_empty() {
-        return Ok((String::from("ORDER BY t.created_at"), params));
-    }
-
-    let mut clause = String::from("WHERE ");
-    let mut conditions: Vec<String> = Vec::new();
-
-    // ID-related filters (uids, indices, ranges) grouped with OR
-    let id_clause = build_id_clause(filter, &mut params);
-    if !id_clause.is_empty() {
-        // Parentheses needed only when combining with words (AND)
-        if filter.words.is_empty() {
-            conditions.push(id_clause);
-        } else {
-            conditions.push(format!("({})", id_clause));
-        }
-    }
-
-    // Words filter with FTS5 (description search)
-    if !filter.words.is_empty() {
-        conditions.push("t.id IN (SELECT id FROM task_fts WHERE task_fts MATCH ?)".to_string());
-        // FTS5: escaped words joined by space = AND search
-        let escaped: Vec<String> = filter.words.iter().map(|w| escape_fts5_term(w)).collect();
-        params.push(Box::new(escaped.join(" ")));
-    }
-
-    clause.push_str(&conditions.join(" AND "));
-    clause.push_str(" ORDER BY t.created_at");
-    Ok((clause, params))
-}
-
-fn build_id_clause(filter: &Filter, params: &mut Vec<Box<dyn ToSql>>) -> String {
-    let mut id_conditions: Vec<String> = Vec::new();
-
-    if !filter.uids.is_empty() {
-        id_conditions.push(format!("t.id IN ({})", repeat_vars(filter.uids.len())));
-        for uid in &filter.uids {
-            params.push(Box::new(uid.to_string()));
-        }
-    }
-
-    if !filter.indices.is_empty() {
-        id_conditions.push(format!(
-            "tpr.row_id IN ({})",
-            repeat_vars(filter.indices.len())
-        ));
-        for idx in &filter.indices {
-            params.push(Box::new(idx.get()));
-        }
-    }
-
-    if !filter.ranges.is_empty() {
-        for range in &filter.ranges {
-            id_conditions.push("(tpr.row_id BETWEEN ? AND ?)".to_string());
-            params.push(Box::new(range.start().get()));
-            params.push(Box::new(range.end().get()));
-        }
-    }
-
-    id_conditions.join(" OR ")
 }
 
 pub fn build_update_clause(
@@ -85,29 +125,41 @@ pub fn build_update_clause(
     if targets.is_empty() {
         return Err(anyhow::anyhow!("No target tasks specified"));
     }
-    let mut params: Vec<Box<dyn ToSql>> = Vec::new();
-    let mut clause = String::from("UPDATE task SET ");
-    let mut updates: Vec<String> = Vec::new();
 
-    if let Some(new_description) = modification.description {
-        updates.push("description = ?".to_string());
-        params.push(Box::new(new_description.to_string()));
-    }
-    clause.push_str(&updates.join(", "));
-    clause.push_str(" WHERE id IN (");
-    clause.push_str(&repeat_vars(targets.len()));
-    clause.push(')');
-    for uid in targets {
-        params.push(Box::new(uid.to_string()));
-    }
+    // Build updates from modification fields
+    let (updates, update_params): (Vec<&str>, Vec<Box<dyn ToSql>>) =
+        [modification.description.map(|desc| {
+            (
+                "description = ?",
+                Box::new(desc.to_string()) as Box<dyn ToSql>,
+            )
+        })]
+        .into_iter()
+        .flatten()
+        .unzip();
+
+    let target_params: Vec<Box<dyn ToSql>> = targets
+        .iter()
+        .map(|uid| Box::new(uid.to_string()) as Box<dyn ToSql>)
+        .collect();
+
+    let params: Vec<Box<dyn ToSql>> = update_params.into_iter().chain(target_params).collect();
+
+    let clause = format!(
+        "UPDATE task SET {} WHERE id IN ({})",
+        updates.join(", "),
+        repeat_vars(targets.len())
+    );
+
     Ok((clause, params))
 }
 
 fn repeat_vars(count: usize) -> String {
     assert_ne!(count, 0);
-    let mut vars = "?,".repeat(count);
-    vars.pop(); // Remove trailing comma
-    vars
+    std::iter::repeat("?")
+        .take(count)
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 #[cfg(test)]

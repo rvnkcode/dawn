@@ -29,7 +29,19 @@ impl<TS: TaskService> Handler<TS> {
         Self { task_service }
     }
 
-    fn display_table<R: TableRow + Tabled>(&self, tasks: Vec<Task>) -> anyhow::Result<()> {
+    pub fn next(&self, raw_filters: &[String]) -> anyhow::Result<()> {
+        let filter = parser::parse_filter(raw_filters);
+        let tasks = self.task_service.next(&filter)?;
+        Self::display_table::<NextRow>(tasks)
+    }
+
+    pub fn all(&self, raw_filters: &[String], args: &Modification) -> anyhow::Result<()> {
+        let filter = parser::parse_en_passant_filter(raw_filters, &args.description);
+        let tasks = self.task_service.all(&filter)?;
+        Self::display_table::<AllRow>(tasks)
+    }
+
+    fn display_table<R: TableRow + Tabled>(tasks: Vec<Task>) -> anyhow::Result<()> {
         if tasks.is_empty() {
             println!("{}", "No matches.".yellow());
             return Ok(());
@@ -44,18 +56,6 @@ impl<TS: TaskService> Handler<TS> {
             println!("{} tasks", count);
         }
         Ok(())
-    }
-
-    pub fn next(&self, raw_filters: &[String]) -> anyhow::Result<()> {
-        let filter = parser::parse_filter(raw_filters);
-        let tasks = self.task_service.next(&filter)?;
-        self.display_table::<NextRow>(tasks)
-    }
-
-    pub fn all(&self, raw_filters: &[String], args: &Modification) -> anyhow::Result<()> {
-        let filter = parser::parse_en_passant_filter(raw_filters, &args.description);
-        let tasks = self.task_service.all(&filter)?;
-        self.display_table::<AllRow>(tasks)
     }
 
     pub fn modify(&self, raw_filters: &[String], args: &Modification) -> anyhow::Result<()> {
