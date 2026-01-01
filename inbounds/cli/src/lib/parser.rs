@@ -100,7 +100,7 @@ fn try_parse_uid(fragment: &str) -> Option<ParsedItem> {
     if is_english {
         return None;
     }
-    UniqueID::from_str(fragment).ok().map(ParsedItem::UID)
+    fragment.parse::<UniqueID>().ok().map(ParsedItem::UID)
 }
 
 fn partition_items(

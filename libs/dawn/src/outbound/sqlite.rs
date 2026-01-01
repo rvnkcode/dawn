@@ -91,7 +91,7 @@ impl TaskRepository for SQLite {
             .map(|result| {
                 let (id_str, row_id, description_str, created_at) = result?;
                 Ok(Task {
-                    uid: UniqueID::from_str(&id_str)?,
+                    uid: id_str.parse::<UniqueID>()?,
                     index: Some(Index::new(row_id)?),
                     description: Description::new(&description_str)?,
                     created_at,
@@ -133,7 +133,7 @@ impl TaskRepository for SQLite {
                 let (id_str, row_id, description_str, created_at, completed_at, deleted_at) =
                     result?;
                 Ok(Task {
-                    uid: UniqueID::from_str(&id_str)?,
+                    uid: id_str.parse::<UniqueID>()?,
                     index: row_id.map(Index::new).transpose()?,
                     description: Description::new(&description_str)?,
                     created_at,
