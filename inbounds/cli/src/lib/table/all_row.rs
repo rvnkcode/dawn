@@ -75,7 +75,7 @@ mod tests {
 
     fn create_test_task(deleted_at: Option<i64>, completed_at: Option<i64>) -> Task {
         Task {
-            uid: UniqueID::new(),
+            uid: UniqueID::default(),
             index: None,
             description: Description::new("test task").unwrap(),
             created_at: 1000,

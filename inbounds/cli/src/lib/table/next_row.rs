@@ -36,7 +36,7 @@ mod tests {
     #[test]
     fn test_missing_index_error() {
         let task = Task {
-            uid: UniqueID::new(),
+            uid: UniqueID::default(),
             index: None,
             description: Description::new("test task").unwrap(),
             created_at: 1000,
