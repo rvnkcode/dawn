@@ -1,7 +1,7 @@
 use std::fmt::{self, Display, Formatter};
 use thiserror::Error;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Index(usize);
 
 #[derive(Debug, Error)]

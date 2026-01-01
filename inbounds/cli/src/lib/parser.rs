@@ -12,62 +12,84 @@ static ALPHA_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[A-Za-z]{11}$"
 static ID_SET_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^\d+(-\d+)?(,\d+(-\d+)?)*$").unwrap());
 
-enum ParsedFilter {
+enum ParsedItem {
     Index(Index),
     Range(IndexRange),
     UID(UniqueID),
+    Word(String),
 }
 
 pub fn parse_filter(raw_filters: &[String]) -> Filter {
-    let mut filter = Filter::default();
-    let mut words = Vec::new();
-    parse_chunks(raw_filters, &mut filter, &mut |w| words.push(w));
-    filter.words = words;
-    filter
+    let (indices, ranges, uids, words) = parse_items(raw_filters);
+    Filter {
+        indices,
+        ranges,
+        uids,
+        words,
+    }
 }
 
 pub fn parse_en_passant_filter(raw_filters: &[String], args: &[String]) -> Filter {
-    let mut filter = Filter::default();
+    let items: Vec<ParsedItem> = raw_filters
+        .iter()
+        .chain(args.iter())
+        .flat_map(|chunk| expand_chunk(chunk))
+        .map(|fragment| parse_fragment(&fragment))
+        .collect();
+
+    let (indices, ranges, uids, words) = partition_items(items);
+    Filter {
+        indices,
+        ranges,
+        uids,
+        words,
+    }
+}
+
+fn expand_chunk(chunk: &str) -> Vec<String> {
+    let trimmed = chunk.trim();
+    if trimmed.is_empty() {
+        vec![]
+    } else if ID_SET_RE.is_match(trimmed) {
+        trimmed.split(',').map(|s| s.trim().to_string()).collect()
+    } else {
+        vec![trimmed.to_string()]
+    }
+}
+
+fn parse_items(source: &[String]) -> (Vec<Index>, Vec<IndexRange>, Vec<UniqueID>, Vec<String>) {
+    let items: Vec<ParsedItem> = source
+        .iter()
+        .flat_map(|chunk| expand_chunk(chunk))
+        .map(|fragment| parse_fragment(&fragment))
+        .collect();
+    partition_items(items)
+}
+
+fn partition_items(
+    items: Vec<ParsedItem>,
+) -> (Vec<Index>, Vec<IndexRange>, Vec<UniqueID>, Vec<String>) {
+    let mut indices = Vec::new();
+    let mut ranges = Vec::new();
+    let mut uids = Vec::new();
     let mut words = Vec::new();
-    parse_chunks(raw_filters, &mut filter, &mut |w| words.push(w));
-    parse_chunks(args, &mut filter, &mut |w| words.push(w));
-    filter.words = words;
-    filter
-}
 
-fn parse_chunks<F>(chunks: &[String], filter: &mut Filter, on_word: &mut F)
-where
-    F: FnMut(String),
-{
-    for chunk in chunks {
-        let trimmed = chunk.trim();
-        if trimmed.is_empty() {
-            continue;
-        }
-
-        // Only split on comma for pure ID set patterns (e.g., "1,2,3" or "1-5,7")
-        if ID_SET_RE.is_match(trimmed) {
-            for fragment in trimmed.split(',') {
-                process_fragment(fragment.trim(), filter, on_word);
-            }
-        } else {
-            process_fragment(trimmed, filter, on_word);
+    for item in items {
+        match item {
+            ParsedItem::Index(i) => indices.push(i),
+            ParsedItem::Range(r) => ranges.push(r),
+            ParsedItem::UID(u) => uids.push(u),
+            ParsedItem::Word(w) => words.push(w),
         }
     }
+    (indices, ranges, uids, words)
 }
 
-fn process_fragment<F>(fragment: &str, filter: &mut Filter, on_word: &mut F)
-where
-    F: FnMut(String),
-{
-    if fragment.is_empty() {
-        return;
-    }
-    match parse_fragment(fragment) {
-        Some(ParsedFilter::Index(idx)) => filter.indices.push(idx),
-        Some(ParsedFilter::Range(range)) => filter.ranges.push(range),
-        Some(ParsedFilter::UID(uid)) => filter.uids.push(uid),
-        None => on_word(fragment.to_string()),
+fn make_description(words: &[String]) -> anyhow::Result<Option<Description>> {
+    if words.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(Description::new(&words.join(" "))?))
     }
 }
 
@@ -75,62 +97,70 @@ pub fn parse_filter_with_modifications(
     raw_filters: &[String],
     mods: &Modification,
 ) -> anyhow::Result<(Filter, TaskModification)> {
-    let mut filter = Filter::default();
     let args = &mods.description;
 
-    let description = if raw_filters.is_empty() {
-        let mut words = Vec::new();
-        parse_chunks(args, &mut filter, &mut |w| words.push(w));
-        if words.is_empty() {
-            None
-        } else {
-            Some(Description::new(&words.join(" "))?)
-        }
-    } else {
-        let mut words = Vec::new();
-        parse_chunks(raw_filters, &mut filter, &mut |w| words.push(w));
-        filter.words = words;
-        if args.is_empty() {
-            None
-        } else {
-            Some(Description::new(&args.join(" "))?)
-        }
-    };
+    if raw_filters.is_empty() {
+        let (indices, ranges, uids, words) = parse_items(args);
+        // Compose description excepts indices, ranges, and uids
+        let description = make_description(&words)?;
+        let filter = Filter {
+            indices,
+            ranges,
+            uids,
+            words: vec![],
+        };
+        return Ok((filter, TaskModification { description }));
+    }
 
+    let (indices, ranges, uids, words) = parse_items(raw_filters);
+    let description = make_description(args)?;
+    let filter = Filter {
+        indices,
+        ranges,
+        uids,
+        words,
+    };
     Ok((filter, TaskModification { description }))
 }
 
-fn parse_fragment(fragment: &str) -> Option<ParsedFilter> {
-    // Parse index range (e.g. "3-7")
-    if let Some(caps) = RANGE_RE.captures(fragment) {
-        let a = caps[1].parse::<usize>().ok()?;
-        let b = caps[2].parse::<usize>().ok()?;
-        let idx_a = Index::new(a).ok()?;
-        let idx_b = Index::new(b).ok()?;
+fn parse_fragment(fragment: &str) -> ParsedItem {
+    try_parse_range(fragment)
+        .or_else(|| try_parse_index(fragment))
+        .or_else(|| try_parse_uid(fragment))
+        .unwrap_or_else(|| ParsedItem::Word(fragment.to_string()))
+}
 
-        return match IndexRange::new(idx_a, idx_b) {
-            Ok(range) => Some(ParsedFilter::Range(range)),
-            Err(_) => Some(ParsedFilter::Index(idx_a)),
-        };
+fn try_parse_range(fragment: &str) -> Option<ParsedItem> {
+    let caps = RANGE_RE.captures(fragment)?;
+    let a = caps[1].parse::<usize>().ok()?;
+    let b = caps[2].parse::<usize>().ok()?;
+    let idx_a = Index::new(a).ok()?;
+    let idx_b = Index::new(b).ok()?;
+
+    if idx_a == idx_b {
+        return Some(ParsedItem::Index(idx_a));
     }
-    // Parse single index (e.g. "5")
-    if let Some(caps) = INDEX_RE.captures(fragment) {
-        let n = caps[1].parse::<usize>().ok()?;
-        let index = Index::new(n).ok()?;
-        return Some(ParsedFilter::Index(index));
-    }
-    // UID parsing (11 characters, alphanumeric + _-)
+    Some(ParsedItem::Range(IndexRange::new(idx_a, idx_b).unwrap()))
+}
+
+fn try_parse_index(fragment: &str) -> Option<ParsedItem> {
+    let caps = INDEX_RE.captures(fragment)?;
+    let index = caps[1]
+        .parse::<usize>()
+        .ok()
+        .and_then(|n| Index::new(n).ok())?;
+    Some(ParsedItem::Index(index))
+}
+
+fn try_parse_uid(fragment: &str) -> Option<ParsedItem> {
     if !UID_RE.is_match(fragment) {
         return None;
     }
-    // Pure alphabetic in dictionary -> not a UID
-    if ALPHA_RE.is_match(fragment) {
-        let lower_fragment = fragment.to_lowercase();
-        if dict::is_english_word(&lower_fragment) {
-            return None;
-        }
+    let is_english = ALPHA_RE.is_match(fragment) && dict::is_english_word(&fragment.to_lowercase());
+    if is_english {
+        return None;
     }
-    UniqueID::from_str(fragment).ok().map(ParsedFilter::UID)
+    UniqueID::from_str(fragment).ok().map(ParsedItem::UID)
 }
 
 #[cfg(test)]
