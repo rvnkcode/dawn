@@ -1,5 +1,8 @@
 use nanoid::nanoid;
-use std::fmt::{self, Display, Formatter};
+use std::{
+    fmt::{self, Display, Formatter},
+    str::FromStr,
+};
 use thiserror::Error;
 
 // task ID
@@ -16,19 +19,23 @@ impl UniqueID {
     pub fn new() -> Self {
         Self(nanoid!(ID_LENGTH))
     }
-
-    pub fn from_str(raw: &str) -> Result<Self, UniqueIDLengthError> {
-        if raw.len() != ID_LENGTH {
-            Err(UniqueIDLengthError)
-        } else {
-            Ok(Self(raw.to_string()))
-        }
-    }
 }
 
 impl Default for UniqueID {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl FromStr for UniqueID {
+    type Err = UniqueIDLengthError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.len() != ID_LENGTH {
+            Err(UniqueIDLengthError)
+        } else {
+            Ok(Self(s.to_string()))
+        }
     }
 }
 
