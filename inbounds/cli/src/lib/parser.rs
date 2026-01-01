@@ -46,17 +46,6 @@ pub fn parse_en_passant_filter(raw_filters: &[String], args: &[String]) -> Filte
     }
 }
 
-fn expand_chunk(chunk: &str) -> Vec<String> {
-    let trimmed = chunk.trim();
-    if trimmed.is_empty() {
-        vec![]
-    } else if ID_SET_RE.is_match(trimmed) {
-        trimmed.split(',').map(|s| s.trim().to_string()).collect()
-    } else {
-        vec![trimmed.to_string()]
-    }
-}
-
 fn parse_items(source: &[String]) -> (Vec<Index>, Vec<IndexRange>, Vec<UniqueID>, Vec<String>) {
     let items: Vec<ParsedItem> = source
         .iter()
@@ -64,6 +53,54 @@ fn parse_items(source: &[String]) -> (Vec<Index>, Vec<IndexRange>, Vec<UniqueID>
         .map(|fragment| parse_fragment(&fragment))
         .collect();
     partition_items(items)
+}
+
+// Expands a chunk into multiple fragments if it's a valid ID set (comma-separated indices/ranges)
+fn expand_chunk(chunk: &str) -> Vec<String> {
+    let trimmed = chunk.trim();
+    match trimmed {
+        "" => vec![],
+        s if ID_SET_RE.is_match(s) => s.split(',').map(|p| p.trim().to_string()).collect(),
+        s => vec![s.to_string()],
+    }
+}
+
+fn parse_fragment(fragment: &str) -> ParsedItem {
+    try_parse_range(fragment)
+        .or_else(|| try_parse_index(fragment))
+        .or_else(|| try_parse_uid(fragment))
+        .unwrap_or_else(|| ParsedItem::Word(fragment.to_string()))
+}
+
+fn try_parse_range(fragment: &str) -> Option<ParsedItem> {
+    let caps = RANGE_RE.captures(fragment)?;
+    let a = caps[1].parse::<usize>().ok()?;
+    let b = caps[2].parse::<usize>().ok()?;
+    let idx_a = Index::new(a).ok()?;
+    let idx_b = Index::new(b).ok()?;
+
+    if idx_a == idx_b {
+        return Some(ParsedItem::Index(idx_a));
+    }
+    Some(ParsedItem::Range(IndexRange::new(idx_a, idx_b).unwrap()))
+}
+
+fn try_parse_index(fragment: &str) -> Option<ParsedItem> {
+    if !INDEX_RE.is_match(fragment) {
+        return None;
+    }
+    fragment.parse::<Index>().ok().map(ParsedItem::Index)
+}
+
+fn try_parse_uid(fragment: &str) -> Option<ParsedItem> {
+    if !UID_RE.is_match(fragment) {
+        return None;
+    }
+    let is_english = ALPHA_RE.is_match(fragment) && dict::is_english_word(&fragment.to_lowercase());
+    if is_english {
+        return None;
+    }
+    UniqueID::from_str(fragment).ok().map(ParsedItem::UID)
 }
 
 fn partition_items(
@@ -83,14 +120,6 @@ fn partition_items(
         }
     }
     (indices, ranges, uids, words)
-}
-
-fn make_description(words: &[String]) -> anyhow::Result<Option<Description>> {
-    if words.is_empty() {
-        Ok(None)
-    } else {
-        Ok(Some(Description::new(&words.join(" "))?))
-    }
 }
 
 pub fn parse_filter_with_modifications(
@@ -123,44 +152,12 @@ pub fn parse_filter_with_modifications(
     Ok((filter, TaskModification { description }))
 }
 
-fn parse_fragment(fragment: &str) -> ParsedItem {
-    try_parse_range(fragment)
-        .or_else(|| try_parse_index(fragment))
-        .or_else(|| try_parse_uid(fragment))
-        .unwrap_or_else(|| ParsedItem::Word(fragment.to_string()))
-}
-
-fn try_parse_range(fragment: &str) -> Option<ParsedItem> {
-    let caps = RANGE_RE.captures(fragment)?;
-    let a = caps[1].parse::<usize>().ok()?;
-    let b = caps[2].parse::<usize>().ok()?;
-    let idx_a = Index::new(a).ok()?;
-    let idx_b = Index::new(b).ok()?;
-
-    if idx_a == idx_b {
-        return Some(ParsedItem::Index(idx_a));
+fn make_description(words: &[String]) -> anyhow::Result<Option<Description>> {
+    if words.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(Description::new(&words.join(" "))?))
     }
-    Some(ParsedItem::Range(IndexRange::new(idx_a, idx_b).unwrap()))
-}
-
-fn try_parse_index(fragment: &str) -> Option<ParsedItem> {
-    let caps = INDEX_RE.captures(fragment)?;
-    let index = caps[1]
-        .parse::<usize>()
-        .ok()
-        .and_then(|n| Index::new(n).ok())?;
-    Some(ParsedItem::Index(index))
-}
-
-fn try_parse_uid(fragment: &str) -> Option<ParsedItem> {
-    if !UID_RE.is_match(fragment) {
-        return None;
-    }
-    let is_english = ALPHA_RE.is_match(fragment) && dict::is_english_word(&fragment.to_lowercase());
-    if is_english {
-        return None;
-    }
-    UniqueID::from_str(fragment).ok().map(ParsedItem::UID)
 }
 
 #[cfg(test)]
