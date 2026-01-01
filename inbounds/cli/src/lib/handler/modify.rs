@@ -60,10 +60,10 @@ impl<TS: TaskService> Handler<TS> {
     }
 
     fn has_changes(task: &Task, modification: &TaskModification) -> bool {
-        if let Some(new_desc) = &modification.description {
-            if &task.description != new_desc {
-                return true;
-            }
+        if let Some(new_desc) = &modification.description
+            && &task.description != new_desc
+        {
+            return true;
         }
         false
     }

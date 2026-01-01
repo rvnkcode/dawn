@@ -15,7 +15,7 @@ static ID_SET_RE: LazyLock<Regex> =
 enum ParsedItem {
     Index(Index),
     Range(IndexRange),
-    UID(UniqueID),
+    Uid(UniqueID),
     Word(String),
 }
 
@@ -100,7 +100,7 @@ fn try_parse_uid(fragment: &str) -> Option<ParsedItem> {
     if is_english {
         return None;
     }
-    fragment.parse::<UniqueID>().ok().map(ParsedItem::UID)
+    fragment.parse::<UniqueID>().ok().map(ParsedItem::Uid)
 }
 
 fn partition_items(
@@ -115,7 +115,7 @@ fn partition_items(
         match item {
             ParsedItem::Index(i) => indices.push(i),
             ParsedItem::Range(r) => ranges.push(r),
-            ParsedItem::UID(u) => uids.push(u),
+            ParsedItem::Uid(u) => uids.push(u),
             ParsedItem::Word(w) => words.push(w),
         }
     }

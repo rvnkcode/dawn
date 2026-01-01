@@ -156,8 +156,7 @@ pub fn build_update_clause(
 
 fn repeat_vars(count: usize) -> String {
     assert_ne!(count, 0);
-    std::iter::repeat("?")
-        .take(count)
+    std::iter::repeat_n("?", count)
         .collect::<Vec<_>>()
         .join(",")
 }
