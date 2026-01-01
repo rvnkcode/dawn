@@ -36,22 +36,18 @@ mod tests {
 
     #[test]
     fn new_with_ascending_order() {
-        let a = Index::new(1).unwrap();
-        let b = Index::new(5).unwrap();
-        let range = IndexRange::new(a, b).unwrap();
+        let range = IndexRange::new(Index::new(1).unwrap(), Index::new(5).unwrap()).unwrap();
 
-        assert_eq!(range.start(), &a);
-        assert_eq!(range.end(), &b);
+        assert_eq!(range.start(), &Index::new(1).unwrap());
+        assert_eq!(range.end(), &Index::new(5).unwrap());
     }
 
     #[test]
     fn new_with_descending_order_normalizes() {
-        let a = Index::new(5).unwrap();
-        let b = Index::new(1).unwrap();
-        let range = IndexRange::new(a, b).unwrap();
+        let range = IndexRange::new(Index::new(5).unwrap(), Index::new(1).unwrap()).unwrap();
 
-        assert_eq!(range.start(), &b);
-        assert_eq!(range.end(), &a);
+        assert_eq!(range.start(), &Index::new(1).unwrap());
+        assert_eq!(range.end(), &Index::new(5).unwrap());
     }
 
     #[test]
