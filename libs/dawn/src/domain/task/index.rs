@@ -1,4 +1,5 @@
 use std::fmt::{self, Display, Formatter};
+use std::str::FromStr;
 use thiserror::Error;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -28,6 +29,15 @@ impl Display for Index {
     }
 }
 
+impl FromStr for Index {
+    type Err = IndexError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let n: usize = s.parse().map_err(|_| IndexError)?;
+        Self::new(n)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -41,6 +51,24 @@ mod tests {
     #[test]
     fn test_index_new_zero() {
         let result = Index::new(0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_index_from_str_valid() {
+        let index: Index = "5".parse().unwrap();
+        assert_eq!(index.get(), 5);
+    }
+
+    #[test]
+    fn test_index_from_str_zero() {
+        let result = "0".parse::<Index>();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_index_from_str_invalid() {
+        let result = "abc".parse::<Index>();
         assert!(result.is_err());
     }
 }
