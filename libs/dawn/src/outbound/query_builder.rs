@@ -180,7 +180,7 @@ mod tests {
     #[test]
     fn single_uid_filter() {
         let mut filter = Filter::default();
-        filter.uids.push(UniqueID::from_str("abc12345678").unwrap());
+        filter.uids.push("abc12345678".parse::<UniqueID>().unwrap());
 
         let (clause, params) = build_where_clause(&filter).unwrap();
 
@@ -191,8 +191,8 @@ mod tests {
     #[test]
     fn multiple_uids_filter() {
         let mut filter = Filter::default();
-        filter.uids.push(UniqueID::from_str("abc12345678").unwrap());
-        filter.uids.push(UniqueID::from_str("def12345678").unwrap());
+        filter.uids.push("abc12345678".parse::<UniqueID>().unwrap());
+        filter.uids.push("def12345678".parse::<UniqueID>().unwrap());
 
         let (clause, params) = build_where_clause(&filter).unwrap();
 
@@ -287,7 +287,7 @@ mod tests {
     #[test]
     fn combined_id_filters_use_or() {
         let mut filter = Filter::default();
-        filter.uids.push(UniqueID::from_str("abc12345678").unwrap());
+        filter.uids.push("abc12345678".parse::<UniqueID>().unwrap());
         filter.indices.push(Index::new(1).unwrap());
 
         let (clause, params) = build_where_clause(&filter).unwrap();
@@ -355,7 +355,7 @@ mod tests {
     #[test]
     fn update_clause_empty_modification_returns_error() {
         let modification = TaskModification { description: None };
-        let uid = UniqueID::from_str("abc12345678").unwrap();
+        let uid = "abc12345678".parse::<UniqueID>().unwrap();
         let targets = vec![&uid];
 
         let result = build_update_clause(modification, &targets);
@@ -386,7 +386,7 @@ mod tests {
         let modification = TaskModification {
             description: Some(Description::new("updated task").unwrap()),
         };
-        let uid = UniqueID::from_str("abc12345678").unwrap();
+        let uid = "abc12345678".parse::<UniqueID>().unwrap();
         let targets = vec![&uid];
 
         let (clause, params) = build_update_clause(modification, &targets).unwrap();
@@ -402,9 +402,9 @@ mod tests {
         let modification = TaskModification {
             description: Some(Description::new("bulk update").unwrap()),
         };
-        let uid1 = UniqueID::from_str("abc12345678").unwrap();
-        let uid2 = UniqueID::from_str("def12345678").unwrap();
-        let uid3 = UniqueID::from_str("ghi12345678").unwrap();
+        let uid1 = "abc12345678".parse::<UniqueID>().unwrap();
+        let uid2 = "def12345678".parse::<UniqueID>().unwrap();
+        let uid3 = "ghi12345678".parse::<UniqueID>().unwrap();
         let targets = vec![&uid1, &uid2, &uid3];
 
         let (clause, params) = build_update_clause(modification, &targets).unwrap();
