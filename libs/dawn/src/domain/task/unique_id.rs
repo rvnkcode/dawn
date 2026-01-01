@@ -26,6 +26,12 @@ impl UniqueID {
     }
 }
 
+impl Default for UniqueID {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Display for UniqueID {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
