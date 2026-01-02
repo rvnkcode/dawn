@@ -11,6 +11,22 @@ enum ConfirmResult {
     Quit, // Skip all remaining tasks
 }
 
+fn has_changes(task: &Task, modification: &TaskModification) -> bool {
+    if let Some(new_desc) = &modification.description
+        && &task.description != new_desc
+    {
+        return true;
+    }
+    false
+}
+
+fn get_display_id(task: &Task) -> String {
+    match &task.index {
+        Some(index) => index.to_string(),
+        None => task.uid.to_string(),
+    }
+}
+
 impl<TS: TaskService> Handler<TS> {
     pub fn modify(&self, raw_filters: &[String], args: &Modification) -> anyhow::Result<()> {
         let (filter, modification) = parser::parse_filter_with_modifications(raw_filters, args)?;
@@ -39,7 +55,7 @@ impl<TS: TaskService> Handler<TS> {
 
         let candidates: Vec<&Task> = tasks
             .iter()
-            .filter(|task| Self::has_changes(task, &modification))
+            .filter(|task| has_changes(task, &modification))
             .collect();
         if candidates.is_empty() {
             Self::print_modify_result(0);
@@ -59,15 +75,6 @@ impl<TS: TaskService> Handler<TS> {
         Ok(())
     }
 
-    fn has_changes(task: &Task, modification: &TaskModification) -> bool {
-        if let Some(new_desc) = &modification.description
-            && &task.description != new_desc
-        {
-            return true;
-        }
-        false
-    }
-
     fn collect_approved_ids<'a>(
         candidates: &[&'a Task],
         modification: &TaskModification,
@@ -76,7 +83,7 @@ impl<TS: TaskService> Handler<TS> {
         let mut approved: Vec<&UniqueID> = Vec::new();
 
         for (i, task) in candidates.iter().enumerate() {
-            let display_id = Self::get_display_id(task);
+            let display_id = get_display_id(task);
             let display_description = match &modification.description {
                 Some(d) => d.to_string(),
                 None => task.description.to_string(),
@@ -114,19 +121,12 @@ impl<TS: TaskService> Handler<TS> {
     }
 
     fn print_modification(task: &Task, modification: &TaskModification) {
-        let display_id = Self::get_display_id(task);
+        let display_id = get_display_id(task);
         let desc = match &modification.description {
             Some(d) => d.to_string(),
             None => task.description.to_string(),
         };
         println!("Modifying task {} '{}'.", display_id, desc);
-    }
-
-    fn get_display_id(task: &Task) -> String {
-        match &task.index {
-            Some(index) => index.to_string(),
-            None => task.uid.to_string(),
-        }
     }
 
     fn print_modify_result(count: usize) {
@@ -176,5 +176,59 @@ impl<TS: TaskService> Handler<TS> {
             "Quit" => Ok(ConfirmResult::Quit),
             _ => unreachable!(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dawn::domain::task::{Description, Index, Task, TaskModification, UniqueID};
+
+    fn make_task(desc: &str, index: Option<usize>) -> Task {
+        Task {
+            uid: "abc12345678".parse::<UniqueID>().unwrap(),
+            index: index.map(|i| Index::new(i).unwrap()),
+            description: Description::new(desc).unwrap(),
+            created_at: 0,
+            completed_at: None,
+            deleted_at: None,
+        }
+    }
+
+    #[test]
+    fn has_changes_true_when_description_differs() {
+        let task = make_task("old description", Some(1));
+        let modification = TaskModification {
+            description: Some(Description::new("new description").unwrap()),
+        };
+        assert!(has_changes(&task, &modification));
+    }
+
+    #[test]
+    fn has_changes_false_when_description_same() {
+        let task = make_task("same description", Some(1));
+        let modification = TaskModification {
+            description: Some(Description::new("same description").unwrap()),
+        };
+        assert!(!has_changes(&task, &modification));
+    }
+
+    #[test]
+    fn has_changes_false_when_no_modification() {
+        let task = make_task("description", Some(1));
+        let modification = TaskModification { description: None };
+        assert!(!has_changes(&task, &modification));
+    }
+
+    #[test]
+    fn get_display_id_returns_index_when_present() {
+        let task = make_task("test", Some(5));
+        assert_eq!(get_display_id(&task), "5");
+    }
+
+    #[test]
+    fn get_display_id_returns_uid_when_no_index() {
+        let task = make_task("test", None);
+        assert_eq!(get_display_id(&task), "abc12345678");
     }
 }
