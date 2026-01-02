@@ -4,67 +4,22 @@ title: Class Diagram
 
 ```mermaid
 classDiagram
+direction LR
   namespace Inbound {
-    class Commands {
-      <<enumeration>>
-      -Add(Modification)
-      -All(Modification)
-      -Modify(Modification)
-    }
     class Modification {
       +Vec~String~ description
     }
-    class Handler~TS~ {
-      -TS task_service
-      +new(task_service) Self
-      +add(&self, &raw_filters, &args) Result~_~
-      +next(&self, &raw_filters) Result~_~
-      +all(&self, &raw_filters, &args) Result~_~
-      +modify(&self, &raw_filters, &args) Result~_~
-      -display_table~R~(&self, tasks) Result~_~
-      -$has_changes(&Task, &TaskModification) bool
-      -$get_display_id(&Task) String
-      -$print_modify_result(count)
-      -$print_diff(&Task, &TaskModification)
-      -$confirm_bulk(&display_id, &description) Result~ConfirmResult~
+    class Commands {
+      <<enumeration>>
+      Add(Modification)
+      All(Modification)
+      Modify(Modification)
     }
     class Cli {
       -Vec~String~ filters
       -Option~Commands~ command
       +new() Self
       +handle_command(&self, task_service) Result~_~
-    }
-    class Age {
-      +new(&created_at, &now) Result~Self, AgeError~
-    }
-    class TableRow {
-      <<interface>>
-      +new(task, &now) Result~Self~
-    }
-    class NextRow {
-      +Index id
-      +Age age
-      +Description description
-    }
-    class Status {
-      <<enumeration>>
-      Pending
-      Completed
-      Deleted
-    }
-    class AllRow {
-      +Option~Index~ id
-      +Status status
-      +UniqueID uid
-      +Age age
-      +Option~Age~ done
-      +Description description
-    }
-    class BaseTable~R~ {
-      -Vec~R~ rows
-      +new(tasks) Result~Self~
-      +len(&self) usize
-      +render(&self) Table
     }
     class ConfirmResult {
       <<enumeration>>
@@ -73,39 +28,127 @@ classDiagram
       All
       Quit
     }
-  }
-  namespace Domain {
-    class Description {
-      +new(raw) Result~Self, DescriptionEmptyError~
+    class Handler~TS~ {
+      -TS task_service
+      +new(task_service) Self
+      -compose_description(&filters, &description)$ Result~Description~
+      +add(&self, &filters, &args) Result~_~
+      +next(&self, &raw_filters) Result~_~
+      +all(&self, &raw_filters, &args) Result~_~
+      -display_table~R~(tasks)$ Result~_~
+      +modify(&self, &raw_filters, &args) Result~_~
+      -has_changes(&task, &modification)$ bool
+      -get_display_id(&task)$ String
+      -print_diff(&task, &modification)$
+      -collect_approved_ids~'a~(&'a candidates, &modification)$ Result~Vec~'a UniqueID~~
+      -confirm_bulk(&display_id, &description)$ Result~ConfirmResult~
+      -print_modification~'a~(&'a task, &modification)$
+      -print_modify_result(count)$
+      -print_not_pending_for_ids(&tasks, &ids)$
     }
+    class ParsedItem {
+      <<enumeration>>
+      Index(Index)
+      Range(IndexRange)
+      Uid(UniqueID)
+      Word(String)
+    }
+    class Parser {
+      +parse_filter(&raw_filters)$ Filter
+      +parse_en_passant_filter(&raw_filters, &args)$ Filter
+      -parse_items(&source)$ Vec~Index~, Vec~IndexRange~, Vec~UniqueID~, Vec~String~
+      -expand_chunk(&chunk)$ Vec~String~
+      -parse_fragment(&fragment)$ ParsedItem
+      -try_parse_range(&fragment)$ Option~ParsedItem~
+      -try_parse_index(&fragment)$ Option~ParsedItem~
+      -try_parse_uid(&fragment)$ Option~ParsedItem~
+      -partition_items(items)$ Vec~Index~, Vec~IndexRange~, Vec~UniqueID~, Vec~String~
+      +parse_filter_with_modifications(&raw_filters, &args)$ Result~Filter, TaskModification~
+      -make_description(&words)$ Result~Option~Description~~
+    }
+    class TableRow {
+      <<interface>>
+      +new(task, &now)* Result~Self~
+    }
+    class BaseTable~R~ {
+      -Vec~R~ rows
+      +new(tasks) Result~Self~
+      +len(&self) usize
+      +render(&self) Table
+    }
+    class NextRow {
+      -Index id
+      -Age age
+      -Description description
+      +new(task, &now) Result~Self~
+    }
+    class Age {
+      -String
+      +new(&created_at, &now) Result~Self, AgeError~
+    }
+    class AllRow {
+      -Option~Index~ id
+      -Status status
+      -UniqueID uid
+      -Age age
+      -Option~Age~ done
+      -Description description
+      +new(task, &now) Result~Self~
+      -display_done(&val)$ String
+      -display_index(&val)$ String
+      -display_status(&val)$ String
+    }
+    class Status {
+      <<enumeration>>
+      Pending
+      Completed
+      Deleted
+    }
+  }
+
+  namespace Domain {
+    class TaskService {
+      <<interface>>
+      +add(&self, req)* Result~_~
+      +count_pending(&self)* usize
+      +next(&self, &filter)* Result~Vec~Task~~
+      +all(&self, &filter)* Result~Vec~Task~~
+      +modify(&self, modification, &targets)* Result~_~
+    }
+    class Service~R~ {
+      -R repo
+      +new(repo) Self
+    }
+    class TaskRepository {
+      <<interface>>
+      +create_task(&self, unique_id, req)* Result~_~
+      +count_pending_tasks(&self)* usize
+      +get_pending_tasks(&self, &filter)* Result~Vec~Task~~
+      +get_all_tasks(&self, &filter)* Result~Vec~Task~~
+      +update_tasks(&self, modification, &targets)* Result~_~
+    }
+
     class UniqueID {
+      -String
       +new() Self
-      +from_str(raw) Result~Self, UniqueIDLengthError~
+      +default() Self
+      +from_str(&s) Result~Self, UniqueIDLengthError~
     }
     class Index {
+      -usize
       +new(raw) Result~Self, IndexError~
+      +from_str(&s) Result~Self, IndexError~
       +get(&self) usize
     }
-    class Task {
-      +UniqueID uid
-      +Option~Index~ index
-      +Description description
-      +i64 created_at
-      +Option~i64~ completed_at
-      +Option~i64~ deleted_at
+    class Description {
+      -String
+      +new(&raw) Result~Self, DescriptionEmptyError~
     }
     class TaskCreation {
       +Description description
     }
     class TaskModification {
       +Option~Description~ description
-      +is_empty(&self) bool
-    }
-    class Filter {
-      +Vec~Index~ indices
-      +Vec~IndexRange~ ranges
-      +Vec~UniqueID~ uids
-      +Vec~String~ words
       +is_empty(&self) bool
     }
     class IndexRange {
@@ -115,69 +158,91 @@ classDiagram
       +start(&self) &Index
       +end(&self) &Index
     }
-    class TaskService {
-      <<interface>>
-      +add(&self, req) Result~_~
-      +count_pending(&self) usize
-      +next(&self, &filter) Result~Vec~Task~~
-      +all(&self, &filter) Result~Vec~Task~~
-      +modify(&self, modification, targets) Result~_~
+    class Filter {
+      +Vec~Index~ indices
+      +Vec~IndexRange~ ranges
+      +Vec~UniqueID~ uids
+      +Vec~String~ words
+      +is_empty(&self) bool
     }
-    class Service~R~ {
-      -R repo
-      +new(repo) Self
-    }
-    class TaskRepository {
-      <<interface>>
-      +create_task(&self, id, req) Result~_~
-      +count_pending_tasks(&self) usize
-      +get_pending_tasks(&self, &filter) Result~Vec~Task~~
-      +get_all_tasks(&self, &filter) Result~Vec~Task~~
-      +update_tasks(&self, modification, targets) Result~_~
+    class Task {
+      +UniqueID uid
+      +Option~Index~ index
+      +Description description
+      +i64 created_at
+      +Option~i64~ completed_at
+      +Option~i64~ deleted_at
     }
   }
+
   namespace Outbound {
     class SQLite {
       -Connection conn
       +new() Result~Self~
-      -$get_path() Result~PathBuf~
-      -$open_connection() Result~Connection~
-      -$get_user_version(&conn) u8
-      -$initialize_schema(&conn) Result~_~
+      -get_path()$ Result~PathBuf~
+      -open_connection()$ Result~Connection~
+      -get_user_version(&conn)$ u8
+      -initialize_schema(&conn)$ Result~_~
+    }
+    class QueryBuilder {
+      +build_where_clause(&filter)$ Result~String, Vec&lt;Box&lt;dyn ToSql&gt;&gt;~
+      -build_id_clause(&filter)$ Option~String~, Vec~Box~dyn ToSql~~
+      -build_words_clause(&filter)$ Option~String~, Vec~Box~dyn ToSql~~
+      -repeat_vars(count)$ String
+      -escape_fts5_term(&term)$ String
+      +build_update_clause(modification, &targets)$ Result~String, Vec&lt;Box&lt;dyn ToSql&gt;&gt;~
     }
   }
 
-  %% Inbound Flow
+  Modification --* Commands : has
+  Commands --* Cli : has
   Cli ..> Handler~TS~ : creates
-  Cli o-- Commands : has
-  Commands *-- Modification : has
-  Handler~TS~ o-- TaskService : uses
+  Modification <.. Handler~TS~ : uses
+  Cli ..> TaskService : accepts
+  Handler~TS~ ..> Parser : uses
+  ParsedItem <.. Parser
+  BaseTable~R~ <.. Handler~TS~ : displays
+  ConfirmResult <.. Handler~TS~ : gets
 
-  %% Handler Use Cases
-  Handler~TS~ ..> TaskCreation : creates
-  Handler~TS~ ..> TaskModification : creates
-  Handler~TS~ ..> Filter : parses
-  Handler~TS~ ..> BaseTable~R~ : renders
-
-  %% Table Polymorphism
-  BaseTable~R~ o-- TableRow : contains
+  TableRow <.. BaseTable~R~ : where R is TableRow+Tabled
   TableRow <|.. NextRow : implements
   TableRow <|.. AllRow : implements
-  NextRow ..> Task : from
-  AllRow ..> Task : from
+  Age --* NextRow
+  NextRow *-- Description
+  NextRow *-- Index
+  Status --* AllRow
+  Age --* AllRow
+  AllRow *-- UniqueID
+  AllRow *-- Description
 
-  %% Domain Entity
-  Task *-- UniqueID : has
-  Task *-- Description : has
+  Description --o TaskCreation
+  Description --o TaskModification
+  Index --o IndexRange
+  Index --o Filter
+  IndexRange --o Filter
+  UniqueID --o Filter
+  UniqueID --* Task
+  Index --o Task
+  Description --* Task
 
-  %% Port Contract
-  TaskService ..> Task : returns
-  TaskService ..> TaskCreation : accepts
-  TaskService ..> TaskModification : accepts
-  TaskService ..> Filter : accepts
+  Handler~TS~ ..> TaskCreation : creates
+  TaskCreation <.. TaskService : accepts
+  TaskModification <.. TaskService : accepts
+  TaskCreation <.. TaskRepository : accepts
+  TaskModification <.. TaskRepository : accepts
+  UniqueID <.. TaskRepository : accepts
+  Parser ..> Filter : parses
+  Parser ..> TaskModification : parses
+  Filter <.. TaskService : accepts
+  Filter <.. TaskRepository : accepts
+  Task <.. TaskRepository : returns
+  Task <.. TaskService : returns
+  Handler~TS~ ..> Task : gets
 
-  %% Hexagonal Implementation
   TaskService <|.. Service~R~ : implements
-  Service~R~ --> TaskRepository : delegates
+  Handler~TS~ ..> TaskService : where TS is TaskService
   TaskRepository <|.. SQLite : implements
+  TaskRepository <.. Service~R~ : where R is TaskRepository
+
+  SQLite ..> QueryBuilder : uses
 ```
