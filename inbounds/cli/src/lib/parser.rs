@@ -130,7 +130,7 @@ pub fn parse_filter_with_modifications(
 
     if raw_filters.is_empty() {
         let (indices, ranges, uids, words) = parse_items(args);
-        // Compose description excepts indices, ranges, and uids
+        // Compose description except indices, ranges, and uids
         let description = make_description(&words)?;
         let filter = Filter {
             indices,
