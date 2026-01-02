@@ -46,7 +46,7 @@ impl<TS: TaskService> Handler<TS> {
             return Ok(());
         }
 
-        let approved_ids = self.collect_approved_ids(&candidates, &modification)?;
+        let approved_ids = Self::collect_approved_ids(&candidates, &modification)?;
         if approved_ids.is_empty() {
             Self::print_modify_result(0);
             return Err(anyhow::anyhow!("Command prevented from running."));
@@ -69,7 +69,6 @@ impl<TS: TaskService> Handler<TS> {
     }
 
     fn collect_approved_ids<'a>(
-        &self,
         candidates: &[&'a Task],
         modification: &TaskModification,
     ) -> anyhow::Result<Vec<&'a UniqueID>> {
@@ -78,11 +77,10 @@ impl<TS: TaskService> Handler<TS> {
 
         for (i, task) in candidates.iter().enumerate() {
             let display_id = Self::get_display_id(task);
-            let display_description = modification
-                .description
-                .as_ref()
-                .map(|d| d.to_string())
-                .unwrap_or_else(|| task.description.to_string());
+            let display_description = match &modification.description {
+                Some(d) => d.to_string(),
+                None => task.description.to_string(),
+            };
 
             let result = if needs_confirm {
                 Self::print_diff(task, modification);
@@ -93,14 +91,16 @@ impl<TS: TaskService> Handler<TS> {
 
             match result {
                 ConfirmResult::Yes => {
-                    Self::approve_task(task, modification, &mut approved);
+                    Self::print_modification(task, modification);
+                    approved.push(&task.uid);
                 }
                 ConfirmResult::No => {
                     println!("Task not modified.");
                 }
                 ConfirmResult::All => {
                     for remaining in &candidates[i..] {
-                        Self::approve_task(remaining, modification, &mut approved);
+                        Self::print_modification(remaining, modification);
+                        approved.push(&remaining.uid);
                     }
                     break;
                 }
@@ -113,26 +113,19 @@ impl<TS: TaskService> Handler<TS> {
         Ok(approved)
     }
 
-    fn approve_task<'a>(
-        task: &'a Task,
-        modification: &TaskModification,
-        approved: &mut Vec<&'a UniqueID>,
-    ) {
+    fn print_modification(task: &Task, modification: &TaskModification) {
         let display_id = Self::get_display_id(task);
-        let desc = modification
-            .description
-            .as_ref()
-            .map(|d| d.to_string())
-            .unwrap_or_else(|| task.description.to_string());
+        let desc = match &modification.description {
+            Some(d) => d.to_string(),
+            None => task.description.to_string(),
+        };
         println!("Modifying task {} '{}'.", display_id, desc);
-        approved.push(&task.uid);
     }
 
     fn get_display_id(task: &Task) -> String {
-        if let Some(index) = &task.index {
-            format!("{}", index)
-        } else {
-            format!("{}", task.uid)
+        match &task.index {
+            Some(index) => index.to_string(),
+            None => task.uid.to_string(),
         }
     }
 
