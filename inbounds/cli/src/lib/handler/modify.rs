@@ -65,7 +65,7 @@ impl<TS: TaskService> Handler<TS> {
         let approved_ids = Self::collect_approved_ids(&candidates, &modification)?;
         if approved_ids.is_empty() {
             Self::print_modify_result(0);
-            return Err(anyhow::anyhow!("Command prevented from running."));
+            return Ok(());
         }
 
         self.task_service.modify(modification, &approved_ids)?;
