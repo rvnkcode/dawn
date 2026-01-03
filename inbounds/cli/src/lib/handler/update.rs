@@ -61,6 +61,7 @@ fn print_diff(task: &Task, modification: &TaskModification) {
             task.description, new_desc
         );
     }
+
     if let Some(completed_at) = modification.completed_at {
         let old_status = Status::get_status(task);
         match completed_at {
