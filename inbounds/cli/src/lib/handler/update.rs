@@ -71,13 +71,13 @@ fn print_diff(task: &Task, modification: &TaskModification) {
                 }
                 println!(
                     "  - Status will be changed from '{}' to 'completed'.",
-                    old_status.to_string()
+                    old_status
                 );
             }
             None => {
                 println!(
                     "  - Status will be changed from '{}' to 'pending'.",
-                    old_status.to_string()
+                    old_status
                 );
             }
         }
@@ -89,13 +89,13 @@ fn print_diff(task: &Task, modification: &TaskModification) {
             Some(_) => {
                 println!(
                     "  - Status will be changed from '{}' to 'deleted'.",
-                    old_status.to_string()
+                    old_status
                 );
             }
             None => {
                 println!(
                     "  - Status will be changed from '{}' to 'pending'.",
-                    old_status.to_string()
+                    old_status
                 );
             }
         }

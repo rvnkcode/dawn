@@ -94,7 +94,7 @@ impl<TS: TaskService> Handler<TS> {
                 let status = Status::get_status(t);
                 let msg = format!(
                     "Note: Modified task {} is {}. You may wish to make this task pending with task {} modify --status pending",
-                    t.uid, status.to_string(), t.uid,
+                    t.uid, status, t.uid,
                 ).yellow();
                 println!("{}", msg);
             });
