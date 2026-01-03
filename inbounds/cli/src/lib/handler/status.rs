@@ -1,5 +1,6 @@
 use clap::ValueEnum;
 use dawn::domain::task::Task;
+use std::fmt::{self, Display, Formatter};
 
 #[derive(Clone, Debug, PartialEq, ValueEnum)]
 pub enum Status {
@@ -16,12 +17,15 @@ impl Status {
             (None, None) => Status::Pending,
         }
     }
+}
 
-    pub fn to_string(&self) -> &'static str {
-        match self {
+impl Display for Status {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let s = match self {
             Status::Pending => "pending",
             Status::Completed => "completed",
             Status::Deleted => "deleted",
-        }
+        };
+        write!(f, "{}", s)
     }
 }
