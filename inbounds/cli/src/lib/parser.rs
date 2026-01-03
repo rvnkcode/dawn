@@ -138,7 +138,13 @@ pub fn parse_filter_with_modifications(
             uids,
             words: vec![],
         };
-        return Ok((filter, TaskModification { description }));
+        return Ok((
+            filter,
+            TaskModification {
+                description,
+                completed_at: None,
+            },
+        ));
     }
 
     let (indices, ranges, uids, words) = parse_items(raw_filters);
@@ -149,7 +155,13 @@ pub fn parse_filter_with_modifications(
         uids,
         words,
     };
-    Ok((filter, TaskModification { description }))
+    Ok((
+        filter,
+        TaskModification {
+            description,
+            completed_at: None,
+        },
+    ))
 }
 
 fn make_description(words: &[String]) -> anyhow::Result<Option<Description>> {

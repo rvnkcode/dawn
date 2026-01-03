@@ -24,10 +24,11 @@ pub struct TaskCreation {
 
 pub struct TaskModification {
     pub description: Option<Description>,
+    pub completed_at: Option<Option<i64>>,
 }
 
 impl TaskModification {
     pub fn is_empty(&self) -> bool {
-        self.description.is_none()
+        self.description.is_none() && self.completed_at.is_none()
     }
 }

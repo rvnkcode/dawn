@@ -353,7 +353,10 @@ mod tests {
 
     #[test]
     fn update_clause_empty_modification_returns_error() {
-        let modification = TaskModification { description: None };
+        let modification = TaskModification {
+            description: None,
+            completed_at: None,
+        };
         let uid = "abc12345678".parse::<UniqueID>().unwrap();
         let targets = vec![&uid];
 
@@ -369,6 +372,7 @@ mod tests {
 
         let modification = TaskModification {
             description: Some(Description::new("new description").unwrap()),
+            completed_at: None,
         };
         let targets: Vec<&UniqueID> = vec![];
 
@@ -384,6 +388,7 @@ mod tests {
 
         let modification = TaskModification {
             description: Some(Description::new("updated task").unwrap()),
+            completed_at: None,
         };
         let uid = "abc12345678".parse::<UniqueID>().unwrap();
         let targets = vec![&uid];
@@ -400,6 +405,7 @@ mod tests {
 
         let modification = TaskModification {
             description: Some(Description::new("bulk update").unwrap()),
+            completed_at: None,
         };
         let uid1 = "abc12345678".parse::<UniqueID>().unwrap();
         let uid2 = "def12345678".parse::<UniqueID>().unwrap();
