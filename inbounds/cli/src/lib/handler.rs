@@ -1,6 +1,8 @@
 mod add;
 mod done;
 mod modify;
+pub mod status;
+pub use status::Status;
 mod update;
 
 use crate::cli::Modification;
