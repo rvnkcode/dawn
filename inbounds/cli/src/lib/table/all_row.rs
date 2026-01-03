@@ -27,11 +27,7 @@ impl TableRow for AllRow {
             Some(completed_at) => Some(Age::new(completed_at, now)?),
             None => None,
         };
-        let status = match (&task.deleted_at, &task.completed_at) {
-            (Some(_), _) => Status::Deleted,
-            (None, Some(_)) => Status::Completed,
-            (None, None) => Status::Pending,
-        };
+        let status = Status::get_status(&task);
         Ok(Self {
             id: task.index,
             status,
