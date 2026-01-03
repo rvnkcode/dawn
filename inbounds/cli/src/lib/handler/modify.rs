@@ -117,6 +117,28 @@ mod tests {
         }
     }
 
+    fn make_completed_task(desc: &str) -> Task {
+        Task {
+            uid: "abc12345678".parse::<UniqueID>().unwrap(),
+            index: Some(Index::new(1).unwrap()),
+            description: Description::new(desc).unwrap(),
+            created_at: 0,
+            completed_at: Some(1000),
+            deleted_at: None,
+        }
+    }
+
+    fn make_deleted_task(desc: &str) -> Task {
+        Task {
+            uid: "abc12345678".parse::<UniqueID>().unwrap(),
+            index: Some(Index::new(1).unwrap()),
+            description: Description::new(desc).unwrap(),
+            created_at: 0,
+            completed_at: None,
+            deleted_at: Some(1000),
+        }
+    }
+
     #[test]
     fn has_changes_true_when_description_differs() {
         let task = make_task("old description", Some(1));
@@ -160,5 +182,95 @@ mod tests {
     fn get_display_id_returns_uid_when_no_index() {
         let task = make_task("test", None);
         assert_eq!(get_display_id(&task), "abc12345678");
+    }
+
+    // Status transition tests for has_changes()
+
+    #[test]
+    fn has_changes_true_pending_to_completed() {
+        let task = make_task("test", Some(1));
+        let modification = TaskModification {
+            description: None,
+            completed_at: Some(Some(2000)),
+            deleted_at: None,
+        };
+        assert!(has_changes(&task, &modification));
+    }
+
+    #[test]
+    fn has_changes_true_completed_to_pending() {
+        let task = make_completed_task("test");
+        let modification = TaskModification {
+            description: None,
+            completed_at: Some(None),
+            deleted_at: None,
+        };
+        assert!(has_changes(&task, &modification));
+    }
+
+    #[test]
+    fn has_changes_true_pending_to_deleted() {
+        let task = make_task("test", Some(1));
+        let modification = TaskModification {
+            description: None,
+            completed_at: None,
+            deleted_at: Some(Some(2000)),
+        };
+        assert!(has_changes(&task, &modification));
+    }
+
+    #[test]
+    fn has_changes_true_deleted_to_pending() {
+        let task = make_deleted_task("test");
+        let modification = TaskModification {
+            description: None,
+            completed_at: None,
+            deleted_at: Some(None),
+        };
+        assert!(has_changes(&task, &modification));
+    }
+
+    #[test]
+    fn has_changes_true_deleted_to_completed() {
+        let task = make_deleted_task("test");
+        let modification = TaskModification {
+            description: None,
+            completed_at: Some(Some(2000)),
+            deleted_at: None,
+        };
+        assert!(has_changes(&task, &modification));
+    }
+
+    #[test]
+    fn has_changes_false_completed_to_completed() {
+        let task = make_completed_task("test");
+        let modification = TaskModification {
+            description: None,
+            completed_at: Some(Some(2000)), // Already completed, no change
+            deleted_at: None,
+        };
+        assert!(!has_changes(&task, &modification));
+    }
+
+    #[test]
+    fn has_changes_false_deleted_to_deleted() {
+        let task = make_deleted_task("test");
+        let modification = TaskModification {
+            description: None,
+            completed_at: None,
+            deleted_at: Some(Some(2000)), // Already deleted, no change
+        };
+        assert!(!has_changes(&task, &modification));
+    }
+
+    #[test]
+    fn has_changes_false_pending_to_pending() {
+        let task = make_task("test", Some(1));
+        let modification = TaskModification {
+            description: None,
+            completed_at: Some(None), // Already pending, no change
+            deleted_at: None,
+        };
+        assert!(!has_changes(&task, &modification));
     }
 }
