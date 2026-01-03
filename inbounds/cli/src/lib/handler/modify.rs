@@ -6,11 +6,24 @@ fn has_changes(task: &Task, modification: &TaskModification) -> bool {
     {
         return true;
     }
-    if modification.completed_at.is_some()
-        && (task.deleted_at.is_some() || task.completed_at.is_none())
-    {
+
+    let Some(new_completed_at) = modification.completed_at else {
+        return false;
+    };
+
+    // Deleted task modified to completed task
+    if task.deleted_at.is_some() {
         return true;
     }
+    // Undo completed task to pending task
+    if new_completed_at.is_none() && task.completed_at.is_some() {
+        return true;
+    }
+    // Pending task modified to completed task
+    if new_completed_at.is_some() && task.completed_at.is_none() {
+        return true;
+    }
+
     false
 }
 
