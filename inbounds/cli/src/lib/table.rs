@@ -6,5 +6,3 @@ mod all_row;
 pub use all_row::AllRow;
 mod next_row;
 pub use next_row::NextRow;
-mod status;
-pub use status::Status;

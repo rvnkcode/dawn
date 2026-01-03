@@ -1,4 +1,7 @@
-use crate::table::{Age, Status, TableRow};
+use crate::{
+    handler::Status,
+    table::{Age, TableRow},
+};
 use dawn::domain::task::{Description, Index, Task, UniqueID};
 use tabled::Tabled;
 
