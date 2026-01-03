@@ -62,44 +62,31 @@ fn print_diff(task: &Task, modification: &TaskModification) {
         );
     }
 
-    if let Some(completed_at) = modification.completed_at {
-        let old_status = Status::get_status(task);
-        match completed_at {
-            Some(timestamp) => {
-                if task.completed_at.is_none() {
-                    let date = Local.timestamp_opt(timestamp, 0).unwrap();
-                    println!("  - End will be set to '{}'.", date.format("%Y-%m-%d"));
-                }
-                println!(
-                    "  - Status will be changed from '{}' to 'completed'.",
-                    old_status
-                );
-            }
-            None => {
-                println!(
-                    "  - Status will be changed from '{}' to 'pending'.",
-                    old_status
-                );
-            }
+    // Print "End will be set" message if completing a task
+    if let Some(Some(timestamp)) = modification.completed_at {
+        if task.completed_at.is_none() {
+            let date = Local.timestamp_opt(timestamp, 0).unwrap();
+            println!("  - End will be set to '{}'.", date.format("%Y-%m-%d"));
         }
     }
 
-    if let Some(deleted_at) = modification.deleted_at {
+    // Determine new status and print a single status change message
+    let new_status = if matches!(modification.deleted_at, Some(Some(_))) {
+        Some("deleted")
+    } else if matches!(modification.completed_at, Some(Some(_))) {
+        Some("completed")
+    } else if modification.completed_at == Some(None) || modification.deleted_at == Some(None) {
+        Some("pending")
+    } else {
+        None
+    };
+
+    if let Some(new_status) = new_status {
         let old_status = Status::get_status(task);
-        match deleted_at {
-            Some(_) => {
-                println!(
-                    "  - Status will be changed from '{}' to 'deleted'.",
-                    old_status
-                );
-            }
-            None => {
-                println!(
-                    "  - Status will be changed from '{}' to 'pending'.",
-                    old_status
-                );
-            }
-        }
+        println!(
+            "  - Status will be changed from '{}' to '{}'.",
+            old_status, new_status
+        );
     }
     // TODO: Add diff for other attributes (project, tags, etc.)
 }
@@ -184,9 +171,11 @@ pub(crate) fn collect_approved_ids<'a>(
             ConfirmResult::Yes => {
                 print_action(action, task, modification);
                 approved.push(&task.uid);
+                println!();
             }
             ConfirmResult::No => {
                 println!("{}", action.not_done_msg());
+                println!();
             }
             ConfirmResult::All => {
                 for remaining in &candidates[i..] {
