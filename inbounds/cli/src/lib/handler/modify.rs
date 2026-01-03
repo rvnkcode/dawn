@@ -1,16 +1,5 @@
 use super::*;
 
-/// Threshold for requiring individual confirmation on bulk modify operations
-const BULK_CONFIRM_THRESHOLD: usize = 3;
-
-/// Confirmation result for bulk modify operations
-enum ConfirmResult {
-    Yes,  // Modify this task
-    No,   // Skip this task
-    All,  // Modify all remaining tasks
-    Quit, // Skip all remaining tasks
-}
-
 fn has_changes(task: &Task, modification: &TaskModification) -> bool {
     if let Some(new_desc) = &modification.description
         && &task.description != new_desc
@@ -20,25 +9,14 @@ fn has_changes(task: &Task, modification: &TaskModification) -> bool {
     false
 }
 
-fn get_display_id(task: &Task) -> String {
-    match &task.index {
-        Some(index) => index.to_string(),
-        None => task.uid.to_string(),
-    }
-}
-
 impl<TS: TaskService> Handler<TS> {
     pub fn modify(&self, raw_filters: &[String], args: &Modification) -> anyhow::Result<()> {
         let (filter, modification) = parser::parse_filter_with_modifications(raw_filters, args)?;
         if filter.is_empty() {
-            let ans = Confirm::new("This command has no filter, and will modify all (including completed and deleted) tasks. Are you sure?")
-                .with_default(false)
-                .prompt()?;
-            if !ans {
-                return Err(anyhow::anyhow!("Command prevented from running."));
-            }
+            confirm_empty_filter()?;
         }
 
+        // TODO: Refactoring?
         let tasks = self.task_service.all(&filter)?;
         if tasks.is_empty() {
             println!("{}", "No tasks specified.".yellow());
@@ -48,8 +26,9 @@ impl<TS: TaskService> Handler<TS> {
             println!("This command will alter {} tasks.", tasks.len());
         }
 
+        let action = Action::Modify;
         if modification.is_empty() {
-            Self::print_modify_result(0);
+            print_action_result(&action, 0);
             return Ok(());
         }
 
@@ -58,83 +37,21 @@ impl<TS: TaskService> Handler<TS> {
             .filter(|task| has_changes(task, &modification))
             .collect();
         if candidates.is_empty() {
-            Self::print_modify_result(0);
+            print_action_result(&action, 0);
             return Ok(());
         }
 
-        let approved_ids = Self::collect_approved_ids(&candidates, &modification)?;
+        let approved_ids = collect_approved_ids(&action, &candidates, &modification, tasks.len())?;
         if approved_ids.is_empty() {
-            Self::print_modify_result(0);
+            print_action_result(&action, 0);
             return Ok(());
         }
 
         self.task_service.modify(modification, &approved_ids)?;
 
-        Self::print_modify_result(approved_ids.len());
+        print_action_result(&action, approved_ids.len());
         Self::print_not_pending_for_ids(&tasks, &approved_ids);
         Ok(())
-    }
-
-    fn collect_approved_ids<'a>(
-        candidates: &[&'a Task],
-        modification: &TaskModification,
-    ) -> anyhow::Result<Vec<&'a UniqueID>> {
-        let needs_confirm = candidates.len() >= BULK_CONFIRM_THRESHOLD;
-        let mut approved: Vec<&UniqueID> = Vec::new();
-
-        for (i, task) in candidates.iter().enumerate() {
-            let display_id = get_display_id(task);
-            let display_description = match &modification.description {
-                Some(d) => d.to_string(),
-                None => task.description.to_string(),
-            };
-
-            let result = if needs_confirm {
-                Self::print_diff(task, modification);
-                Self::confirm_bulk(&display_id, &display_description)?
-            } else {
-                ConfirmResult::Yes
-            };
-
-            match result {
-                ConfirmResult::Yes => {
-                    Self::print_modification(task, modification);
-                    approved.push(&task.uid);
-                }
-                ConfirmResult::No => {
-                    println!("Task not modified.");
-                }
-                ConfirmResult::All => {
-                    for remaining in &candidates[i..] {
-                        Self::print_modification(remaining, modification);
-                        approved.push(&remaining.uid);
-                    }
-                    break;
-                }
-                ConfirmResult::Quit => {
-                    println!("Task not modified.");
-                    break;
-                }
-            }
-        }
-        Ok(approved)
-    }
-
-    fn print_modification(task: &Task, modification: &TaskModification) {
-        let display_id = get_display_id(task);
-        let desc = match &modification.description {
-            Some(d) => d.to_string(),
-            None => task.description.to_string(),
-        };
-        println!("Modifying task {} '{}'.", display_id, desc);
-    }
-
-    fn print_modify_result(count: usize) {
-        if count == 1 {
-            println!("Modified 1 task.");
-        } else {
-            println!("Modified {} tasks.", count);
-        }
     }
 
     fn print_not_pending_for_ids(tasks: &[Task], ids: &[&UniqueID]) {
@@ -151,31 +68,6 @@ impl<TS: TaskService> Handler<TS> {
                 ).yellow();
                 println!("{}", msg);
             });
-    }
-
-    /// Print diff for a task before confirmation (3+ tasks mode)
-    fn print_diff(task: &Task, modification: &TaskModification) {
-        if let Some(new_desc) = &modification.description {
-            println!(
-                "  - Description will be changed from '{}' to '{}'.",
-                task.description, new_desc
-            );
-        }
-        // TODO: Add diff for other attributes (project, tags, etc.)
-    }
-
-    /// Confirmation prompt for bulk modify operations (y/n/a/q)
-    fn confirm_bulk(display_id: &str, description: &str) -> anyhow::Result<ConfirmResult> {
-        let prompt = format!("Modify task {} '{}'?", display_id, description);
-        let options = vec!["Yes", "No", "All", "Quit"];
-        let selection = Select::new(&prompt, options).prompt()?;
-        match selection {
-            "Yes" => Ok(ConfirmResult::Yes),
-            "No" => Ok(ConfirmResult::No),
-            "All" => Ok(ConfirmResult::All),
-            "Quit" => Ok(ConfirmResult::Quit),
-            _ => unreachable!(),
-        }
     }
 }
 
@@ -200,6 +92,7 @@ mod tests {
         let task = make_task("old description", Some(1));
         let modification = TaskModification {
             description: Some(Description::new("new description").unwrap()),
+            completed_at: None,
         };
         assert!(has_changes(&task, &modification));
     }
@@ -209,6 +102,7 @@ mod tests {
         let task = make_task("same description", Some(1));
         let modification = TaskModification {
             description: Some(Description::new("same description").unwrap()),
+            completed_at: None,
         };
         assert!(!has_changes(&task, &modification));
     }
@@ -216,7 +110,10 @@ mod tests {
     #[test]
     fn has_changes_false_when_no_modification() {
         let task = make_task("description", Some(1));
-        let modification = TaskModification { description: None };
+        let modification = TaskModification {
+            description: None,
+            completed_at: None,
+        };
         assert!(!has_changes(&task, &modification));
     }
 

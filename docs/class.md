@@ -21,6 +21,15 @@ direction LR
       +new() Self
       +handle_command(&self, task_service) Result~_~
     }
+    class Action {
+      <<enumeration>>
+      Modify
+      Complete
+      -verb_present(&self) &'static str
+      -verb_past(&self) &'static str
+      -verb_ing(&self) &'static str
+      -not_done_msg(&self) &'static str
+    }
     class ConfirmResult {
       <<enumeration>>
       Yes
@@ -37,14 +46,17 @@ direction LR
       +all(&self, &raw_filters, &args) Result~_~
       -display_table~R~(tasks)$ Result~_~
       +modify(&self, &raw_filters, &args) Result~_~
+      -confirm_empty_filter()$ Result~_~
       -has_changes(&task, &modification)$ bool
       -get_display_id(&task)$ String
       -print_diff(&task, &modification)$
-      -collect_approved_ids~'a~(&'a candidates, &modification)$ Result~Vec~'a UniqueID~~
-      -confirm_bulk(&display_id, &description)$ Result~ConfirmResult~
-      -print_modification~'a~(&'a task, &modification)$
-      -print_modify_result(count)$
+      -confirm_bulk(&display_id, &description, &action)$ Result~ConfirmResult~
+      -collect_approved_ids~'a~(action, &'a candidates, &modification, original_count)$ Result~Vec~'a UniqueID~~
+      -print_action(&action, &task, &modification)$
+      -print_action_result(&action, count)$
       -print_not_pending_for_ids(&tasks, &ids)$
+      -filter_pending_tasks(&tasks)$ Vec~&Task~
+      +done(&self, &raw_filters, &args) Result~_~
     }
     class ParsedItem {
       <<enumeration>>
@@ -149,6 +161,7 @@ direction LR
     }
     class TaskModification {
       +Option~Description~ description
+      +Option~Option~i64~~
       +is_empty(&self) bool
     }
     class IndexRange {
