@@ -161,7 +161,7 @@ direction LR
     }
     class TaskModification {
       +Option~Description~ description
-      +Option~Option~i64~~
+      +Option~Option~i64~~ completed_at
       +is_empty(&self) bool
     }
     class IndexRange {
