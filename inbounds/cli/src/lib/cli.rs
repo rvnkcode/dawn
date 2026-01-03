@@ -12,10 +12,15 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Adds a new task
     Add(Modification),
+    /// All tasks
     All(Modification),
+    /// Modifies the existing task with provided arguments
     Modify(Modification),
+    /// Marks the specified task as completed
     Done(Modification),
+    /// Deletes the specified task
     Delete(Modification),
 }
 
