@@ -185,3 +185,79 @@ pub(crate) fn filter_pending_tasks(tasks: &[Task]) -> Vec<&Task> {
 
     pending
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dawn::domain::task::Index;
+
+    fn make_task(desc: &str, index: Option<usize>, completed: bool, deleted: bool) -> Task {
+        Task {
+            uid: "abc12345678".parse::<UniqueID>().unwrap(),
+            index: index.map(|i| Index::new(i).unwrap()),
+            description: Description::new(desc).unwrap(),
+            created_at: 0,
+            completed_at: if completed { Some(1234567890) } else { None },
+            deleted_at: if deleted { Some(1234567890) } else { None },
+        }
+    }
+
+    // Tests for get_display_id()
+
+    #[test]
+    fn get_display_id_returns_index_when_present() {
+        let task = make_task("test", Some(5), false, false);
+        assert_eq!(get_display_id(&task), "5");
+    }
+
+    #[test]
+    fn get_display_id_returns_uid_when_no_index() {
+        let task = make_task("test", None, false, false);
+        assert_eq!(get_display_id(&task), "abc12345678");
+    }
+
+    // Tests for filter_pending_tasks()
+
+    #[test]
+    fn filter_pending_tasks_returns_pending_only() {
+        let tasks = vec![
+            make_task("pending", Some(1), false, false),
+            make_task("completed", Some(2), true, false),
+            make_task("deleted", Some(3), false, true),
+        ];
+        let pending = filter_pending_tasks(&tasks);
+        assert_eq!(pending.len(), 1);
+        assert_eq!(pending[0].description.to_string(), "pending");
+    }
+
+    #[test]
+    fn filter_pending_tasks_returns_empty_when_all_completed() {
+        let tasks = vec![
+            make_task("completed1", Some(1), true, false),
+            make_task("completed2", Some(2), true, false),
+        ];
+        let pending = filter_pending_tasks(&tasks);
+        assert!(pending.is_empty());
+    }
+
+    #[test]
+    fn filter_pending_tasks_excludes_deleted_tasks() {
+        let tasks = vec![
+            make_task("deleted1", Some(1), false, true),
+            make_task("deleted2", Some(2), false, true),
+        ];
+        let pending = filter_pending_tasks(&tasks);
+        assert!(pending.is_empty());
+    }
+
+    #[test]
+    fn filter_pending_tasks_returns_all_when_all_pending() {
+        let tasks = vec![
+            make_task("pending1", Some(1), false, false),
+            make_task("pending2", Some(2), false, false),
+            make_task("pending3", Some(3), false, false),
+        ];
+        let pending = filter_pending_tasks(&tasks);
+        assert_eq!(pending.len(), 3);
+    }
+}
