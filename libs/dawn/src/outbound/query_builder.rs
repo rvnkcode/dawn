@@ -474,7 +474,7 @@ mod tests {
 
         let (clause, params) = build_update_clause(modification, &targets).unwrap();
 
-        // NULL로 설정할 때는 CASE 없이 직접 할당
+        // When setting to NULL, assign directly without using CASE
         assert_eq!(clause, "UPDATE task SET completed_at = ? WHERE id IN (?)");
         assert_eq!(params.len(), 2);
     }
@@ -531,7 +531,7 @@ mod tests {
 
         let (clause, params) = build_update_clause(modification, &targets).unwrap();
 
-        // NULL로 설정할 때는 CASE 없이 직접 할당
+        // When setting to NULL, assign directly without using CASE
         assert_eq!(clause, "UPDATE task SET deleted_at = ? WHERE id IN (?)");
         assert_eq!(params.len(), 2);
     }
