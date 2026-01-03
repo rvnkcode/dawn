@@ -48,6 +48,7 @@ direction LR
       -display_table~R~(tasks)$ Result~_~
       +modify(&self, &raw_filters, &args) Result~_~
       -confirm_empty_filter()$ Result~_~
+      -validate_tasks(&tasks)$ bool
       -has_changes(&task, &modification)$ bool
       -get_display_id(&task)$ String
       -print_diff(&task, &modification)$
@@ -58,6 +59,8 @@ direction LR
       -print_not_pending_for_ids(&tasks, &ids)$
       -filter_pending_tasks(&tasks)$ Vec~&Task~
       +done(&self, &raw_filters, &args) Result~_~
+      -filter_non_deleted_tasks(&tasks) Vec~&Task~
+      +delete(&self, &raw_filters, &args) Result~_~
     }
     class ParsedItem {
       <<enumeration>>
