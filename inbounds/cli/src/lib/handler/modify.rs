@@ -7,22 +7,31 @@ fn has_changes(task: &Task, modification: &TaskModification) -> bool {
         return true;
     }
 
-    let Some(new_completed_at) = modification.completed_at else {
-        return false;
+    if let Some(new_completed_at) = modification.completed_at {
+        // Deleted task modified to completed task
+        if task.deleted_at.is_some() {
+            return true;
+        }
+        // Undo completed task to pending task
+        if new_completed_at.is_none() && task.completed_at.is_some() {
+            return true;
+        }
+        // Pending task modified to completed task
+        if new_completed_at.is_some() && task.completed_at.is_none() {
+            return true;
+        }
     };
 
-    // Deleted task modified to completed task
-    if task.deleted_at.is_some() {
-        return true;
-    }
-    // Undo completed task to pending task
-    if new_completed_at.is_none() && task.completed_at.is_some() {
-        return true;
-    }
-    // Pending task modified to completed task
-    if new_completed_at.is_some() && task.completed_at.is_none() {
-        return true;
-    }
+    if let Some(new_deleted_at) = modification.deleted_at {
+        // Undo deleted task to pending task
+        if new_deleted_at.is_none() && task.deleted_at.is_some() {
+            return true;
+        }
+        // Pending task modified to deleted task
+        if new_deleted_at.is_some() && task.deleted_at.is_none() {
+            return true;
+        }
+    };
 
     false
 }
@@ -84,7 +93,7 @@ impl<TS: TaskService> Handler<TS> {
             .for_each(|t| {
                 let status = Status::get_status(t);
                 let msg = format!(
-                    "Note: Modified task {} is {}. You may wish to make this task pending with task {} modify status:pending",
+                    "Note: Modified task {} is {}. You may wish to make this task pending with task {} modify --status pending",
                     t.uid, status.to_string(), t.uid,
                 ).yellow();
                 println!("{}", msg);

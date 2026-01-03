@@ -8,7 +8,7 @@ pub mod unique_id;
 pub use service::Service;
 pub use unique_id::UniqueID;
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Task {
     pub uid: UniqueID,
     pub index: Option<Index>,
@@ -31,6 +31,6 @@ pub struct TaskModification {
 
 impl TaskModification {
     pub fn is_empty(&self) -> bool {
-        self.description.is_none() && self.completed_at.is_none()
+        self.description.is_none() && self.completed_at.is_none() && self.deleted_at.is_none()
     }
 }
