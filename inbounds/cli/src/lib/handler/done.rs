@@ -21,6 +21,7 @@ impl<TS: TaskService> Handler<TS> {
         let modification = TaskModification {
             description: None,
             completed_at: Some(Some(now)),
+            deleted_at: None,
         };
         let action = Action::Complete;
         let pending_tasks = filter_pending_tasks(&tasks);

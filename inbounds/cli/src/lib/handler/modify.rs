@@ -6,6 +6,11 @@ fn has_changes(task: &Task, modification: &TaskModification) -> bool {
     {
         return true;
     }
+    if modification.completed_at.is_some()
+        && (task.deleted_at.is_some() || task.completed_at.is_none())
+    {
+        return true;
+    }
     false
 }
 
@@ -47,10 +52,14 @@ impl<TS: TaskService> Handler<TS> {
             return Ok(());
         }
 
+        let status_changed =
+            modification.completed_at.is_some() || modification.deleted_at.is_some();
         self.task_service.modify(modification, &approved_ids)?;
 
         print_action_result(&action, approved_ids.len());
-        Self::print_not_pending_for_ids(&tasks, &approved_ids);
+        if !status_changed {
+            Self::print_not_pending_for_ids(&tasks, &approved_ids);
+        }
         Ok(())
     }
 
@@ -60,11 +69,10 @@ impl<TS: TaskService> Handler<TS> {
             .filter(|t| ids.contains(&&t.uid))
             .filter(|t| t.completed_at.is_some() || t.deleted_at.is_some())
             .for_each(|t| {
-                let status = if t.deleted_at.is_some() { "deleted" } else { "completed" };
-                // TODO: Not implemented yet
+                let status = Status::get_status(t);
                 let msg = format!(
                     "Note: Modified task {} is {}. You may wish to make this task pending with task {} modify status:pending",
-                    t.uid, status, t.uid,
+                    t.uid, status.to_string(), t.uid,
                 ).yellow();
                 println!("{}", msg);
             });
@@ -93,6 +101,7 @@ mod tests {
         let modification = TaskModification {
             description: Some(Description::new("new description").unwrap()),
             completed_at: None,
+            deleted_at: None,
         };
         assert!(has_changes(&task, &modification));
     }
@@ -103,6 +112,7 @@ mod tests {
         let modification = TaskModification {
             description: Some(Description::new("same description").unwrap()),
             completed_at: None,
+            deleted_at: None,
         };
         assert!(!has_changes(&task, &modification));
     }
@@ -113,6 +123,7 @@ mod tests {
         let modification = TaskModification {
             description: None,
             completed_at: None,
+            deleted_at: None,
         };
         assert!(!has_changes(&task, &modification));
     }

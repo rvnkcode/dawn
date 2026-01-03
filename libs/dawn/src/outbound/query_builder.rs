@@ -137,7 +137,20 @@ pub fn build_update_clause(
         }),
         modification
             .completed_at
-            .map(|completed| ("completed_at = ?", Box::new(completed) as Box<dyn ToSql>)),
+            .map(|completed_at| match completed_at {
+                Some(ts) => (
+                    "completed_at = CASE WHEN completed_at IS NULL THEN ? ELSE completed_at END",
+                    Box::new(Some(ts)) as Box<dyn ToSql>,
+                ),
+                None => ("completed_at = ?", Box::new(None::<i64>) as Box<dyn ToSql>),
+            }),
+        modification.deleted_at.map(|deleted_at| match deleted_at {
+            Some(ts) => (
+                "deleted_at = CASE WHEN deleted_at IS NULL THEN ? ELSE deleted_at END",
+                Box::new(Some(ts)) as Box<dyn ToSql>,
+            ),
+            None => ("deleted_at = ?", Box::new(None::<i64>) as Box<dyn ToSql>),
+        }),
     ]
     .into_iter()
     .flatten()
@@ -361,6 +374,7 @@ mod tests {
         let modification = TaskModification {
             description: None,
             completed_at: None,
+            deleted_at: None,
         };
         let uid = "abc12345678".parse::<UniqueID>().unwrap();
         let targets = vec![&uid];
@@ -378,6 +392,7 @@ mod tests {
         let modification = TaskModification {
             description: Some(Description::new("new description").unwrap()),
             completed_at: None,
+            deleted_at: None,
         };
         let targets: Vec<&UniqueID> = vec![];
 
@@ -394,6 +409,7 @@ mod tests {
         let modification = TaskModification {
             description: Some(Description::new("updated task").unwrap()),
             completed_at: None,
+            deleted_at: None,
         };
         let uid = "abc12345678".parse::<UniqueID>().unwrap();
         let targets = vec![&uid];
@@ -411,6 +427,7 @@ mod tests {
         let modification = TaskModification {
             description: Some(Description::new("bulk update").unwrap()),
             completed_at: None,
+            deleted_at: None,
         };
         let uid1 = "abc12345678".parse::<UniqueID>().unwrap();
         let uid2 = "def12345678".parse::<UniqueID>().unwrap();
@@ -431,13 +448,17 @@ mod tests {
         let modification = TaskModification {
             description: None,
             completed_at: Some(Some(1234567890)),
+            deleted_at: None,
         };
         let uid = "abc12345678".parse::<UniqueID>().unwrap();
         let targets = vec![&uid];
 
         let (clause, params) = build_update_clause(modification, &targets).unwrap();
 
-        assert_eq!(clause, "UPDATE task SET completed_at = ? WHERE id IN (?)");
+        assert_eq!(
+            clause,
+            "UPDATE task SET completed_at = CASE WHEN completed_at IS NULL THEN ? ELSE completed_at END WHERE id IN (?)"
+        );
         assert_eq!(params.len(), 2);
     }
 
@@ -446,12 +467,14 @@ mod tests {
         let modification = TaskModification {
             description: None,
             completed_at: Some(None),
+            deleted_at: None,
         };
         let uid = "abc12345678".parse::<UniqueID>().unwrap();
         let targets = vec![&uid];
 
         let (clause, params) = build_update_clause(modification, &targets).unwrap();
 
+        // NULL로 설정할 때는 CASE 없이 직접 할당
         assert_eq!(clause, "UPDATE task SET completed_at = ? WHERE id IN (?)");
         assert_eq!(params.len(), 2);
     }
@@ -463,6 +486,7 @@ mod tests {
         let modification = TaskModification {
             description: Some(Description::new("done task").unwrap()),
             completed_at: Some(Some(1234567890)),
+            deleted_at: None,
         };
         let uid = "abc12345678".parse::<UniqueID>().unwrap();
         let targets = vec![&uid];
@@ -471,7 +495,7 @@ mod tests {
 
         assert_eq!(
             clause,
-            "UPDATE task SET description = ?, completed_at = ? WHERE id IN (?)"
+            "UPDATE task SET description = ?, completed_at = CASE WHEN completed_at IS NULL THEN ? ELSE completed_at END WHERE id IN (?)"
         );
         assert_eq!(params.len(), 3); // 1 description + 1 completed_at + 1 target ID
     }

@@ -22,9 +22,11 @@ pub struct TaskCreation {
     pub description: Description,
 }
 
+#[derive(Debug)]
 pub struct TaskModification {
     pub description: Option<Description>,
     pub completed_at: Option<Option<i64>>,
+    pub deleted_at: Option<Option<i64>>,
 }
 
 impl TaskModification {

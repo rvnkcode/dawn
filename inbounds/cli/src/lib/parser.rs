@@ -1,5 +1,7 @@
 use crate::cli::Modification;
 use crate::dict;
+use crate::handler::Status;
+use chrono::Local;
 use dawn::domain::filter::{Filter, IndexRange};
 use dawn::domain::task::{Description, Index, TaskModification, UniqueID};
 use regex::Regex;
@@ -127,6 +129,18 @@ pub fn parse_filter_with_modifications(
     mods: &Modification,
 ) -> anyhow::Result<(Filter, TaskModification)> {
     let args = &mods.description;
+    // Handle status modification
+    let now = Local::now().timestamp();
+    let completed_at = match mods.status {
+        Some(Status::Pending) => Some(None),
+        Some(Status::Completed) => Some(Some(now)),
+        _ => None,
+    };
+    let deleted_at = match mods.status {
+        Some(Status::Deleted) => Some(Some(now)),
+        Some(Status::Pending) | Some(Status::Completed) => Some(None),
+        _ => None,
+    };
 
     if raw_filters.is_empty() {
         let (indices, ranges, uids, words) = parse_items(args);
@@ -142,7 +156,8 @@ pub fn parse_filter_with_modifications(
             filter,
             TaskModification {
                 description,
-                completed_at: None,
+                completed_at,
+                deleted_at,
             },
         ));
     }
@@ -159,7 +174,8 @@ pub fn parse_filter_with_modifications(
         filter,
         TaskModification {
             description,
-            completed_at: None,
+            completed_at,
+            deleted_at,
         },
     ))
 }
@@ -419,6 +435,7 @@ mod tests {
         fn mods(desc: &[&str]) -> Modification {
             Modification {
                 description: desc.iter().map(|s| s.to_string()).collect(),
+                status: None,
             }
         }
 
