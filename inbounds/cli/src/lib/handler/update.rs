@@ -63,11 +63,11 @@ fn print_diff(task: &Task, modification: &TaskModification) {
     }
 
     // Print "End will be set" message if completing a task
-    if let Some(Some(timestamp)) = modification.completed_at {
-        if task.completed_at.is_none() {
-            let date = Local.timestamp_opt(timestamp, 0).unwrap();
-            println!("  - End will be set to '{}'.", date.format("%Y-%m-%d"));
-        }
+    if let Some(Some(timestamp)) = modification.completed_at
+        && task.completed_at.is_none()
+    {
+        let date = Local.timestamp_opt(timestamp, 0).unwrap();
+        println!("  - End will be set to '{}'.", date.format("%Y-%m-%d"));
     }
 
     // Determine new status and print a single status change message
