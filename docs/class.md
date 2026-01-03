@@ -8,6 +8,7 @@ direction LR
   namespace Inbound {
     class Modification {
       +Vec~String~ description
+      +Option~Status~ status
     }
     class Commands {
       <<enumeration>>
@@ -115,6 +116,7 @@ direction LR
       Pending
       Completed
       Deleted
+      +get_status(&task) Self
     }
   }
 
@@ -207,6 +209,7 @@ direction LR
     }
   }
 
+  Status --o Modification
   Modification --* Commands : has
   Commands --* Cli : has
   Cli ..> Handler~TS~ : creates
