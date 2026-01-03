@@ -27,7 +27,7 @@ fn has_changes(task: &Task, modification: &TaskModification) -> bool {
         if new_deleted_at.is_none() && task.deleted_at.is_some() {
             return true;
         }
-        // Pending task modified to deleted task
+        // Non-deleted task (pending or completed) modified to deleted task
         if new_deleted_at.is_some() && task.deleted_at.is_none() {
             return true;
         }
