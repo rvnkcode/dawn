@@ -1,4 +1,5 @@
 mod add;
+mod delete;
 mod done;
 mod modify;
 pub mod status;

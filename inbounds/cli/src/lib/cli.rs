@@ -16,6 +16,7 @@ enum Commands {
     All(Modification),
     Modify(Modification),
     Done(Modification),
+    Delete(Modification),
 }
 
 #[derive(Args)]
@@ -44,6 +45,7 @@ impl Cli {
             Some(Commands::All(modification)) => handler.all(&self.filters, modification)?,
             Some(Commands::Modify(modification)) => handler.modify(&self.filters, modification)?,
             Some(Commands::Done(modification)) => handler.done(&self.filters, modification)?,
+            Some(Commands::Delete(modification)) => handler.delete(&self.filters, modification)?,
             None => handler.next(&self.filters)?,
         }
         Ok(())

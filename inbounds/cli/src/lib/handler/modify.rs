@@ -43,14 +43,9 @@ impl<TS: TaskService> Handler<TS> {
             confirm_empty_filter()?;
         }
 
-        // TODO: Refactoring?
         let tasks = self.task_service.all(&filter)?;
-        if tasks.is_empty() {
-            println!("{}", "No tasks specified.".yellow());
+        if !validate_tasks(&tasks) {
             return Ok(());
-        }
-        if tasks.len() > 1 {
-            println!("This command will alter {} tasks.", tasks.len());
         }
 
         let action = Action::Modify;

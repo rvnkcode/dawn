@@ -33,40 +33,29 @@ impl Display for Status {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dawn::domain::task::{Description, Index, UniqueID};
-
-    fn make_task(completed_at: Option<i64>, deleted_at: Option<i64>) -> Task {
-        Task {
-            uid: "abc12345678".parse::<UniqueID>().unwrap(),
-            index: Some(Index::new(1).unwrap()),
-            description: Description::new("test").unwrap(),
-            created_at: 0,
-            completed_at,
-            deleted_at,
-        }
-    }
+    use crate::utils::make_task;
 
     #[test]
     fn get_status_returns_pending_for_pending_task() {
-        let task = make_task(None, None);
+        let task = make_task("Test", Some(1), false, false);
         assert_eq!(Status::get_status(&task), Status::Pending);
     }
 
     #[test]
     fn get_status_returns_completed_for_completed_task() {
-        let task = make_task(Some(1000), None);
+        let task = make_task("Test", Some(1), true, false);
         assert_eq!(Status::get_status(&task), Status::Completed);
     }
 
     #[test]
     fn get_status_returns_deleted_for_deleted_task() {
-        let task = make_task(None, Some(1000));
+        let task = make_task("Test", Some(1), false, true);
         assert_eq!(Status::get_status(&task), Status::Deleted);
     }
 
     #[test]
     fn get_status_deleted_takes_priority_over_completed() {
-        let task = make_task(Some(1000), Some(2000));
+        let task = make_task("Test", Some(1), true, true);
         assert_eq!(Status::get_status(&task), Status::Deleted);
     }
 

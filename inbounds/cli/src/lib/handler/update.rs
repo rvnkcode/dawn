@@ -1,4 +1,5 @@
 use chrono::{Local, TimeZone};
+use colored::Colorize;
 use dawn::domain::task::{Description, Task, TaskModification, UniqueID};
 use inquire::{Confirm, Select};
 
@@ -11,6 +12,7 @@ const BULK_CONFIRM_THRESHOLD: usize = 3;
 pub(crate) enum Action {
     Modify,
     Complete,
+    Delete,
 }
 
 impl Action {
@@ -18,6 +20,7 @@ impl Action {
         match self {
             Action::Modify => "Modify",
             Action::Complete => "Complete",
+            Action::Delete => "Delete",
         }
     }
 
@@ -25,6 +28,7 @@ impl Action {
         match self {
             Action::Modify => "Modified",
             Action::Complete => "Completed",
+            Action::Delete => "Deleted",
         }
     }
 
@@ -32,6 +36,7 @@ impl Action {
         match self {
             Action::Modify => "Modifying",
             Action::Complete => "Completed",
+            Action::Delete => "Deleting",
         }
     }
 
@@ -39,6 +44,7 @@ impl Action {
         match self {
             Action::Modify => "Task not modified.",
             Action::Complete => "Task not completed.",
+            Action::Delete => "Task not deleted.",
         }
     }
 }
@@ -51,6 +57,17 @@ pub(crate) fn confirm_empty_filter() -> anyhow::Result<()> {
         return Err(anyhow::anyhow!("Command prevented from running."));
     }
     Ok(())
+}
+
+pub(crate) fn validate_tasks(tasks: &[Task]) -> bool {
+    if tasks.is_empty() {
+        println!("{}", "No tasks specified.".yellow());
+        return false;
+    }
+    if tasks.len() > 1 {
+        println!("This command will alter {} tasks.", tasks.len());
+    }
+    true
 }
 
 /// Print diff for a task before confirmation (3+ tasks mode)
@@ -193,42 +210,10 @@ pub(crate) fn collect_approved_ids<'a>(
     Ok(approved)
 }
 
-/// Filter pending tasks and print message for non-pending ones
-pub(crate) fn filter_pending_tasks(tasks: &[Task]) -> Vec<&Task> {
-    let mut pending: Vec<&Task> = Vec::new();
-
-    for task in tasks {
-        if task.completed_at.is_some() || task.deleted_at.is_some() {
-            let display_id = get_display_id(task);
-            println!(
-                "Task {} '{}' is neither pending nor waiting.",
-                display_id, task.description
-            );
-        } else {
-            pending.push(task);
-        }
-    }
-
-    pending
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dawn::domain::task::Index;
-
-    fn make_task(desc: &str, index: Option<usize>, completed: bool, deleted: bool) -> Task {
-        Task {
-            uid: "abc12345678".parse::<UniqueID>().unwrap(),
-            index: index.map(|i| Index::new(i).unwrap()),
-            description: Description::new(desc).unwrap(),
-            created_at: 0,
-            completed_at: if completed { Some(1234567890) } else { None },
-            deleted_at: if deleted { Some(1234567890) } else { None },
-        }
-    }
-
-    // Tests for get_display_id()
+    use crate::utils::make_task;
 
     #[test]
     fn get_display_id_returns_index_when_present() {
@@ -240,50 +225,5 @@ mod tests {
     fn get_display_id_returns_uid_when_no_index() {
         let task = make_task("test", None, false, false);
         assert_eq!(get_display_id(&task), "abc12345678");
-    }
-
-    // Tests for filter_pending_tasks()
-
-    #[test]
-    fn filter_pending_tasks_returns_pending_only() {
-        let tasks = vec![
-            make_task("pending", Some(1), false, false),
-            make_task("completed", Some(2), true, false),
-            make_task("deleted", Some(3), false, true),
-        ];
-        let pending = filter_pending_tasks(&tasks);
-        assert_eq!(pending.len(), 1);
-        assert_eq!(pending[0].description.to_string(), "pending");
-    }
-
-    #[test]
-    fn filter_pending_tasks_returns_empty_when_all_completed() {
-        let tasks = vec![
-            make_task("completed1", Some(1), true, false),
-            make_task("completed2", Some(2), true, false),
-        ];
-        let pending = filter_pending_tasks(&tasks);
-        assert!(pending.is_empty());
-    }
-
-    #[test]
-    fn filter_pending_tasks_excludes_deleted_tasks() {
-        let tasks = vec![
-            make_task("deleted1", Some(1), false, true),
-            make_task("deleted2", Some(2), false, true),
-        ];
-        let pending = filter_pending_tasks(&tasks);
-        assert!(pending.is_empty());
-    }
-
-    #[test]
-    fn filter_pending_tasks_returns_all_when_all_pending() {
-        let tasks = vec![
-            make_task("pending1", Some(1), false, false),
-            make_task("pending2", Some(2), false, false),
-            make_task("pending3", Some(3), false, false),
-        ];
-        let pending = filter_pending_tasks(&tasks);
-        assert_eq!(pending.len(), 3);
     }
 }
