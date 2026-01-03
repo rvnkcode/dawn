@@ -127,16 +127,21 @@ pub fn build_update_clause(
     }
 
     // Build updates from modification fields
-    let (updates, update_params): (Vec<&str>, Vec<Box<dyn ToSql>>) =
-        [modification.description.map(|desc| {
+    // TODO: other fields
+    let (updates, update_params): (Vec<&str>, Vec<Box<dyn ToSql>>) = [
+        modification.description.map(|desc| {
             (
                 "description = ?",
                 Box::new(desc.to_string()) as Box<dyn ToSql>,
             )
-        })]
-        .into_iter()
-        .flatten()
-        .unzip();
+        }),
+        modification
+            .completed_at
+            .map(|completed| ("completed_at = ?", Box::new(completed) as Box<dyn ToSql>)),
+    ]
+    .into_iter()
+    .flatten()
+    .unzip();
 
     let target_params: Vec<Box<dyn ToSql>> = targets
         .iter()
