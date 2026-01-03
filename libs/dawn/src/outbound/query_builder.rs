@@ -499,4 +499,80 @@ mod tests {
         );
         assert_eq!(params.len(), 3); // 1 description + 1 completed_at + 1 target ID
     }
+
+    #[test]
+    fn update_clause_with_deleted_at_timestamp() {
+        let modification = TaskModification {
+            description: None,
+            completed_at: None,
+            deleted_at: Some(Some(1234567890)),
+        };
+        let uid = "abc12345678".parse::<UniqueID>().unwrap();
+        let targets = vec![&uid];
+
+        let (clause, params) = build_update_clause(modification, &targets).unwrap();
+
+        assert_eq!(
+            clause,
+            "UPDATE task SET deleted_at = CASE WHEN deleted_at IS NULL THEN ? ELSE deleted_at END WHERE id IN (?)"
+        );
+        assert_eq!(params.len(), 2);
+    }
+
+    #[test]
+    fn update_clause_with_deleted_at_null() {
+        let modification = TaskModification {
+            description: None,
+            completed_at: None,
+            deleted_at: Some(None),
+        };
+        let uid = "abc12345678".parse::<UniqueID>().unwrap();
+        let targets = vec![&uid];
+
+        let (clause, params) = build_update_clause(modification, &targets).unwrap();
+
+        // NULL로 설정할 때는 CASE 없이 직접 할당
+        assert_eq!(clause, "UPDATE task SET deleted_at = ? WHERE id IN (?)");
+        assert_eq!(params.len(), 2);
+    }
+
+    #[test]
+    fn update_clause_with_description_and_deleted_at() {
+        use crate::domain::task::Description;
+
+        let modification = TaskModification {
+            description: Some(Description::new("deleted task").unwrap()),
+            completed_at: None,
+            deleted_at: Some(Some(1234567890)),
+        };
+        let uid = "abc12345678".parse::<UniqueID>().unwrap();
+        let targets = vec![&uid];
+
+        let (clause, params) = build_update_clause(modification, &targets).unwrap();
+
+        assert_eq!(
+            clause,
+            "UPDATE task SET description = ?, deleted_at = CASE WHEN deleted_at IS NULL THEN ? ELSE deleted_at END WHERE id IN (?)"
+        );
+        assert_eq!(params.len(), 3);
+    }
+
+    #[test]
+    fn update_clause_clearing_both_completed_and_deleted() {
+        let modification = TaskModification {
+            description: None,
+            completed_at: Some(None),
+            deleted_at: Some(None),
+        };
+        let uid = "abc12345678".parse::<UniqueID>().unwrap();
+        let targets = vec![&uid];
+
+        let (clause, params) = build_update_clause(modification, &targets).unwrap();
+
+        assert_eq!(
+            clause,
+            "UPDATE task SET completed_at = ?, deleted_at = ? WHERE id IN (?)"
+        );
+        assert_eq!(params.len(), 3);
+    }
 }
