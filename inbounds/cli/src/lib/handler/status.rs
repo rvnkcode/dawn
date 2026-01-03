@@ -1,6 +1,7 @@
-#[derive(Debug, PartialEq)]
+use clap::ValueEnum;
 use dawn::domain::task::Task;
 
+#[derive(Clone, Debug, PartialEq, ValueEnum)]
 pub enum Status {
     Pending,
     Completed,
@@ -13,6 +14,14 @@ impl Status {
             (Some(_), _) => Status::Deleted,
             (None, Some(_)) => Status::Completed,
             (None, None) => Status::Pending,
+        }
+    }
+
+    pub fn to_string(&self) -> &'static str {
+        match self {
+            Status::Pending => "pending",
+            Status::Completed => "completed",
+            Status::Deleted => "deleted",
         }
     }
 }

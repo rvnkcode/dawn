@@ -1,4 +1,4 @@
-use crate::Handler;
+use crate::{Handler, handler::Status};
 use clap::{Args, Parser, Subcommand};
 use dawn::domain::task::port::TaskService;
 
@@ -21,6 +21,8 @@ enum Commands {
 #[derive(Args)]
 pub struct Modification {
     pub description: Vec<String>,
+    #[arg(short, long, value_enum)]
+    pub status: Option<Status>,
 }
 
 impl Default for Cli {
