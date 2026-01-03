@@ -54,3 +54,43 @@ impl<TS: TaskService> Handler<TS> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::utils::make_task;
+
+    #[test]
+    fn filter_non_deleted_tasks_returns_non_deleted_only() {
+        let tasks = vec![
+            make_task("pending", Some(1), false, false),
+            make_task("completed", Some(2), true, false),
+            make_task("deleted", Some(3), false, true),
+        ];
+        let non_deleted = filter_non_deleted_tasks(&tasks);
+        assert_eq!(non_deleted.len(), 2);
+        assert_eq!(non_deleted[0].description.to_string(), "pending");
+        assert_eq!(non_deleted[1].description.to_string(), "completed");
+    }
+
+    #[test]
+    fn filter_non_deleted_tasks_returns_empty_when_all_deleted() {
+        let tasks = vec![
+            make_task("deleted1", Some(1), false, true),
+            make_task("deleted2", Some(2), false, true),
+        ];
+        let non_deleted = filter_non_deleted_tasks(&tasks);
+        assert!(non_deleted.is_empty());
+    }
+
+    #[test]
+    fn filter_non_deleted_tasks_returns_all_when_none_deleted() {
+        let tasks = vec![
+            make_task("pending1", Some(1), false, false),
+            make_task("pending2", Some(2), false, false),
+            make_task("completed", Some(3), true, false),
+        ];
+        let non_deleted = filter_non_deleted_tasks(&tasks);
+        assert_eq!(non_deleted.len(), 3);
+    }
+}
