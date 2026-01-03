@@ -15,6 +15,8 @@ direction LR
       Add(Modification)
       All(Modification)
       Modify(Modification)
+      Done(Modification)
+      Delete(Modification)
     }
     class Cli {
       -Vec~String~ filters
@@ -26,6 +28,7 @@ direction LR
       <<enumeration>>
       Modify
       Complete
+      Delete
       -verb_present(&self) &'static str
       -verb_past(&self) &'static str
       -verb_ing(&self) &'static str
