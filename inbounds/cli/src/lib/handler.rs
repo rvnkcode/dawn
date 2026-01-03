@@ -1,5 +1,7 @@
 mod add;
+mod done;
 mod modify;
+mod update;
 
 use crate::cli::Modification;
 use crate::parser;
@@ -7,8 +9,10 @@ use crate::table::{AllRow, BaseTable, NextRow, TableRow};
 use colored::Colorize;
 use dawn::domain::task::port::TaskService;
 use dawn::domain::task::{Description, Task, TaskCreation, TaskModification, UniqueID};
-use inquire::{Confirm, Select};
 use tabled::Tabled;
+
+// Re-export for submodules
+pub(crate) use update::*;
 
 pub struct Handler<TS: TaskService> {
     task_service: TS,
