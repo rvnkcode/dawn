@@ -61,16 +61,27 @@ fn print_diff(task: &Task, modification: &TaskModification) {
             task.description, new_desc
         );
     }
-    if let Some(Some(timestamp)) = modification.completed_at {
-        if task.completed_at.is_none() {
-            let date = Local.timestamp_opt(timestamp, 0).unwrap();
-            println!("  - End will be set to '{}'.", date.format("%Y-%m-%d"));
+    if let Some(completed_at) = modification.completed_at {
+        match completed_at {
+            Some(timestamp) => {
+                if task.completed_at.is_none() {
+                    let date = Local.timestamp_opt(timestamp, 0).unwrap();
+                    println!("  - End will be set to '{}'.", date.format("%Y-%m-%d"));
+                }
+                let old_status = Status::get_status(task);
+                println!(
+                    "  - Status will be changed from '{}' to 'completed'.",
+                    old_status.to_string()
+                );
+            }
+            None => {
+                let old_status = Status::get_status(task);
+                println!(
+                    "  - Status will be changed from '{}' to 'pending'.",
+                    old_status.to_string()
+                );
+            }
         }
-        let old_status = Status::get_status(task);
-        println!(
-            "  - Status will be changed from '{}' to 'completed'.",
-            old_status.to_string()
-        );
     }
     // TODO: Add diff for other attributes (project, tags, etc.)
 }
