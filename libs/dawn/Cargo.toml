@@ -10,5 +10,6 @@ name = "dawn"
 path = "src/lib.rs"
 
 [dependencies]
+anyhow = { workspace = true }
 dirs = "6.0.0"
 rusqlite = { version = "0.38.0", features = ["bundled"] }
