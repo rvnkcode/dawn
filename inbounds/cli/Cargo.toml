@@ -10,4 +10,5 @@ name = "dawn"
 path = "src/main.rs"
 
 [dependencies]
+anyhow = { workspace = true }
 dawn = { workspace = true }
