@@ -4,6 +4,11 @@ title: Class Diagram
 
 ```mermaid
 classDiagram
+  namespace Domain {
+    class Description {
+      +new(&raw) Result~Self, DescriptionEmptyError~
+    }
+  }
   namespace Outbound {
     class SQLite {
       -Connection conn
