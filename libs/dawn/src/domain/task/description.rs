@@ -1,4 +1,7 @@
-use std::fmt::{self, Display, Formatter};
+use std::{
+    fmt::{self, Display, Formatter},
+    str::FromStr,
+};
 use thiserror::Error;
 
 pub struct Description(String);
@@ -14,6 +17,13 @@ impl Description {
             true => Err(DescriptionEmptyError),
             false => Ok(Description(trimmed.to_string())),
         }
+    }
+}
+
+impl FromStr for Description {
+    type Err = DescriptionEmptyError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Description::new(s)
     }
 }
 
