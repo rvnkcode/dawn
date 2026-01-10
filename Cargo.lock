@@ -43,6 +43,7 @@ dependencies = [
  "anyhow",
  "dirs",
  "rusqlite",
+ "thiserror",
 ]
 
 [[package]]
