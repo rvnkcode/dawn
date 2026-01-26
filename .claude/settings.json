@@ -1,4 +1,21 @@
 {
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path | select(endswith(\".rs\"))' | xargs cargo fmt --"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/clippy_check.sh"
+          }
+        ]
+      }
+    ]
+  },
   "enabledPlugins": {
     "rust-analyzer-lsp@claude-plugins-official": true
   }
