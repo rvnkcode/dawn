@@ -12,13 +12,14 @@ CLIPPY_OUTPUT=$(cargo clippy --message-format=short 2>&1)
 
 # Ref: https://code.claude.com/docs/en/hooks#posttooluse-decision-control
 if echo "$CLIPPY_OUTPUT" | grep -q "warning\|error"; then
+    ESCAPED_OUTPUT=$(printf '%s' "$CLIPPY_OUTPUT" | jq -Rs .)
     cat <<EOF
 {
   "decision": "block",
   "reason": "Clippy found issues that need to be addressed",
   "hookSpecificOutput": {
     "hookEventName": "PostToolUse",
-    "additionalContext": "Clippy output:\n$CLIPPY_OUTPUT"
+    "additionalContext": $ESCAPED_OUTPUT
   }
 }
 EOF
