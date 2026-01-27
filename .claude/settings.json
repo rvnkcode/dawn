@@ -10,7 +10,7 @@
           },
           {
             "type": "command",
-            "command": ".claude/hooks/clippy_check.sh"
+            "command": ".claude/hooks/clippy-check.sh"
           }
         ]
       }
