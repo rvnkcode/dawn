@@ -5,18 +5,8 @@ use clap::Parser;
 pub struct Cli;
 
 impl Cli {
-    pub fn new() -> Self {
-        Cli::parse()
-    }
-
     pub fn handle_command(&self) -> anyhow::Result<()> {
         println!("{}", dawn::greet());
         Ok(())
-    }
-}
-
-impl Default for Cli {
-    fn default() -> Self {
-        Self::new()
     }
 }
