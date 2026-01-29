@@ -4,6 +4,7 @@ resolver = "3"
 members = ["lib/dawn", "inbound/cli"]
 
 [workspace.dependencies]
+anyhow = "1.0.100"
 dawn = { path = "lib/dawn" }
 
 [workspace.package]
