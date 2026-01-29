@@ -3,7 +3,7 @@ name: CI
 
 on:
   push:
-    branches: [main, temp, cli]
+    branches: [main, temp]
   pull_request:
     branches: [main, temp, cli]
     types: [opened, synchronize, reopened]
