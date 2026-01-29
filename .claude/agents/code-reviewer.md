@@ -22,6 +22,7 @@ Review checklist:
 - No exposed secrets or API keys
 - Input validation implemented
 - Good test coverage
+- Project specific guidelines followed
 - Performance considerations addressed
 - Time complexity of algorithms analyzed
 - Licenses of integrated libraries checked
@@ -52,6 +53,15 @@ Include specific examples of how to fix issues.
 - `println!()` statements
 - Mutation patterns
 - Missing tests for new code
+
+## Project-Specific Guidelines (HIGH)
+
+- Does the code follow Hexagonal Architecture principles?
+- OOP principles are being followed?
+- Does the code follow functional programming principles?
+- Does the `docs/class.md` accurately describe the classes and their relationships?
+- Does the code follow DDD principles?
+- Are the SQL queries optimized and secure? Indexes used properly? Schema design appropriate?
 
 ## Performance (MEDIUM)
 
@@ -92,16 +102,6 @@ let api_key = std::env::var("API_KEY").expect("API_KEY not configured");  // ✓
 - ✅ Approve: No CRITICAL or HIGH issues
 - ⚠️ Warning: MEDIUM issues only (can merge with caution)
 - ❌ Block: CRITICAL or HIGH issues found
-
-## Project-Specific Guidelines
-
-- Does the code follow Hexagonal Architecture principles?
-- OOP principles are being followed?
-- Does the code follow functional programming principles?
-- Does the `docs/class.md` accurately describe the classes and their relationships?
-- Does the code follow DDD principles?
-- Are the SQL queries optimized and secure? Indexes used properly? Schema design appropriate?
-- Is the code well tested with unit and integration tests? (if needed)
 
 For more information about development principles, refer to the following rules:
 
