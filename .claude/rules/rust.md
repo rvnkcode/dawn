@@ -10,6 +10,7 @@
 - Minimize `pub` exposure (only publish what's necessary)
 - Follow Rust naming conventions (snake_case for variables/functions, CamelCase for types/traits)
 - Use `#[derive(Debug, PartialEq)]` where applicable
+- Single responsibility principle for functions and modules
 
 ## Error Handling
 
