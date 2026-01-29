@@ -34,7 +34,7 @@ For the feature **$ARGUMENTS** (or all changes in the diff):
 task [command]
 
 # Verify Dawn behavior
-cargo run -p dawn_cli -- [command]
+cargo run --features cli -- [command]
 ```
 
 ## Output Format

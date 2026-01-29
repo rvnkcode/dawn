@@ -38,24 +38,35 @@ Project skills contain:
 
 ---
 
-## File Structure (Cargo Workspace)
+## File Structure (Single Crate with Feature Flags)
 
 ```
 project/
-├── Cargo.toml
+├── Cargo.toml                    # Single crate manifest
 ├── Cargo.lock
-├── inbound/                      # Inbound Adapters
-│   ├── cli/                      # Clap + Tabled
-│   ├── tui/                      # Ratatui
-│   └── gui/                      # Tauri + Svelte
-├── lib/
-│   ├── dawn/                     # Domain Core
-│   └── outbound/                 # Outbound Adapters
-│       ├── sqlite/
-│       ├── google-calendar/
-│       └── icloud-calendar/
+├── src/
+│   ├── bin/                      # Binary entry points
+│   │   ├── cli/                  # CLI (feature: cli)
+│   │   ├── tui/                  # TUI (feature: tui) [planned]
+│   │   └── gui/                  # GUI (feature: gui) [planned]
+│   └── lib/                      # Library code
+│       ├── lib.rs                # Library root
+│       ├── domain/               # Domain Core [planned]
+│       ├── inbound/              # Inbound Adapters
+│       │   └── cli.rs            # CLI adapter
+│       └── outbound/             # Outbound Adapters [planned]
+│           └── sqlite/           # SQLite adapter
 ├── tests/                        # Integration Tests
 └── docs/                         # Documentation
+```
+
+### Feature Flags
+
+```toml
+[features]
+cli = ["dep:clap"]      # CLI interface
+tui = ["dep:ratatui"]   # TUI interface [planned]
+gui = ["dep:tauri"]     # GUI interface [planned]
 ```
 
 ---
