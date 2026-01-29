@@ -1,14 +1,23 @@
-# https://doc.rust-lang.org/cargo/reference/workspaces.html
-[workspace]
-resolver = "3"
-members = ["lib/dawn", "inbound/cli"]
-
-[workspace.dependencies]
-anyhow = "1.0.100"
-dawn = { path = "lib/dawn" }
-
-[workspace.package]
+# https://doc.rust-lang.org/cargo/reference/manifest.html
+[package]
+name = "dawn"
 version = "0.1.0"
 edition = "2024"
 repository = "https://github.com/rvnkcode/dawn"
 license = "MIT"
+
+[lib]
+name = "dawn"
+path = "src/lib/lib.rs"
+
+[[bin]]
+name = "dawn"
+path = "src/bin/cli/main.rs"
+required-features = ["cli"]
+
+[features]
+cli = ["dep:clap"]
+
+[dependencies]
+anyhow = "1.0.100"
+clap = { version = "4", features = ["derive"], optional = true }

@@ -6,7 +6,7 @@ pub struct Cli;
 
 impl Cli {
     pub fn handle_command(&self) -> anyhow::Result<()> {
-        println!("{}", dawn::greet());
+        println!("{}", crate::greet());
         Ok(())
     }
 }

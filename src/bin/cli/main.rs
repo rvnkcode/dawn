@@ -1,5 +1,5 @@
 use clap::Parser;
-use dawn_cli::Cli;
+use dawn::inbound::cli::Cli;
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
