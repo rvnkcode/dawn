@@ -4,7 +4,7 @@ When implementing features or reviewing code, ensure the following:
 
 ## Hexagonal Architecture Compliance
 
-- Domain layer (`lib/dawn/`) must have NO dependencies on infrastructure or presentation
+- Domain layer must have NO dependencies on infrastructure or presentation
 - All external interactions go through Port traits (interfaces)
 - Adapters implement ports, never the reverse
 - Dependency direction: Inbound/Outbound → Domain (never Domain → Adapters)

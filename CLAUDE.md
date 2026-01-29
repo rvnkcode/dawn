@@ -69,7 +69,7 @@ cargo t                    # Run all tests
 cargo llvm-cov            # Coverage report
 
 # CLI Development
-cargo run -p dawn_cli -- <command>
+cargo run --features cli -- <command>
 
 # Lint
 cargo clippy --all-targets
