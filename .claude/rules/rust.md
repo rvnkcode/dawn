@@ -16,6 +16,10 @@
 - Define custom error types for domain-specific errors (`thiserror`)
 - Prefer `?` for propagating errors
 
+## Module Organization
+
+ - Use `filename.rs` + `filename/` pattern instead of `filename/mod.rs`
+
 ## Performance
 
 - Avoid unnecessary allocations
