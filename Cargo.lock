@@ -176,6 +176,7 @@ name = "dawn"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "clap",
  "keyring",
  "serde_json",

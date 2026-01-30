@@ -17,10 +17,11 @@ required-features = ["cli"]
 
 [features]
 cli = ["dep:clap"]
-google-calendar = ["dep:keyring", "dep:serde_json", "dep:yup-oauth2"]
+google-calendar = ["dep:async-trait", "dep:keyring", "dep:serde_json", "dep:yup-oauth2"]
 
 [dependencies]
 anyhow = "1.0.100"
+async-trait = { version = "0.1.89", optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
 keyring = { version = "3.6.3", optional = true }
 serde_json = { version = "1.0.149", optional = true }
