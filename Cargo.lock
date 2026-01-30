@@ -178,6 +178,7 @@ dependencies = [
  "anyhow",
  "clap",
  "keyring",
+ "serde_json",
  "thiserror",
  "yup-oauth2",
 ]
