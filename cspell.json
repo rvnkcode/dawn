@@ -3,6 +3,7 @@
   "version": "0.2",
   "ignorePaths": [".git", "target", ".env*"],
   "words": [
+    "chrono",
     "clippy",
     "ratatui",
     "reqwest",
