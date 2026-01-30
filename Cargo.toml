@@ -21,3 +21,4 @@ cli = ["dep:clap"]
 [dependencies]
 anyhow = "1.0.100"
 clap = { version = "4", features = ["derive"], optional = true }
+thiserror = "2.0.18"
