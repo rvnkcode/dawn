@@ -30,6 +30,7 @@ google-calendar = [
 [dependencies]
 anyhow = "1.0.100"
 async-trait = { version = "0.1.89", optional = true }
+chrono = "0.4.43"
 clap = { version = "4", features = ["derive"], optional = true }
 dotenvy = { version = "0.15.7", optional = true }
 keyring = { version = "3.6.3", optional = true }
