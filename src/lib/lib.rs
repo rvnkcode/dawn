@@ -1,5 +1,6 @@
+pub mod domain;
 pub mod inbound;
-mod outbound;
+pub mod outbound;
 
 pub fn greet() -> &'static str {
     "Hello, world!"

@@ -1,5 +1,5 @@
 use yup_oauth2::authenticator::DefaultAuthenticator;
-use yup_oauth2::{AccessToken, InstalledFlowAuthenticator, InstalledFlowReturnMethod};
+use yup_oauth2::{InstalledFlowAuthenticator, InstalledFlowReturnMethod};
 
 use super::token_storage::KeyringTokenStorage;
 
@@ -8,15 +8,12 @@ const TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 // refs: https://developers.google.com/workspace/calendar/api/auth
 const CALENDAR_SCOPE: &str = "https://www.googleapis.com/auth/calendar.readonly";
 
-#[allow(dead_code)]
 pub struct GoogleAuth {
     authenticator: DefaultAuthenticator,
 }
 
-#[allow(dead_code)]
+// TODO: Automatically open browser
 impl GoogleAuth {
-    /// Create a new GoogleAuth instance using environment variables for client ID and secret
-    /// GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set
     pub async fn new() -> Result<Self, GoogleAuthError> {
         let client_id = dotenvy::var("GOOGLE_CLIENT_ID")?;
         let client_secret = dotenvy::var("GOOGLE_CLIENT_SECRET")?;
@@ -38,9 +35,9 @@ impl GoogleAuth {
         })
     }
 
-    /// Get an access token for the Google Calendar API
-    pub async fn get_token(&self) -> Result<AccessToken, GoogleAuthError> {
-        Ok(self.authenticator.token(&[CALENDAR_SCOPE]).await?)
+    pub async fn token(&self) -> Result<(), GoogleAuthError> {
+        self.authenticator.token(&[CALENDAR_SCOPE]).await?;
+        Ok(())
     }
 }
 

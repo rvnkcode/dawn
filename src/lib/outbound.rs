@@ -1,2 +1,3 @@
+//! Outbound integrations for various services.
 #[cfg(feature = "google-calendar")]
-mod google_calendar;
+pub mod google_calendar;
