@@ -207,4 +207,3 @@ impl Filter {
     pub fn matches(&self, task: &Task, ctx: &FilterContext) -> bool;
 }
 ```
-

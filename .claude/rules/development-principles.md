@@ -46,4 +46,3 @@ When implementing features or reviewing code, ensure the following:
 - Return appropriate exit codes (0 for success, non-zero for errors)
 - Respect standard streams (stdin, stdout, stderr)
 - Support common patterns like `--` to separate options from arguments
-

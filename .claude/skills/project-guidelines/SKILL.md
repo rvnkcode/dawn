@@ -103,4 +103,3 @@ cargo t
 - `/skills/coding-standards/` - General coding best practices
 - `/skills/taskwarrior/` - Domain knowledge for Taskwarrior integration
 - `/skills/tdd-workflow/` - Test-driven development methodology
-

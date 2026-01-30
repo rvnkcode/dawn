@@ -43,4 +43,3 @@ cargo run --features cli -- [command]
 2. Dawn current implementation status
 3. Intentional differences (Clap-idiomatic choices)
 4. Actual gaps and improvement suggestions
-

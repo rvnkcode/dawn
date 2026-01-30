@@ -306,4 +306,3 @@ cargo llvm-cov --lcov    # For CI (codecov, coveralls)
 - Fast test execution (< 30s for unit tests)
 - E2E tests cover critical user flows
 - Tests catch bugs before production
-

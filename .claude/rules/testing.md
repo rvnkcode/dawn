@@ -24,4 +24,3 @@ MANDATORY workflow:
 1. Check test isolation
 2. Verify mocks are correct
 3. Fix implementation, not tests (unless tests are wrong)
-

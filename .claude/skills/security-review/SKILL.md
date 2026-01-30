@@ -247,4 +247,3 @@ Before ANY production deployment:
 
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [Rust Security Guidelines](https://anssi-fr.github.io/rust-guide/)
-

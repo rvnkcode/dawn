@@ -19,7 +19,7 @@
 
 ## Module Organization
 
- - Use `filename.rs` + `filename/` pattern instead of `filename/mod.rs`
+- Use `filename.rs` + `filename/` pattern instead of `filename/mod.rs`
 
 ## Performance
 
@@ -30,4 +30,3 @@
 ## Documentation
 
 - Use `///` doc comments for public APIs
-

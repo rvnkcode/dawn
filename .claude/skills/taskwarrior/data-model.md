@@ -230,4 +230,3 @@ pub enum Status { Pending, Completed, Deleted, Waiting, Recurring }
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Priority { H, M, L }
 ```
-

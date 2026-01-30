@@ -9,7 +9,7 @@ When implementing Taskwarrior features in Dawn, refer to these resources and doc
 ## External References
 
 - Source Code: `~/Downloads/taskwarrior` (C++ implementation)
-- Documentation: https://taskwarrior.org/docs/
+- Documentation: <https://taskwarrior.org/docs/>
 - Man Pages: `man task` for command reference
 - Man Pages Source: `~/Downloads/taskwarrior/doc/man/`
 - Reference PDF: `~/Downloads/taskwarrior/doc/ref/task-ref.pdf`
@@ -123,4 +123,3 @@ Default coefficients:
   blocking        =  8.0
   blocked         = -5.0
 ```
-

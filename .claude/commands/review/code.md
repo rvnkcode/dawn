@@ -5,4 +5,3 @@ description: Comprehensive Rust code review for idiomatic patterns, error handli
 # Rust Code Review
 
 This command invokes the **code-reviewer** agent.
-

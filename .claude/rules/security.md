@@ -18,4 +18,3 @@ let api_key = "sk-proj-xxxxx";
 // ALWAYS: Environment variables
 let api_key = std::env::var("API_KEY").expect("API_KEY not configured");
 ```
-

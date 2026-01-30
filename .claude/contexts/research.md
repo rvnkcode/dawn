@@ -28,4 +28,3 @@ Focus: Understanding before acting
 ## Output
 
 Findings first, recommendations second
-

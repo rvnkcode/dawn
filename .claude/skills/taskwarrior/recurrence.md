@@ -62,6 +62,7 @@ task add "Pay rent" recur:monthly due:2024-01-15
 ```
 
 Requirements:
+
 - Must have `recur` attribute
 - Must have `due` attribute
 - Optional: `until` to limit recurrence end date
@@ -168,4 +169,3 @@ impl FromStr for RecurDuration {
     // Parse "weekly", "3d", "2mo", etc.
 }
 ```
-

@@ -22,7 +22,7 @@ Quick reference for SQLite best practices in Rust applications.
 ### Index Cheat Sheet
 
 | Query Pattern | Index Type | Example |
-|--------------|------------|---------|
+| ------------- | ----------- | ------- |
 | `WHERE col = value` | B-tree (default) | `CREATE INDEX idx ON t (col)` |
 | `WHERE col > value` | B-tree | `CREATE INDEX idx ON t (col)` |
 | `WHERE a = x AND b > y` | Composite | `CREATE INDEX idx ON t (a, b)` |
@@ -408,6 +408,7 @@ SELECT * FROM tasks_fts WHERE tasks_fts MATCH '보고';      -- ✅ Works!
 ```
 
 **Limitations:**
+
 - Minimum 3 characters for matching
 - Larger index size than word-based tokenizers
 - No stemming or linguistic analysis
@@ -577,6 +578,7 @@ fn create_task_with_subtasks(
 ```
 
 **Cargo.toml:**
+
 ```toml
 [dependencies]
 uuid = { version = "1", features = ["v7"] }
@@ -710,4 +712,3 @@ EXPLAIN QUERY PLAN SELECT * FROM tasks WHERE project_id = 1;
 - [SQLite FTS5 Extension](https://sqlite.org/fts5.html)
 - [lindera-sqlite](https://lib.rs/crates/lindera-sqlite) - CJK tokenizer for Rust
 - [sqlite-better-trigram](https://github.com/streetwriters/sqlite-better-trigram) - Enhanced CJK support
-

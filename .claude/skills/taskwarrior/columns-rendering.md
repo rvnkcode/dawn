@@ -81,6 +81,7 @@ report.list.filter=status:pending
 | `col1+,col2-` | Multiple columns |
 
 Sort key types:
+
 - **String**: Alphabetical
 - **Number**: Numeric
 - **DateTime**: Chronological (None values last)
@@ -111,6 +112,7 @@ The description column has special behaviors:
 3. **Dependency indicator**: Can show blocked/blocking status
 
 Example output:
+
 ```
 Description
 Buy groceries [2]
@@ -140,4 +142,3 @@ pub struct Report {
 
 // Use tabled crate for table rendering
 ```
-

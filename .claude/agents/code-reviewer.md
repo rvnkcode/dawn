@@ -106,4 +106,3 @@ let api_key = std::env::var("API_KEY").expect("API_KEY not configured");  // ✓
 For more information about development principles, refer to the following rules:
 
 - `/rules/development-principles/` - Development principles and architecture guidelines
-

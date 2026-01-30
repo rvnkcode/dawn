@@ -171,4 +171,3 @@ fn validate(&self) -> Result<(), TaskError> {
 | Error handling | `thiserror`, `anyhow` |
 | Tables | `tabled` |
 | Parsing | `nom` or `pest` |
-
