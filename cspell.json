@@ -5,6 +5,7 @@
   "words": [
     "chrono",
     "clippy",
+    "dotenvy",
     "ratatui",
     "reqwest",
     "serde",
