@@ -177,6 +177,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "keyring",
  "thiserror",
  "yup-oauth2",
 ]
@@ -539,6 +540,16 @@ name = "itoa"
 version = "1.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92ecc6618181def0457392ccd0ee51198e065e016d1d527a7ac1b6dc7c1f09d2"
+
+[[package]]
+name = "keyring"
+version = "3.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eebcc3aff044e5944a8fbaf69eb277d11986064cba30c468730e8b9909fb551c"
+dependencies = [
+ "log",
+ "zeroize",
+]
 
 [[package]]
 name = "libc"

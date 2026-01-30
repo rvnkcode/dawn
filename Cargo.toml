@@ -17,10 +17,11 @@ required-features = ["cli"]
 
 [features]
 cli = ["dep:clap"]
-google-calendar = ["dep:yup-oauth2"]
+google-calendar = ["dep:keyring", "dep:yup-oauth2"]
 
 [dependencies]
 anyhow = "1.0.100"
 clap = { version = "4", features = ["derive"], optional = true }
+keyring = { version = "3.6.3", optional = true }
 thiserror = "2.0.18"
 yup-oauth2 = { version = "12.1.2", optional = true }
