@@ -8,7 +8,7 @@ if [[ ! "$FILE_PATH" =~ \.rs$ ]]; then
 fi
 
 # Run cargo clippy and capture output
-CLIPPY_OUTPUT=$(cargo clippy --message-format=short 2>&1)
+CLIPPY_OUTPUT=$(cargo clippy --all-features --message-format=short 2>&1)
 
 # Ref: https://code.claude.com/docs/en/hooks#posttooluse-decision-control
 if echo "$CLIPPY_OUTPUT" | grep -q "warning\|error"; then
