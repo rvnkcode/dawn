@@ -2,5 +2,13 @@
   "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
   "version": "0.2",
   "ignorePaths": [".git", "target", ".env*"],
-  "words": ["clippy", "ratatui", "serde", "taskwarrior", "tauri", "thiserror"]
+  "words": [
+    "clippy",
+    "ratatui",
+    "reqwest",
+    "serde",
+    "taskwarrior",
+    "tauri",
+    "thiserror"
+  ]
 }
