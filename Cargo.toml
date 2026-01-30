@@ -22,6 +22,7 @@ google-calendar = [
     "dep:keyring",
     "dep:reqwest",
     "dep:serde_json",
+    "dep:tokio",
     "dep:yup-oauth2",
 ]
 
@@ -33,4 +34,5 @@ keyring = { version = "3.6.3", optional = true }
 reqwest = { version = "0.13.1", features = ["json"], optional = true }
 serde_json = { version = "1.0.149", optional = true }
 thiserror = "2.0.18"
+tokio = { version = "1.49.0", features = ["rt", "macros"], optional = true }
 yup-oauth2 = { version = "12.1.2", optional = true }
