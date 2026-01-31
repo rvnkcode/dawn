@@ -127,7 +127,7 @@ Improve code quality while keeping tests green:
 ### Step 7: Verify Coverage
 
 ```bash
-cargo llvm-cov  # Verify 80%+ coverage
+cargo llvm-cov --all-features  # Verify 80%+ coverage
 ```
 
 ## Mocking Adapters (Hexagonal Architecture)
@@ -280,9 +280,8 @@ fn test_creates_user() {
 cargo install cargo-llvm-cov
 
 # Run coverage
-cargo llvm-cov           # Terminal summary
-cargo llvm-cov --html    # HTML report (target/llvm-cov/html/)
-cargo llvm-cov --lcov    # For CI (codecov, coveralls)
+cargo llvm-cov --all-features           # Terminal summary
+cargo llvm-cov --all-features --html    # HTML report (target/llvm-cov/html/)
 ```
 
 ## Best Practices
