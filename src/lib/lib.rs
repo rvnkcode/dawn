@@ -8,6 +8,7 @@
 //! - **Task Management**: Taskwarrior-compatible task handling
 //! - **Calendar Integration**: Google Calendar events
 //! - **Multiple Interfaces**: CLI, TUI, and GUI support
+
 pub mod domain;
 pub mod inbound;
 pub mod outbound;
