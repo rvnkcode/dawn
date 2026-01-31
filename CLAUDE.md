@@ -64,9 +64,9 @@ Adding **time-based scheduling** to GTD's task management:
 
 ```bash
 # Build & Test
-cargo build
-cargo t                    # Run all tests
-cargo llvm-cov            # Coverage report
+cargo build --all-features
+cargo t --all-features             # Run all tests
+cargo llvm-cov --all-features      # Coverage report
 
 # CLI Development
 cargo run --features cli -- <command>
