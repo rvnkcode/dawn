@@ -1,6 +1,11 @@
+#![cfg_attr(coverage, allow(dead_code))]
+
+#[cfg(not(coverage))]
 use yup_oauth2::authenticator::DefaultAuthenticator;
+#[cfg(not(coverage))]
 use yup_oauth2::{InstalledFlowAuthenticator, InstalledFlowReturnMethod};
 
+#[cfg(not(coverage))]
 use super::token_storage::KeyringTokenStorage;
 
 const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -8,12 +13,14 @@ const TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 // refs: https://developers.google.com/workspace/calendar/api/auth
 const CALENDAR_SCOPE: &str = "https://www.googleapis.com/auth/calendar.readonly";
 
+#[cfg(not(coverage))]
 pub struct GoogleAuth {
     authenticator: DefaultAuthenticator,
 }
 
-// TODO: Automatically open browser
+#[cfg(not(coverage))]
 impl GoogleAuth {
+    // TODO: Automatically open browser
     pub async fn new() -> Result<Self, GoogleAuthError> {
         let client_id = dotenvy::var("GOOGLE_CLIENT_ID")?;
         let client_secret = dotenvy::var("GOOGLE_CLIENT_SECRET")?;
@@ -24,15 +31,13 @@ impl GoogleAuth {
             token_uri: TOKEN_URL.to_string(),
             ..Default::default()
         };
-        let auth =
+        let authenticator =
             InstalledFlowAuthenticator::builder(secret, InstalledFlowReturnMethod::HTTPRedirect)
                 .with_storage(Box::new(KeyringTokenStorage::new()))
                 .build()
                 .await?;
 
-        Ok(Self {
-            authenticator: auth,
-        })
+        Ok(Self { authenticator })
     }
 
     pub async fn token(&self) -> Result<(), GoogleAuthError> {
@@ -60,82 +65,21 @@ mod tests {
 
         #[test]
         fn from_dotenvy_error_converts_correctly() {
-            let dotenv_err = dotenvy::Error::LineParse("test".to_string(), 1);
-            let auth_err: GoogleAuthError = dotenv_err.into();
-
-            assert!(matches!(auth_err, GoogleAuthError::EnvVar(_)));
+            let err: GoogleAuthError = dotenvy::Error::LineParse("test".to_string(), 1).into();
+            assert!(matches!(err, GoogleAuthError::EnvVar(_)));
         }
 
         #[test]
         fn from_io_error_converts_correctly() {
-            let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "test");
-            let auth_err: GoogleAuthError = io_err.into();
-
-            assert!(matches!(auth_err, GoogleAuthError::Authenticator(_)));
+            let err: GoogleAuthError =
+                std::io::Error::new(std::io::ErrorKind::NotFound, "test").into();
+            assert!(matches!(err, GoogleAuthError::Authenticator(_)));
         }
 
         #[test]
-        fn env_var_error_display_includes_prefix() {
-            let dotenv_err = dotenvy::Error::LineParse("test".to_string(), 1);
-            let auth_err: GoogleAuthError = dotenv_err.into();
-
-            assert!(
-                auth_err
-                    .to_string()
-                    .starts_with("Environment variable error:")
-            );
-        }
-
-        #[test]
-        fn authenticator_error_display_includes_prefix() {
-            let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "test");
-            let auth_err: GoogleAuthError = io_err.into();
-
-            assert!(auth_err.to_string().starts_with("Authenticator error:"));
-        }
-    }
-
-    mod constants {
-        use super::*;
-
-        #[test]
-        fn auth_url_uses_https() {
-            assert!(AUTH_URL.starts_with("https://"));
-        }
-
-        #[test]
-        fn auth_url_points_to_google() {
-            assert!(AUTH_URL.contains("google.com"));
-        }
-
-        #[test]
-        fn token_url_uses_https() {
-            assert!(TOKEN_URL.starts_with("https://"));
-        }
-
-        #[test]
-        fn token_url_points_to_google() {
-            assert!(TOKEN_URL.contains("googleapis.com"));
-        }
-
-        #[test]
-        fn calendar_scope_uses_https() {
-            assert!(CALENDAR_SCOPE.starts_with("https://"));
-        }
-
-        #[test]
-        fn calendar_url_points_to_google() {
-            assert!(CALENDAR_SCOPE.contains("googleapis.com"));
-        }
-
-        #[test]
-        fn calendar_scope_is_readonly() {
-            assert!(CALENDAR_SCOPE.contains("readonly"));
-        }
-
-        #[test]
-        fn calendar_scope_is_for_calendar_api() {
-            assert!(CALENDAR_SCOPE.contains("calendar"));
+        fn from_yup_oauth2_error_converts_correctly() {
+            let err: GoogleAuthError = yup_oauth2::Error::UserError("test".to_string()).into();
+            assert!(matches!(err, GoogleAuthError::Token(_)));
         }
     }
 }

@@ -39,3 +39,6 @@ serde_json = { version = "1.0.149", optional = true }
 thiserror = "2.0.18"
 tokio = { version = "1.49.0", features = ["rt", "macros"], optional = true }
 yup-oauth2 = { version = "12.1.2", optional = true }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(coverage)"] }

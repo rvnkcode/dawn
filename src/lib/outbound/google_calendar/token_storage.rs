@@ -1,3 +1,5 @@
+#![cfg_attr(coverage, allow(dead_code))]
+
 use std::hash::{DefaultHasher, Hash, Hasher};
 
 use async_trait::async_trait;
