@@ -6,11 +6,11 @@ mod auth;
 mod token_storage;
 
 #[cfg(not(coverage))]
-use crate::domain::calendar::port::CalendarRepository;
+use crate::domain::auth::port::Authenticatable;
 #[cfg(not(coverage))]
 use crate::outbound::google_calendar::auth::{GoogleAuth, GoogleAuthError};
 
-/// Implements [`CalendarRepository`] port via Google Calendar API
+/// Implementation of [`Authenticatable`] for Google Calendar API
 #[cfg(not(coverage))]
 pub struct GoogleCalendarAdapter {
     auth: GoogleAuth,
@@ -26,7 +26,7 @@ impl GoogleCalendarAdapter {
 }
 
 #[cfg(not(coverage))]
-impl CalendarRepository for GoogleCalendarAdapter {
+impl Authenticatable for GoogleCalendarAdapter {
     /// Authenticate Google OAuth2 to access the Calendar API
     async fn authenticate(&self) -> anyhow::Result<()> {
         self.auth.token().await?;
