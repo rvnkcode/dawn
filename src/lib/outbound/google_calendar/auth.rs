@@ -50,3 +50,92 @@ pub enum GoogleAuthError {
     #[error("Token error: {0}")]
     Token(#[from] yup_oauth2::Error),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod google_auth_error {
+        use super::*;
+
+        #[test]
+        fn from_dotenvy_error_converts_correctly() {
+            let dotenv_err = dotenvy::Error::LineParse("test".to_string(), 1);
+            let auth_err: GoogleAuthError = dotenv_err.into();
+
+            assert!(matches!(auth_err, GoogleAuthError::EnvVar(_)));
+        }
+
+        #[test]
+        fn from_io_error_converts_correctly() {
+            let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "test");
+            let auth_err: GoogleAuthError = io_err.into();
+
+            assert!(matches!(auth_err, GoogleAuthError::Authenticator(_)));
+        }
+
+        #[test]
+        fn env_var_error_display_includes_prefix() {
+            let dotenv_err = dotenvy::Error::LineParse("test".to_string(), 1);
+            let auth_err: GoogleAuthError = dotenv_err.into();
+
+            assert!(
+                auth_err
+                    .to_string()
+                    .starts_with("Environment variable error:")
+            );
+        }
+
+        #[test]
+        fn authenticator_error_display_includes_prefix() {
+            let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "test");
+            let auth_err: GoogleAuthError = io_err.into();
+
+            assert!(auth_err.to_string().starts_with("Authenticator error:"));
+        }
+    }
+
+    mod constants {
+        use super::*;
+
+        #[test]
+        fn auth_url_uses_https() {
+            assert!(AUTH_URL.starts_with("https://"));
+        }
+
+        #[test]
+        fn auth_url_points_to_google() {
+            assert!(AUTH_URL.contains("google.com"));
+        }
+
+        #[test]
+        fn token_url_uses_https() {
+            assert!(TOKEN_URL.starts_with("https://"));
+        }
+
+        #[test]
+        fn token_url_points_to_google() {
+            assert!(TOKEN_URL.contains("googleapis.com"));
+        }
+
+        #[test]
+        fn calendar_scope_uses_https() {
+            assert!(CALENDAR_SCOPE.starts_with("https://"));
+        }
+
+        #[test]
+        fn calendar_url_points_to_google() {
+            assert!(CALENDAR_SCOPE.contains("googleapis.com"));
+        }
+
+        #[test]
+        fn calendar_scope_is_readonly() {
+            assert!(CALENDAR_SCOPE.contains("readonly"));
+        }
+
+        #[test]
+        fn calendar_scope_is_for_calendar_api() {
+            assert!(CALENDAR_SCOPE.contains("calendar"));
+        }
+    }
+}
