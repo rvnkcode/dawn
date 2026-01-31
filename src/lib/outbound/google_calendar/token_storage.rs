@@ -45,3 +45,63 @@ fn scopes_into_key(scopes: &[&str]) -> String {
     sorted.hash(&mut hasher);
     format!("token_{:x}", hasher.finish())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod scopes_into_key_tests {
+        use super::*;
+
+        #[test]
+        fn single_scope_produces_valid_key() {
+            let scopes = ["single"];
+            let key = scopes_into_key(&scopes);
+
+            assert!(key.starts_with("token_"));
+            assert!(key.len() > "token_".len());
+        }
+
+        #[test]
+        fn same_scopes_produce_same_key() {
+            let scopes = ["scope1", "scope2"];
+
+            let key1 = scopes_into_key(&scopes);
+            let key2 = scopes_into_key(&scopes);
+
+            assert_eq!(key1, key2);
+        }
+
+        #[test]
+        fn different_order_produces_same_key() {
+            let scopes1 = ["scope1", "scope2"];
+            let scopes2 = ["scope2", "scope1"];
+
+            let key1 = scopes_into_key(&scopes1);
+            let key2 = scopes_into_key(&scopes2);
+
+            assert_eq!(key1, key2);
+        }
+
+        #[test]
+        fn different_scopes_produce_different_keys() {
+            let scopes1 = ["scope1"];
+            let scopes2 = ["scope2"];
+
+            let key1 = scopes_into_key(&scopes1);
+            let key2 = scopes_into_key(&scopes2);
+
+            assert_ne!(key1, key2);
+        }
+
+        #[test]
+        fn empty_scopes_produce_valid_key() {
+            let scopes: [&str; 0] = [];
+
+            let key = scopes_into_key(&scopes);
+
+            assert!(key.starts_with("token_"));
+            assert!(key.len() > "token_".len());
+        }
+    }
+}
