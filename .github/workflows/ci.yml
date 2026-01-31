@@ -25,5 +25,5 @@ jobs:
       - run: cargo fmt --all -- --check
       # https://github.com/rust-lang/rust-clippy?tab=readme-ov-file#travis-ci
       - run: cargo clippy -- -D warnings
-      - run: cargo build --verbose
-      - run: cargo test --verbose
+      - run: cargo build --all-features --verbose
+      - run: cargo test --all-features --verbose
