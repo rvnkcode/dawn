@@ -16,6 +16,8 @@ path = "src/bin/cli/main.rs"
 required-features = ["cli"]
 
 [dependencies]
+rusqlite = { version = "0.39.0", features = ["bundled"], optional = true }
 
 [features]
-cli = []
+cli = ["sqlite"]
+sqlite = ["dep:rusqlite"]
