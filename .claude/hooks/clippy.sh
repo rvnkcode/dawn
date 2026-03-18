@@ -11,7 +11,7 @@ fi
 CLIPPY_OUTPUT=$(cargo clippy --all-features --message-format=short 2>&1)
 
 # Ref: https://code.claude.com/docs/en/hooks#posttooluse-decision-control
-if echo "$CLIPPY_OUTPUT" | grep -q "warning\|error"; then
+if echo "$CLIPPY_OUTPUT" | grep -qE 'warning|error'; then
     ESCAPED_OUTPUT=$(printf '%s' "$CLIPPY_OUTPUT" | jq -Rs .)
     cat <<EOF
 {
