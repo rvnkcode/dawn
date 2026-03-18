@@ -24,6 +24,6 @@ jobs:
       # https://github.com/rust-lang/rustfmt?tab=readme-ov-file#checking-style-on-a-ci-server
       - run: cargo fmt --all -- --check
       # https://github.com/rust-lang/rust-clippy?tab=readme-ov-file#travis-ci
-      - run: cargo clippy --all-features -- -D warnings
+      - run: cargo clippy --all-targets --all-features -- -D warnings
       - run: cargo test --all-features --verbose
       - run: cargo build --all-features --verbose
