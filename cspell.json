@@ -6,6 +6,7 @@
     "clippy",
     "rusqlite",
     "rustdoc",
+    "sqlfluff",
     "taskwarrior",
     "tauri",
     "thiserror",
