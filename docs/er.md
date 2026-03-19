@@ -19,8 +19,8 @@ erDiagram
     TEXT parent FK "REFERENCES Project(id)"
     TEXT name "NOT NULL UNIQUE"
     TEXT description
-    INT entry "DEFAULT (unixepoch())"
-    INT modified "DEFAULT (unixepoch())"
+    INT entry "NOT NULL DEFAULT (unixepoch())"
+    INT modified "NOT NULL DEFAULT (unixepoch())"
   }
 
   Task }o--o{ TaskTag : has
@@ -37,7 +37,7 @@ erDiagram
     TEXT description "NOT NULL"
     TEXT note
     INT priority
-    INT entry "DEFAULT (unixepoch())"
+    INT entry "NOT NULL DEFAULT (unixepoch())"
     INT due
     INT wait
     INT scheduled
@@ -47,7 +47,7 @@ erDiagram
     TEXT recur "repetition cycle"
     INT until
     INT deleted "deletion datetime (separate from end)"
-    INT modified "DEFAULT (unixepoch())"
+    INT modified "NOT NULL DEFAULT (unixepoch())"
   }
 
   Tag }o--o{ TaskTag : assigned_to
@@ -70,8 +70,8 @@ erDiagram
     TEXT id PK
     TEXT task FK "REFERENCES Task(id)"
     TEXT description "NOT NULL"
-    INT entry "DEFAULT (unixepoch())"
-    INT modified "DEFAULT (unixepoch())"
+    INT entry "NOT NULL DEFAULT (unixepoch())"
+    INT modified "NOT NULL DEFAULT (unixepoch())"
   }
 
   Attachment {
@@ -80,6 +80,6 @@ erDiagram
     TEXT type "NOT NULL file | url"
     TEXT label
     TEXT value "NOT NULL"
-    INT entry "DEFAULT (unixepoch())"
+    INT entry "NOT NULL DEFAULT (unixepoch())"
   }
 ```
