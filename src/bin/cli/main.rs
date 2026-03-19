@@ -1,6 +1,6 @@
 use dawn::outbound::SQLite;
 
 fn main() -> anyhow::Result<()> {
-    let db = SQLite::new()?;
+    let mut db = SQLite::new()?;
     Ok(db.initialize()?)
 }
