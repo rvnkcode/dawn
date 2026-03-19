@@ -59,10 +59,10 @@ pub enum SQLiteError {
 // Excluded from coverage because it depends on the filesystem
 #[cfg(not(coverage))]
 fn get_db_path() -> Result<std::path::PathBuf, SQLiteError> {
-    let home_dir = dirs::home_dir().ok_or(SQLiteError::InitializationError(
-        "Could not determine home directory".into(),
+    let data_dir = dirs::data_local_dir().ok_or(SQLiteError::InitializationError(
+        "Could not determine local data directory".into(),
     ))?;
-    let path = home_dir.join(".dawn");
+    let path = data_dir.join("dawn");
     std::fs::create_dir_all(&path).map_err(|e| {
         SQLiteError::InitializationError(format!("Could not create application directory: {}", e))
     })?;
