@@ -8,7 +8,7 @@ title: Class Diagram
       -Connection conn
       +new() Result~Self, SQLiteError~
       -get_user_version(&self) Result~u8, SQLiteError~
-      +initialize(&self) Result~_, SQLiteError~
+      +initialize(&mut self) Result~_, SQLiteError~
     }
   }
 ```

@@ -1,10 +1,10 @@
 CREATE TABLE IF NOT EXISTS task (
     id TEXT PRIMARY KEY CHECK (length(id) = 11),
     description TEXT NOT NULL,
-    entry INTEGER DEFAULT (unixepoch()),
+    entry INTEGER NOT NULL DEFAULT (unixepoch()),
     completed INTEGER,
     deleted INTEGER,
-    modified INTEGER DEFAULT (unixepoch())
+    modified INTEGER NOT NULL DEFAULT (unixepoch())
 );
 
 -- Automatically update the 'modified' timestamp on task updates
