@@ -48,6 +48,7 @@ BEGIN
 END;
 
 CREATE TRIGGER IF NOT EXISTS trg_task_fts_update AFTER UPDATE ON task
+WHEN old.description IS NOT new.description
 BEGIN
     UPDATE task_fts
     SET description = new.description
