@@ -29,12 +29,14 @@ impl SQLite {
         Ok(user_version)
     }
 
-    pub fn initialize(&self) -> Result<(), SQLiteError> {
+    pub fn initialize(&mut self) -> Result<(), SQLiteError> {
         let user_version = self.get_user_version()?;
         match user_version.cmp(&DB_VERSION) {
             Ordering::Less => {
                 // TODO: Backup data
-                self.conn.execute_batch(include_str!("./schema.sql"))?;
+                let tx = self.conn.transaction()?;
+                tx.execute_batch(include_str!("./schema.sql"))?;
+                tx.commit()?;
                 // TODO: Restore data
             }
             Ordering::Equal => {} // Do nothing
@@ -77,7 +79,7 @@ mod tests {
 
     #[test]
     fn create_schema_on_fresh_database() {
-        let db = SQLite::new_in_memory().unwrap();
+        let mut db = SQLite::new_in_memory().unwrap();
 
         let result = db.initialize();
 
@@ -87,7 +89,7 @@ mod tests {
 
     #[test]
     fn skip_migration_when_version_matches() {
-        let db = SQLite::new_in_memory().unwrap();
+        let mut db = SQLite::new_in_memory().unwrap();
         db.initialize().unwrap();
 
         let result = db.initialize();
@@ -97,7 +99,7 @@ mod tests {
 
     #[test]
     fn error_when_database_version_is_newer() {
-        let db = SQLite::new_in_memory().unwrap();
+        let mut db = SQLite::new_in_memory().unwrap();
         db.conn.pragma_update(None, "user_version", 2).unwrap();
 
         let result = db.initialize();
@@ -107,7 +109,7 @@ mod tests {
 
     // Helper functions
     fn setup() -> SQLite {
-        let db = SQLite::new_in_memory().unwrap();
+        let mut db = SQLite::new_in_memory().unwrap();
         db.initialize().unwrap();
         db
     }
