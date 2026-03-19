@@ -1,3 +1,2 @@
-pub fn greet() -> &'static str {
-    "Hello, world!"
-}
+#[cfg(feature = "sqlite")]
+pub mod outbound;
