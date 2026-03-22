@@ -43,4 +43,6 @@ direction BT
       +initialize(&mut self) Result~_, SQLiteError~
     }
   }
+
+  SQLite ..|> TaskRepository : implements
 ```
