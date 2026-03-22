@@ -4,6 +4,11 @@ title: Class Diagram
 
 ```mermaid
   namespace Domain {
+    class UniqueID {
+      -String
+      +new() Self
+    }
+
     class Description {
       -String
       +new(&raw) Result~Self, DescriptionEmptyError~
