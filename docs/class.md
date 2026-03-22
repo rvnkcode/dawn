@@ -19,6 +19,11 @@ direction BT
       +Description description
     }
 
+    class Service~R~ {
+      -R repo
+      +new(repo) Self
+    }
+
     class TaskService {
       <<interface>>
       +add(&self, &req)* Result~_~
@@ -31,6 +36,9 @@ direction BT
   }
 
   TaskCreation *-- Description
+  Service~R~ ..> UniqueID : generates
+  Service~R~ ..|> TaskService : implements
+  Service~R~ ..> TaskRepository : where R is TaskRepository
   TaskService ..> TaskCreation : accepts
   TaskRepository ..> UniqueID : accepts
   TaskRepository ..> TaskCreation : accepts
