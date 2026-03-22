@@ -1,3 +1,4 @@
+use crate::domain::task::{TaskCreation, UniqueID, port::TaskRepository};
 use rusqlite::Connection;
 use std::cmp::Ordering;
 
@@ -71,9 +72,20 @@ fn get_db_path() -> Result<std::path::PathBuf, SQLiteError> {
     Ok(path.join("dawn.db"))
 }
 
+impl TaskRepository for SQLite {
+    fn create_task(&self, id: &UniqueID, req: &TaskCreation) -> anyhow::Result<()> {
+        self.conn.execute(
+            "INSERT INTO task (id, description) VALUES (?, ?)",
+            [id.to_string(), req.description.to_string()],
+        )?;
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::task::Description;
 
     // A. Initialize Database
 
@@ -367,5 +379,46 @@ mod tests {
             .unwrap();
 
         assert_eq!(count, 0);
+    }
+
+    // E. Create Task
+
+    #[test]
+    fn create_task_inserts_row() {
+        let db = setup();
+        let id = UniqueID::new();
+        let req = TaskCreation {
+            description: Description::new("buy milk").unwrap(),
+        };
+
+        let result = db.create_task(&id, &req);
+
+        assert!(result.is_ok());
+        let stored_desc: String = db
+            .conn
+            .query_row(
+                "SELECT description FROM task WHERE id = ?1",
+                rusqlite::params![id.to_string()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(stored_desc, "buy milk");
+    }
+
+    #[test]
+    fn create_task_duplicate_id_returns_error() {
+        let db = setup();
+        let id = UniqueID::new();
+        let req = TaskCreation {
+            description: Description::new("first task").unwrap(),
+        };
+        db.create_task(&id, &req).unwrap();
+
+        let req2 = TaskCreation {
+            description: Description::new("second task").unwrap(),
+        };
+        let result = db.create_task(&id, &req2);
+
+        assert!(result.is_err());
     }
 }
