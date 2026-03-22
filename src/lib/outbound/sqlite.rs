@@ -149,7 +149,7 @@ mod tests {
     #[test]
     fn update_modified_when_description_changes() {
         let db = setup();
-        let id = "test_aaaaaa";
+        let id = "test_aaaaaaa";
         insert_task(&db, id, "original");
         reset_modified(&db, id);
 
@@ -166,7 +166,7 @@ mod tests {
     #[test]
     fn update_modified_when_completed_changes() {
         let db = setup();
-        let id = "test_bbbbbb";
+        let id = "test_bbbbbbb";
         insert_task(&db, id, "task to complete");
         reset_modified(&db, id);
 
@@ -183,7 +183,7 @@ mod tests {
     #[test]
     fn update_modified_when_deleted_changes() {
         let db = setup();
-        let id = "test_cccccc";
+        let id = "test_ccccccc";
         insert_task(&db, id, "task to delete");
         reset_modified(&db, id);
 
@@ -200,7 +200,7 @@ mod tests {
     #[test]
     fn update_modified_when_entry_changes() {
         let db = setup();
-        let id = "test_cc2ccc";
+        let id = "test_ccccccc";
         insert_task(&db, id, "task to redate");
         reset_modified(&db, id);
 
@@ -217,7 +217,7 @@ mod tests {
     #[test]
     fn not_update_modified_when_same_value() {
         let db = setup();
-        let id = "test_dddddd";
+        let id = "test_ddddddd";
         insert_task(&db, id, "unchanged");
         reset_modified(&db, id);
 
@@ -236,9 +236,9 @@ mod tests {
     #[test]
     fn assign_sequential_row_ids_to_pending_tasks() {
         let db = setup();
-        insert_task(&db, "test_eeeee1", "first");
-        insert_task(&db, "test_eeeee2", "second");
-        insert_task(&db, "test_eeeee3", "third");
+        insert_task(&db, "test_eeeeee1", "first");
+        insert_task(&db, "test_eeeeee2", "second");
+        insert_task(&db, "test_eeeeee3", "third");
 
         let mut stmt = db
             .conn
@@ -251,30 +251,30 @@ mod tests {
             .collect();
 
         assert_eq!(rows.len(), 3);
-        assert_eq!(rows[0], ("test_eeeee1".into(), 1));
-        assert_eq!(rows[1], ("test_eeeee2".into(), 2));
-        assert_eq!(rows[2], ("test_eeeee3".into(), 3));
+        assert_eq!(rows[0], ("test_eeeeee1".into(), 1));
+        assert_eq!(rows[1], ("test_eeeeee2".into(), 2));
+        assert_eq!(rows[2], ("test_eeeeee3".into(), 3));
     }
 
     #[test]
     fn exclude_deleted_and_completed_tasks_from_row_ids() {
         let db = setup();
-        insert_task(&db, "test_fffff1", "pending 1");
-        insert_task(&db, "test_fffff2", "to delete");
-        insert_task(&db, "test_fffff3", "pending 2");
-        insert_task(&db, "test_fffff4", "to complete");
-        insert_task(&db, "test_fffff5", "pending 3");
+        insert_task(&db, "test_ffffff1", "pending 1");
+        insert_task(&db, "test_ffffff2", "to delete");
+        insert_task(&db, "test_ffffff3", "pending 2");
+        insert_task(&db, "test_ffffff4", "to complete");
+        insert_task(&db, "test_ffffff5", "pending 3");
 
         db.conn
             .execute(
                 "UPDATE task SET deleted = unixepoch() WHERE id = ?1",
-                rusqlite::params!["test_fffff2"],
+                rusqlite::params!["test_ffffff2"],
             )
             .unwrap();
         db.conn
             .execute(
                 "UPDATE task SET completed = unixepoch() WHERE id = ?1",
-                rusqlite::params!["test_fffff4"],
+                rusqlite::params!["test_ffffff4"],
             )
             .unwrap();
 
@@ -289,9 +289,9 @@ mod tests {
             .collect();
 
         assert_eq!(rows.len(), 3);
-        assert_eq!(rows[0], ("test_fffff1".into(), 1));
-        assert_eq!(rows[1], ("test_fffff3".into(), 2));
-        assert_eq!(rows[2], ("test_fffff5".into(), 3));
+        assert_eq!(rows[0], ("test_ffffff1".into(), 1));
+        assert_eq!(rows[1], ("test_ffffff3".into(), 2));
+        assert_eq!(rows[2], ("test_ffffff5".into(), 3));
     }
 
     // D. FTS triggers
@@ -299,7 +299,7 @@ mod tests {
     #[test]
     fn sync_insert_to_fts() {
         let db = setup();
-        insert_task(&db, "test_gggggg", "searchable task");
+        insert_task(&db, "test_ggggggg", "searchable task");
 
         let count: i64 = db
             .conn
@@ -316,7 +316,7 @@ mod tests {
     #[test]
     fn sync_update_to_fts() {
         let db = setup();
-        let id = "test_hhhhhh";
+        let id = "test_hhhhhhh";
         insert_task(&db, id, "original text");
 
         db.conn
@@ -350,7 +350,7 @@ mod tests {
     #[test]
     fn sync_delete_to_fts() {
         let db = setup();
-        let id = "test_iiiiii";
+        let id = "test_iiiiiii";
         insert_task(&db, id, "ephemeral task");
 
         db.conn
