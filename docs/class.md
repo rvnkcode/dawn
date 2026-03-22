@@ -3,6 +3,19 @@ title: Class Diagram
 ---
 
 ```mermaid
+  namespace Domain {
+    class Description {
+      -String
+      +new(&raw) Result~Self, DescriptionEmptyError~
+    }
+
+    class TaskCreation {
+      +Description description
+    }
+  }
+
+  TaskCreation *-- Description
+
   namespace Outbound {
     class SQLite {
       -Connection conn
