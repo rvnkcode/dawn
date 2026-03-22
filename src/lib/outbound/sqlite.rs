@@ -62,6 +62,10 @@ pub enum SQLiteError {
 // Excluded from coverage because it depends on the filesystem
 #[cfg(not(coverage))]
 fn get_db_path() -> Result<std::path::PathBuf, SQLiteError> {
+    /*
+     * linux: ~/.local
+     * macOS: ~/Library/Application\ Support
+     */
     let data_dir = dirs::data_local_dir().ok_or(SQLiteError::InitializationError(
         "Could not determine local data directory".into(),
     ))?;
