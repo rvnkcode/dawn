@@ -18,7 +18,7 @@ impl SQLite {
     }
 
     #[cfg(test)]
-    pub fn new_in_memory() -> rusqlite::Result<Self> {
+    pub(crate) fn new_in_memory() -> rusqlite::Result<Self> {
         let conn = Connection::open_in_memory()?;
         Ok(Self { conn })
     }
