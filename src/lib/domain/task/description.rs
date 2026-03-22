@@ -1,3 +1,4 @@
+use std::fmt::{self, Display, Formatter};
 use thiserror::Error;
 
 pub struct Description(String);
@@ -14,6 +15,12 @@ impl Description {
         } else {
             Ok(Self(trimmed.to_string()))
         }
+    }
+}
+
+impl Display for Description {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -44,6 +51,6 @@ mod tests {
         let result = Description::new("  hello world  ");
         assert!(result.is_ok());
         let desc = result.unwrap();
-        assert_eq!(desc.0, "hello world");
+        assert_eq!(desc.to_string(), "hello world");
     }
 }
