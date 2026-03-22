@@ -23,7 +23,7 @@
 
 ## Error Handling
 
-- Use `thiserror` for library errors, `anyhow` only in binary crates or tests
+- Use `thiserror` for adapter/concrete errors, `anyhow` for port return types and binary crates
 - No `.unwrap()` or `.expect()` in production code — propagate errors with `?`
 
 ## Safety
