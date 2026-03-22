@@ -7,14 +7,9 @@ const ID_LENGTH: usize = 12;
 pub struct UniqueID(String);
 
 impl UniqueID {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self(nanoid!(ID_LENGTH))
-    }
-}
-
-impl Default for UniqueID {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -30,7 +25,7 @@ mod tests {
 
     #[test]
     fn unique_id_new() {
-        let id = UniqueID::default();
+        let id = UniqueID::new();
         let id_str = id.to_string();
         assert_eq!(id_str.len(), ID_LENGTH);
     }

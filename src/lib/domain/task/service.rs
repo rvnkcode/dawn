@@ -19,7 +19,7 @@ where
     R: TaskRepository,
 {
     fn add(&self, req: &TaskCreation) -> anyhow::Result<()> {
-        let id = UniqueID::default();
+        let id = UniqueID::new();
         self.repo.create_task(&id, req)
     }
 }
