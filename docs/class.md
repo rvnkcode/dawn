@@ -3,6 +3,7 @@ title: Class Diagram
 ---
 
 ```mermaid
+direction BT
   namespace Domain {
     class UniqueID {
       -String
@@ -17,9 +18,22 @@ title: Class Diagram
     class TaskCreation {
       +Description description
     }
+
+    class TaskService {
+      <<interface>>
+      +add(&self, &req)* Result~_~
+    }
+
+    class TaskRepository {
+      <<interface>>
+      +create_task(&self, &id, &req)* Result~_~
+    }
   }
 
   TaskCreation *-- Description
+  TaskService ..> TaskCreation : accepts
+  TaskRepository ..> UniqueID : accepts
+  TaskRepository ..> TaskCreation : accepts
 
   namespace Outbound {
     class SQLite {
