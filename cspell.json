@@ -10,6 +10,7 @@
     "taskwarrior",
     "tauri",
     "thiserror",
-    "unixepoch"
+    "unixepoch",
+    "usize"
   ]
 }
