@@ -25,6 +25,13 @@ direction BT
       +new() Result~Self, TimestampError~
     }
 
+    class Status {
+      <<enumeration>>
+      +Pending
+      +Completed
+      +Deleted
+    }
+
     class Task {
       +UniqueID id
       +Option~Index~ index
@@ -32,6 +39,11 @@ direction BT
       +Timestamp entry
       +Option~Timestamp~ completed
       +Option~Timestamp~ deleted
+    }
+
+    class Filter {
+      +HashSet~Status~ statuses
+      +is_empty() bool
     }
 
     class TaskCreation {
@@ -59,6 +71,7 @@ direction BT
   Task *-- Description
   Task *-- Timestamp
   Task o-- Timestamp
+  Filter o-- Status
   TaskCreation *-- Description
   Service~R~ ..> UniqueID : generates
   Service~R~ ..|> TaskService : implements
