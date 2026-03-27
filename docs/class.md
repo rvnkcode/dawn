@@ -10,6 +10,11 @@ direction BT
       +new() Self
     }
 
+    class Index {
+      -usize
+      +new() Result~Self, IndexError~
+    }
+
     class Description {
       -String
       +new(&raw) Result~Self, DescriptionEmptyError~
