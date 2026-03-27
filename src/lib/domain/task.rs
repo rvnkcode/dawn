@@ -12,3 +12,12 @@ pub use unique_id::UniqueID;
 pub struct TaskCreation {
     pub description: Description,
 }
+
+pub struct Task {
+    pub uid: UniqueID,
+    pub index: Option<Index>,
+    pub description: Description,
+    pub entry: Timestamp,
+    pub completed: Option<Timestamp>,
+    pub deleted: Option<Timestamp>,
+}
