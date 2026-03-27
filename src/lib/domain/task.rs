@@ -4,6 +4,8 @@ pub mod index;
 pub use index::Index;
 pub mod port;
 pub mod service;
+pub mod timestamp;
+pub use timestamp::Timestamp;
 pub mod unique_id;
 pub use unique_id::UniqueID;
 
