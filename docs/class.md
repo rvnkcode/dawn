@@ -20,6 +20,10 @@ direction BT
       +new(&raw) Result~Self, DescriptionEmptyError~
     }
 
+    class Timestamp {
+      -i64
+      +new() Result~Self, TimestampError~
+    }
     class TaskCreation {
       +Description description
     }
