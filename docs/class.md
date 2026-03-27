@@ -24,6 +24,16 @@ direction BT
       -i64
       +new() Result~Self, TimestampError~
     }
+
+    class Task {
+      +UniqueID id
+      +Option~Index~ index
+      +Description description
+      +Timestamp entry
+      +Option~Timestamp~ completed
+      +Option~Timestamp~ deleted
+    }
+
     class TaskCreation {
       +Description description
     }
@@ -44,6 +54,11 @@ direction BT
     }
   }
 
+  Task *-- UniqueID
+  Task o-- Index
+  Task *-- Description
+  Task *-- Timestamp
+  Task o-- Timestamp
   TaskCreation *-- Description
   Service~R~ ..> UniqueID : generates
   Service~R~ ..|> TaskService : implements
