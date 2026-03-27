@@ -1,5 +1,7 @@
 pub mod description;
 pub use description::Description;
+pub mod filter;
+pub use filter::Filter;
 pub mod index;
 pub use index::Index;
 pub mod port;
@@ -20,4 +22,11 @@ pub struct Task {
     pub entry: Timestamp,
     pub completed: Option<Timestamp>,
     pub deleted: Option<Timestamp>,
+}
+
+pub enum Status {
+    Pending,
+    Completed,
+    Deleted,
+    // TODO: Cancelled
 }
