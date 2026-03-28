@@ -2,14 +2,11 @@ use crate::domain::task::{Filter, Status};
 
 const ALL_STATUSES: usize = 3;
 
-pub fn build_where_clause(filter: &Filter) -> String {
+pub(crate) fn build_where_clause(filter: &Filter) -> Option<String> {
     if filter.is_empty() {
-        return String::from("ORDER BY t.entry, t.id");
+        return None;
     }
-    match build_status_clause(filter) {
-        Some(status_clause) => format!("WHERE {} ORDER BY t.entry, t.id", status_clause),
-        None => String::from("ORDER BY t.entry, t.id"),
-    }
+    build_status_clause(filter).map(|clause| format!("WHERE {clause}"))
 }
 
 fn build_status_clause(filter: &Filter) -> Option<String> {
@@ -38,9 +35,7 @@ mod tests {
             statuses: HashSet::new(),
         };
 
-        let clause = build_where_clause(&filter);
-
-        assert_eq!(clause, "ORDER BY t.entry, t.id");
+        assert_eq!(build_where_clause(&filter), None);
     }
 
     #[test]
@@ -49,11 +44,9 @@ mod tests {
             statuses: HashSet::from([Status::Pending]),
         };
 
-        let clause = build_where_clause(&filter);
-
         assert_eq!(
-            clause,
-            "WHERE (t.deleted IS NULL AND t.completed IS NULL) ORDER BY t.entry, t.id"
+            build_where_clause(&filter),
+            Some("WHERE (t.deleted IS NULL AND t.completed IS NULL)".to_string())
         );
     }
 
@@ -63,11 +56,9 @@ mod tests {
             statuses: HashSet::from([Status::Completed]),
         };
 
-        let clause = build_where_clause(&filter);
-
         assert_eq!(
-            clause,
-            "WHERE (t.deleted IS NULL AND t.completed IS NOT NULL) ORDER BY t.entry, t.id"
+            build_where_clause(&filter),
+            Some("WHERE (t.deleted IS NULL AND t.completed IS NOT NULL)".to_string())
         );
     }
 
@@ -77,11 +68,9 @@ mod tests {
             statuses: HashSet::from([Status::Deleted]),
         };
 
-        let clause = build_where_clause(&filter);
-
         assert_eq!(
-            clause,
-            "WHERE (t.deleted IS NOT NULL) ORDER BY t.entry, t.id"
+            build_where_clause(&filter),
+            Some("WHERE (t.deleted IS NOT NULL)".to_string())
         );
     }
 
@@ -91,10 +80,8 @@ mod tests {
             statuses: HashSet::from([Status::Pending, Status::Completed]),
         };
 
-        let clause = build_where_clause(&filter);
-
+        let clause = build_where_clause(&filter).unwrap();
         assert!(clause.starts_with("WHERE "));
-        assert!(clause.ends_with(" ORDER BY t.entry, t.id"));
         assert!(clause.contains(" OR "));
         assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
         assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NOT NULL)"));
@@ -106,8 +93,6 @@ mod tests {
             statuses: HashSet::from([Status::Pending, Status::Completed, Status::Deleted]),
         };
 
-        let clause = build_where_clause(&filter);
-
-        assert_eq!(clause, "ORDER BY t.entry, t.id");
+        assert_eq!(build_where_clause(&filter), None);
     }
 }

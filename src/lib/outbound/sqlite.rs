@@ -94,8 +94,8 @@ impl TaskRepository for SQLite {
         let select_clause = "SELECT t.id, tpr.row_id, t.description, t.entry, t.completed, t.deleted \
             FROM task AS t \
                 LEFT JOIN vw_task_pending_row_id AS tpr ON tpr.id = t.id";
-        let where_clause = query_builder::build_where_clause(filter);
-        let query = format!("{} {}", select_clause, where_clause);
+        let where_clause = query_builder::build_where_clause(filter).unwrap_or_default();
+        let query = format!("{select_clause} {where_clause} ORDER BY t.entry, t.id");
         let mut stmt = self.conn.prepare(&query)?;
         let tasks = stmt
             .query_map([], |row| {
