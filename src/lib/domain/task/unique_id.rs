@@ -24,19 +24,28 @@ impl Display for UniqueID {
     }
 }
 
-#[derive(Debug, Error)]
-#[error("Invalid UniqueID length")]
-pub struct UniqueIDLengthError;
+#[derive(Debug, PartialEq, Error)]
+pub enum UniqueIDParseError {
+    #[error("UniqueID must be {ID_LENGTH} characters, got {0}")]
+    InvalidLength(usize),
+    #[error("UniqueID contains invalid character: '{0}'")]
+    InvalidCharacter(char),
+}
 
 impl FromStr for UniqueID {
-    type Err = UniqueIDLengthError;
+    type Err = UniqueIDParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.len() != ID_LENGTH {
-            Err(UniqueIDLengthError)
-        } else {
-            Ok(Self(s.to_string()))
+            return Err(UniqueIDParseError::InvalidLength(s.len()));
         }
+        if let Some(c) = s
+            .chars()
+            .find(|&c| !c.is_ascii_alphanumeric() && c != '_' && c != '-')
+        {
+            return Err(UniqueIDParseError::InvalidCharacter(c));
+        }
+        Ok(Self(s.to_string()))
     }
 }
 
@@ -52,21 +61,39 @@ mod tests {
     }
 
     #[test]
-    fn unique_id_from_str_valid() {
+    fn from_str_valid() {
         let result = "abcdefghijkl".parse::<UniqueID>(); // 12 chars
         assert!(result.is_ok());
         assert_eq!(result.unwrap().to_string(), "abcdefghijkl");
     }
 
     #[test]
-    fn unique_id_from_str_short() {
+    fn from_str_short() {
         let result = "abcdefghijk".parse::<UniqueID>(); // 11 chars
-        assert!(result.is_err());
+        assert_eq!(result, Err(UniqueIDParseError::InvalidLength(11)));
     }
 
     #[test]
-    fn test_unique_id_from_str_long() {
+    fn from_str_long() {
         let result = "abcdefghijklm".parse::<UniqueID>(); // 13 chars
-        assert!(result.is_err());
+        assert_eq!(result, Err(UniqueIDParseError::InvalidLength(13)));
+    }
+
+    #[test]
+    fn from_str_with_underscore_and_hyphen() {
+        let result = "abc_def-ghij".parse::<UniqueID>();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn from_str_with_space() {
+        let result = "abcdef ghijl".parse::<UniqueID>();
+        assert_eq!(result, Err(UniqueIDParseError::InvalidCharacter(' ')));
+    }
+
+    #[test]
+    fn from_str_with_non_ascii() {
+        let result = "abcdefghijk!".parse::<UniqueID>();
+        assert_eq!(result, Err(UniqueIDParseError::InvalidCharacter('!')));
     }
 }
