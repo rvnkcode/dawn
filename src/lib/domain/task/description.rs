@@ -1,6 +1,7 @@
 use std::fmt::{self, Display, Formatter};
 use thiserror::Error;
 
+#[derive(Debug, PartialEq)]
 pub struct Description(String);
 
 #[derive(Debug, Error)]
