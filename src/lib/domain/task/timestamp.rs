@@ -1,5 +1,7 @@
+use std::fmt::{self, Display, Formatter};
 use thiserror::Error;
 
+#[derive(Debug, PartialEq)]
 pub struct Timestamp(i64);
 
 #[derive(Debug, Error)]
@@ -13,6 +15,12 @@ impl Timestamp {
         } else {
             Ok(Self(raw))
         }
+    }
+}
+
+impl Display for Timestamp {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 

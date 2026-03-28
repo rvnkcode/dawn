@@ -1,5 +1,7 @@
+use std::fmt::{self, Display, Formatter};
 use thiserror::Error;
 
+#[derive(Debug, PartialEq)]
 pub struct Index(usize);
 
 #[derive(Debug, Error)]
@@ -16,14 +18,20 @@ impl Index {
     }
 }
 
+impl Display for Index {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn index_new_valid() {
-        let result = Index::new(1);
-        assert!(result.is_ok());
+        let index = Index::new(1).unwrap();
+        assert_eq!(index.to_string(), "1");
     }
 
     #[test]

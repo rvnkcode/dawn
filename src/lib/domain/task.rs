@@ -11,10 +11,12 @@ pub use timestamp::Timestamp;
 pub mod unique_id;
 pub use unique_id::UniqueID;
 
+#[derive(Debug, PartialEq)]
 pub struct TaskCreation {
     pub description: Description,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct Task {
     pub uid: UniqueID,
     pub index: Option<Index>,
@@ -24,6 +26,7 @@ pub struct Task {
     pub deleted: Option<Timestamp>,
 }
 
+#[derive(Eq, PartialEq, Hash)]
 pub enum Status {
     Pending,
     Completed,

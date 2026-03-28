@@ -12,7 +12,7 @@ direction BT
 
     class Index {
       -usize
-      +new() Result~Self, IndexError~
+      +new(raw) Result~Self, IndexError~
     }
 
     class Description {
@@ -22,7 +22,7 @@ direction BT
 
     class Timestamp {
       -i64
-      +new() Result~Self, TimestampError~
+      +new(raw) Result~Self, TimestampError~
     }
 
     class Status {
@@ -33,7 +33,7 @@ direction BT
     }
 
     class Task {
-      +UniqueID id
+      +UniqueID uid
       +Option~Index~ index
       +Description description
       +Timestamp entry
@@ -43,7 +43,7 @@ direction BT
 
     class Filter {
       +HashSet~Status~ statuses
-      +is_empty() bool
+      +is_empty(&self) bool
     }
 
     class TaskCreation {
@@ -58,11 +58,13 @@ direction BT
     class TaskService {
       <<interface>>
       +add(&self, &req)* Result~_~
+      +next(&self)* Result~Vec~Task~~
     }
 
     class TaskRepository {
       <<interface>>
       +create_task(&self, &id, &req)* Result~_~
+      +list_tasks(&self, &filter)* Result~Vec~Task~~
     }
   }
 
@@ -74,11 +76,13 @@ direction BT
   Filter o-- Status
   TaskCreation *-- Description
   Service~R~ ..> UniqueID : generates
+  Service~R~ ..> Filter : determines
   Service~R~ ..|> TaskService : implements
   Service~R~ ..> TaskRepository : where R is TaskRepository
   TaskService ..> TaskCreation : accepts
   TaskRepository ..> UniqueID : accepts
   TaskRepository ..> TaskCreation : accepts
+  TaskRepository ..> Filter : accepts
 
   namespace Outbound {
     class SQLite {
