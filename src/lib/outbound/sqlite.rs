@@ -100,7 +100,7 @@ impl TaskRepository for SQLite {
         let tasks = stmt
             .query_map([], |row| {
                 let id_str: String = row.get(0)?;
-                let row_id: Option<u32> = row.get(1)?;
+                let row_id: Option<i64> = row.get(1)?;
                 let description_str: String = row.get(2)?;
                 let entry: i64 = row.get(3)?;
                 let completed: Option<i64> = row.get(4)?;
