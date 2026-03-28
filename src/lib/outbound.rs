@@ -1,5 +1,5 @@
 #[cfg(feature = "sqlite")]
-pub mod query_builder;
+pub(crate) mod query_builder;
 #[cfg(feature = "sqlite")]
 pub mod sqlite;
 #[cfg(feature = "sqlite")]
