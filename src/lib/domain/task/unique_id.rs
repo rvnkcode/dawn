@@ -92,7 +92,7 @@ mod tests {
     }
 
     #[test]
-    fn from_str_with_non_ascii() {
+    fn from_str_with_disallowed_character() {
         let result = "abcdefghijk!".parse::<UniqueID>();
         assert_eq!(result, Err(UniqueIDParseError::InvalidCharacter('!')));
     }
