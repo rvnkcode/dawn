@@ -8,7 +8,7 @@ use thiserror::Error;
 // 1 ID per second for 309 years = 9B IDs
 const ID_LENGTH: usize = 12;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq)]
 pub struct UniqueID(String);
 
 impl UniqueID {
@@ -24,7 +24,7 @@ impl Display for UniqueID {
     }
 }
 
-#[derive(Debug, PartialEq, Error)]
+#[derive(Debug, Eq, Hash, PartialEq, Error)]
 pub enum UniqueIDParseError {
     #[error("UniqueID must be {ID_LENGTH} characters, got {0}")]
     InvalidLength(usize),
