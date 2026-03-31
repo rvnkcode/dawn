@@ -130,7 +130,6 @@ impl TaskRepository for SQLite {
 mod tests {
     use super::*;
     use crate::domain::task::{Description, Status};
-    use std::collections::HashSet;
 
     // A. Initialize Database
 
@@ -487,9 +486,7 @@ mod tests {
     #[test]
     fn list_tasks_returns_empty_vec_when_no_tasks() {
         let db = setup();
-        let filter = Filter {
-            statuses: HashSet::new(),
-        };
+        let filter = Filter::new();
 
         let tasks = db.list_tasks(&filter).unwrap();
 
@@ -508,9 +505,7 @@ mod tests {
             deleted: None,
         };
         insert_task_from(&db, &expected);
-        let filter = Filter {
-            statuses: HashSet::from([Status::Pending]),
-        };
+        let filter = Filter::new().with_statuses([Status::Pending]);
 
         let tasks = db.list_tasks(&filter).unwrap();
 
@@ -547,9 +542,7 @@ mod tests {
         insert_task_from(&db, &earlier);
         insert_task_from(&db, &first_by_id);
         insert_task_from(&db, &second_by_id);
-        let filter = Filter {
-            statuses: HashSet::new(),
-        };
+        let filter = Filter::new();
 
         let tasks = db.list_tasks(&filter).unwrap();
 
@@ -586,9 +579,7 @@ mod tests {
         insert_task_from(&db, &pending);
         insert_task_from(&db, &completed);
         insert_task_from(&db, &deleted);
-        let filter = Filter {
-            statuses: HashSet::from([Status::Pending]),
-        };
+        let filter = Filter::new().with_statuses([Status::Pending]);
 
         let tasks = db.list_tasks(&filter).unwrap();
 
@@ -625,9 +616,7 @@ mod tests {
         insert_task_from(&db, &pending);
         insert_task_from(&db, &completed);
         insert_task_from(&db, &deleted);
-        let filter = Filter {
-            statuses: HashSet::from([Status::Completed]),
-        };
+        let filter = Filter::new().with_statuses([Status::Completed]);
 
         let tasks = db.list_tasks(&filter).unwrap();
 
@@ -664,9 +653,7 @@ mod tests {
         insert_task_from(&db, &pending);
         insert_task_from(&db, &completed);
         insert_task_from(&db, &deleted);
-        let filter = Filter {
-            statuses: HashSet::from([Status::Deleted]),
-        };
+        let filter = Filter::new().with_statuses([Status::Deleted]);
 
         let tasks = db.list_tasks(&filter).unwrap();
 
@@ -703,9 +690,7 @@ mod tests {
         insert_task_from(&db, &pending);
         insert_task_from(&db, &completed);
         insert_task_from(&db, &deleted);
-        let filter = Filter {
-            statuses: HashSet::new(),
-        };
+        let filter = Filter::new();
 
         let tasks = db.list_tasks(&filter).unwrap();
 
@@ -742,9 +727,7 @@ mod tests {
         insert_task_from(&db, &pending);
         insert_task_from(&db, &completed);
         insert_task_from(&db, &deleted);
-        let filter = Filter {
-            statuses: HashSet::from([Status::Pending, Status::Completed]),
-        };
+        let filter = Filter::new().with_statuses([Status::Pending, Status::Completed]);
 
         let tasks = db.list_tasks(&filter).unwrap();
 
@@ -781,9 +764,8 @@ mod tests {
         insert_task_from(&db, &pending);
         insert_task_from(&db, &completed);
         insert_task_from(&db, &deleted);
-        let filter = Filter {
-            statuses: HashSet::from([Status::Pending, Status::Completed, Status::Deleted]),
-        };
+        let filter =
+            Filter::new().with_statuses([Status::Pending, Status::Completed, Status::Deleted]);
 
         let tasks = db.list_tasks(&filter).unwrap();
 

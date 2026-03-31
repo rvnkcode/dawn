@@ -2,7 +2,6 @@ use crate::domain::task::{
     Filter, Status, Task, TaskCreation, UniqueID,
     port::{TaskRepository, TaskService},
 };
-use std::collections::HashSet;
 
 // Generic type 'R' should implement 'TaskRepository' trait
 pub struct Service<R: TaskRepository> {
@@ -25,8 +24,7 @@ where
     }
 
     fn next(&self) -> anyhow::Result<Vec<Task>> {
-        self.repo.list_tasks(&Filter {
-            statuses: HashSet::from([Status::Pending]),
-        })
+        self.repo
+            .list_tasks(&Filter::new().with_statuses([Status::Pending]))
     }
 }

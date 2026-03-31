@@ -42,7 +42,10 @@ direction BT
     }
 
     class Filter {
-      +HashSet~Status~ statuses
+      -HashSet~Status~ statuses
+      +new() Self
+      +with_statuses(self, impl IntoIterator) Self
+      +statuses(&self) &HashSet~Status~
       +is_empty(&self) bool
     }
 
