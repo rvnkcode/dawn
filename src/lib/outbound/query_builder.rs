@@ -57,7 +57,6 @@ fn build_status_clause(filter: &Filter) -> Option<String> {
 
 // ref: https://docs.rs/rusqlite/latest/rusqlite/struct.ParamsFromIter.html#realistic-use-case
 fn repeat_vars(count: usize) -> String {
-    assert_ne!(count, 0);
     std::iter::repeat_n("?", count)
         .collect::<Vec<_>>()
         .join(",")
