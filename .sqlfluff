@@ -1,5 +1,0 @@
-[sqlfluff]
-dialect = sqlite
-
-[sqlfluff:rules:convention.terminator]
-multiline_newline = False
