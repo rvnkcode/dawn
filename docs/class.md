@@ -13,6 +13,7 @@ direction BT
     class Index {
       -usize
       +new(raw) Result~Self, IndexError~
+      +get(&self) usize
     }
 
     class Description {
