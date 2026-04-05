@@ -5,13 +5,13 @@ use thiserror::Error;
 pub struct Index(usize);
 
 #[derive(Debug, Error)]
-#[error("Invalid range")]
-pub struct IndexError;
+#[error("Index must be >= 1, got {0}")]
+pub struct IndexError(usize);
 
 impl Index {
     pub fn new(raw: usize) -> Result<Self, IndexError> {
         if raw < 1 {
-            Err(IndexError)
+            Err(IndexError(raw))
         } else {
             Ok(Self(raw))
         }
