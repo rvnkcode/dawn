@@ -36,7 +36,7 @@ fn build_id_clause(filter: &Filter) -> Option<(String, Vec<Box<dyn ToSql>>)> {
     let index_clause = (!indices.is_empty()).then(|| {
         let params: Vec<Box<dyn ToSql>> = indices
             .iter()
-            .map(|index| Box::new(index.get() as isize) as Box<dyn ToSql>)
+            .map(|index| Box::new(index.get() as i64) as Box<dyn ToSql>)
             .collect();
         (
             format!("tpr.row_id IN ({})", repeat_vars(indices.len())),
