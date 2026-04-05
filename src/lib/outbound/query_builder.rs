@@ -1,15 +1,18 @@
 use crate::domain::task::{Filter, Status};
+use anyhow::Context;
 use rusqlite::ToSql;
 
 const ALL_STATUSES: usize = 3;
 
-pub(crate) fn build_where_clause(filter: &Filter) -> Option<(String, Vec<Box<dyn ToSql>>)> {
+type Clause = (String, Vec<Box<dyn ToSql>>);
+
+pub(crate) fn build_where_clause(filter: &Filter) -> anyhow::Result<Option<Clause>> {
     if filter.is_empty() {
-        return None;
+        return Ok(None);
     }
     let mut clauses = Vec::new();
     let mut params = Vec::new();
-    if let Some((id_clause, id_params)) = build_id_clause(filter) {
+    if let Some((id_clause, id_params)) = build_id_clause(filter)? {
         clauses.push(id_clause);
         params.extend(id_params);
     }
@@ -17,13 +20,13 @@ pub(crate) fn build_where_clause(filter: &Filter) -> Option<(String, Vec<Box<dyn
         clauses.push(status_clause);
     }
     if clauses.is_empty() {
-        None
+        Ok(None)
     } else {
-        Some((format!("WHERE {}", clauses.join(" AND ")), params))
+        Ok(Some((format!("WHERE {}", clauses.join(" AND ")), params)))
     }
 }
 
-fn build_id_clause(filter: &Filter) -> Option<(String, Vec<Box<dyn ToSql>>)> {
+fn build_id_clause(filter: &Filter) -> anyhow::Result<Option<Clause>> {
     let uids = filter.uids();
     let uid_clause = (!uids.is_empty()).then(|| {
         let params: Vec<Box<dyn ToSql>> = uids
@@ -33,24 +36,27 @@ fn build_id_clause(filter: &Filter) -> Option<(String, Vec<Box<dyn ToSql>>)> {
         (format!("t.id IN ({})", repeat_vars(uids.len())), params)
     });
     let indices = filter.indices();
-    let index_clause = (!indices.is_empty()).then(|| {
-        let params: Vec<Box<dyn ToSql>> = indices
-            .iter()
-            .map(|index| Box::new(index.get() as i64) as Box<dyn ToSql>)
-            .collect();
-        (
-            format!("tpr.row_id IN ({})", repeat_vars(indices.len())),
-            params,
-        )
-    });
-    match (uid_clause, index_clause) {
+    let index_clause = (!indices.is_empty())
+        .then(|| -> anyhow::Result<Clause> {
+            let params: Vec<Box<dyn ToSql>> = indices
+                .iter()
+                .map(|index| i64::try_from(index.get()).map(|v| Box::new(v) as Box<dyn ToSql>))
+                .collect::<Result<_, _>>()
+                .context("task index exceeds i64 range")?;
+            Ok((
+                format!("tpr.row_id IN ({})", repeat_vars(indices.len())),
+                params,
+            ))
+        })
+        .transpose()?;
+    Ok(match (uid_clause, index_clause) {
         (None, None) => None,
         (Some(single), None) | (None, Some(single)) => Some(single),
         (Some((uid_cl, uid_params)), Some((idx_cl, idx_params))) => Some((
             format!("({uid_cl} OR {idx_cl})"),
             uid_params.into_iter().chain(idx_params).collect(),
         )),
-    }
+    })
 }
 
 fn build_status_clause(filter: &Filter) -> Option<String> {
@@ -89,7 +95,7 @@ mod tests {
     fn build_where_clause_with_empty_filter() {
         let filter = Filter::new();
 
-        assert!(build_where_clause(&filter).is_none());
+        assert!(build_where_clause(&filter).unwrap().is_none());
     }
 
     // filter.statuses
@@ -98,7 +104,7 @@ mod tests {
     fn build_where_clause_with_pending_only() {
         let filter = Filter::new().with_statuses([Status::Pending]);
 
-        let (clause, params) = build_where_clause(&filter).unwrap();
+        let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
         assert_eq!(clause, "WHERE (t.deleted IS NULL AND t.completed IS NULL)");
         assert!(params.is_empty());
     }
@@ -107,7 +113,7 @@ mod tests {
     fn build_where_clause_with_completed_only() {
         let filter = Filter::new().with_statuses([Status::Completed]);
 
-        let (clause, params) = build_where_clause(&filter).unwrap();
+        let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
         assert_eq!(
             clause,
             "WHERE (t.deleted IS NULL AND t.completed IS NOT NULL)"
@@ -119,7 +125,7 @@ mod tests {
     fn build_where_clause_with_deleted_only() {
         let filter = Filter::new().with_statuses([Status::Deleted]);
 
-        let (clause, params) = build_where_clause(&filter).unwrap();
+        let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
         assert_eq!(clause, "WHERE (t.deleted IS NOT NULL)");
         assert!(params.is_empty());
     }
@@ -128,7 +134,7 @@ mod tests {
     fn build_where_clause_with_two_statuses() {
         let filter = Filter::new().with_statuses([Status::Pending, Status::Completed]);
 
-        let (clause, params) = build_where_clause(&filter).unwrap();
+        let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
         assert!(clause.starts_with("WHERE "));
         assert!(clause.contains(" OR "));
         assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
@@ -141,7 +147,7 @@ mod tests {
         let filter =
             Filter::new().with_statuses([Status::Pending, Status::Completed, Status::Deleted]);
 
-        assert!(build_where_clause(&filter).is_none());
+        assert!(build_where_clause(&filter).unwrap().is_none());
     }
 
     #[test]
@@ -163,7 +169,7 @@ mod tests {
         let uid = UniqueID::new();
         let filter = Filter::new().with_uids([uid]);
 
-        let (clause, params) = build_where_clause(&filter).unwrap();
+        let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
         assert_eq!(clause, "WHERE t.id IN (?)");
         assert_eq!(params.len(), 1);
     }
@@ -176,7 +182,7 @@ mod tests {
         let uid2 = UniqueID::new();
         let filter = Filter::new().with_uids([uid1, uid2]);
 
-        let (clause, params) = build_where_clause(&filter).unwrap();
+        let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
         assert_eq!(clause, "WHERE t.id IN (?,?)");
         assert_eq!(params.len(), 2);
     }
@@ -189,7 +195,7 @@ mod tests {
 
         let filter = Filter::new().with_indices([Index::new(1).unwrap()]);
 
-        let (clause, params) = build_where_clause(&filter).unwrap();
+        let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
         assert_eq!(clause, "WHERE tpr.row_id IN (?)");
         assert_eq!(params.len(), 1);
     }
@@ -200,7 +206,7 @@ mod tests {
 
         let filter = Filter::new().with_indices([Index::new(1).unwrap(), Index::new(2).unwrap()]);
 
-        let (clause, params) = build_where_clause(&filter).unwrap();
+        let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
         assert_eq!(clause, "WHERE tpr.row_id IN (?,?)");
         assert_eq!(params.len(), 2);
     }
@@ -216,7 +222,7 @@ mod tests {
             .with_uids([uid])
             .with_indices([Index::new(1).unwrap()]);
 
-        let (clause, params) = build_where_clause(&filter).unwrap();
+        let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
         assert_eq!(clause, "WHERE (t.id IN (?) OR tpr.row_id IN (?))");
         assert_eq!(params.len(), 2);
     }
@@ -231,7 +237,7 @@ mod tests {
             .with_indices([Index::new(1).unwrap()])
             .with_statuses([Status::Pending]);
 
-        let (clause, params) = build_where_clause(&filter).unwrap();
+        let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
         assert!(clause.starts_with("WHERE "));
         assert!(clause.contains("(t.id IN (?) OR tpr.row_id IN (?))"));
         assert!(clause.contains(" AND "));
@@ -250,7 +256,7 @@ mod tests {
             .with_uids([uid])
             .with_statuses([Status::Pending]);
 
-        let (clause, params) = build_where_clause(&filter).unwrap();
+        let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
         assert!(clause.starts_with("WHERE "));
         assert!(clause.contains("t.id IN (?)"));
         assert!(clause.contains(" AND "));
