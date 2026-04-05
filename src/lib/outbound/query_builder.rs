@@ -25,13 +25,32 @@ pub(crate) fn build_where_clause(filter: &Filter) -> Option<(String, Vec<Box<dyn
 
 fn build_id_clause(filter: &Filter) -> Option<(String, Vec<Box<dyn ToSql>>)> {
     let uids = filter.uids();
-    (!uids.is_empty()).then(|| {
+    let uid_clause = (!uids.is_empty()).then(|| {
         let params: Vec<Box<dyn ToSql>> = uids
             .iter()
             .map(|uid| Box::new(uid.to_string()) as Box<dyn ToSql>)
             .collect();
         (format!("t.id IN ({})", repeat_vars(uids.len())), params)
-    })
+    });
+    let indices = filter.indices();
+    let index_clause = (!indices.is_empty()).then(|| {
+        let params: Vec<Box<dyn ToSql>> = indices
+            .iter()
+            .map(|index| Box::new(index.get() as isize) as Box<dyn ToSql>)
+            .collect();
+        (
+            format!("tpr.row_id IN ({})", repeat_vars(indices.len())),
+            params,
+        )
+    });
+    match (uid_clause, index_clause) {
+        (None, None) => None,
+        (Some(single), None) | (None, Some(single)) => Some(single),
+        (Some((uid_cl, uid_params)), Some((idx_cl, idx_params))) => Some((
+            format!("({uid_cl} OR {idx_cl})"),
+            uid_params.into_iter().chain(idx_params).collect(),
+        )),
+    }
 }
 
 fn build_status_clause(filter: &Filter) -> Option<String> {
@@ -161,6 +180,66 @@ mod tests {
         assert_eq!(clause, "WHERE t.id IN (?,?)");
         assert_eq!(params.len(), 2);
     }
+
+    // filter.indices
+
+    #[test]
+    fn build_where_clause_with_single_index() {
+        use crate::domain::task::Index;
+
+        let filter = Filter::new().with_indices([Index::new(1).unwrap()]);
+
+        let (clause, params) = build_where_clause(&filter).unwrap();
+        assert_eq!(clause, "WHERE tpr.row_id IN (?)");
+        assert_eq!(params.len(), 1);
+    }
+
+    #[test]
+    fn build_where_clause_with_multiple_indices() {
+        use crate::domain::task::Index;
+
+        let filter = Filter::new().with_indices([Index::new(1).unwrap(), Index::new(2).unwrap()]);
+
+        let (clause, params) = build_where_clause(&filter).unwrap();
+        assert_eq!(clause, "WHERE tpr.row_id IN (?,?)");
+        assert_eq!(params.len(), 2);
+    }
+
+    // filter.uids + filter.indices
+
+    #[test]
+    fn build_where_clause_with_uid_and_index() {
+        use crate::domain::task::{Index, UniqueID};
+
+        let uid = UniqueID::new();
+        let filter = Filter::new()
+            .with_uids([uid])
+            .with_indices([Index::new(1).unwrap()]);
+
+        let (clause, params) = build_where_clause(&filter).unwrap();
+        assert_eq!(clause, "WHERE (t.id IN (?) OR tpr.row_id IN (?))");
+        assert_eq!(params.len(), 2);
+    }
+
+    #[test]
+    fn build_where_clause_with_uid_and_index_and_status() {
+        use crate::domain::task::{Index, UniqueID};
+
+        let uid = UniqueID::new();
+        let filter = Filter::new()
+            .with_uids([uid])
+            .with_indices([Index::new(1).unwrap()])
+            .with_statuses([Status::Pending]);
+
+        let (clause, params) = build_where_clause(&filter).unwrap();
+        assert!(clause.starts_with("WHERE "));
+        assert!(clause.contains("(t.id IN (?) OR tpr.row_id IN (?))"));
+        assert!(clause.contains(" AND "));
+        assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
+        assert_eq!(params.len(), 2);
+    }
+
+    // filter.uids + filter.statuses
 
     #[test]
     fn build_where_clause_with_uid_and_status() {

@@ -894,6 +894,231 @@ mod tests {
         assert_eq!(tasks, vec![pending]);
     }
 
+    // H. Filter by Index
+
+    #[test]
+    fn list_tasks_filter_single_index() {
+        let db = setup();
+        let target = Task {
+            uid: "test_wwwww01".parse().unwrap(),
+            index: Some(Index::new(1).unwrap()),
+            description: Description::new("target").unwrap(),
+            entry: Timestamp::new(1000).unwrap(),
+            completed: None,
+            deleted: None,
+        };
+        let other = Task {
+            uid: "test_wwwww02".parse().unwrap(),
+            index: Some(Index::new(2).unwrap()),
+            description: Description::new("other").unwrap(),
+            entry: Timestamp::new(2000).unwrap(),
+            completed: None,
+            deleted: None,
+        };
+        insert_task_from(&db, &target);
+        insert_task_from(&db, &other);
+        let filter = Filter::new().with_indices([Index::new(1).unwrap()]);
+
+        let tasks = db.list_tasks(&filter).unwrap();
+
+        assert_eq!(tasks, vec![target]);
+    }
+
+    #[test]
+    fn list_tasks_filter_multiple_indices() {
+        let db = setup();
+        let first = Task {
+            uid: "test_xxxxx01".parse().unwrap(),
+            index: Some(Index::new(1).unwrap()),
+            description: Description::new("first").unwrap(),
+            entry: Timestamp::new(1000).unwrap(),
+            completed: None,
+            deleted: None,
+        };
+        let second = Task {
+            uid: "test_xxxxx02".parse().unwrap(),
+            index: Some(Index::new(2).unwrap()),
+            description: Description::new("second").unwrap(),
+            entry: Timestamp::new(2000).unwrap(),
+            completed: None,
+            deleted: None,
+        };
+        let excluded = Task {
+            uid: "test_xxxxx03".parse().unwrap(),
+            index: Some(Index::new(3).unwrap()),
+            description: Description::new("excluded").unwrap(),
+            entry: Timestamp::new(3000).unwrap(),
+            completed: None,
+            deleted: None,
+        };
+        insert_task_from(&db, &first);
+        insert_task_from(&db, &second);
+        insert_task_from(&db, &excluded);
+        let filter = Filter::new().with_indices([Index::new(1).unwrap(), Index::new(2).unwrap()]);
+
+        let tasks = db.list_tasks(&filter).unwrap();
+
+        assert_eq!(tasks, vec![first, second]);
+    }
+
+    #[test]
+    fn list_tasks_filter_index_with_status() {
+        let db = setup();
+        let pending = Task {
+            uid: "test_yyyyy01".parse().unwrap(),
+            index: Some(Index::new(1).unwrap()),
+            description: Description::new("pending").unwrap(),
+            entry: Timestamp::new(1000).unwrap(),
+            completed: None,
+            deleted: None,
+        };
+        let completed = Task {
+            uid: "test_yyyyy02".parse().unwrap(),
+            index: None,
+            description: Description::new("completed").unwrap(),
+            entry: Timestamp::new(2000).unwrap(),
+            completed: Some(Timestamp::new(3000).unwrap()),
+            deleted: None,
+        };
+        insert_task_from(&db, &pending);
+        insert_task_from(&db, &completed);
+        let filter = Filter::new()
+            .with_indices([Index::new(1).unwrap()])
+            .with_statuses([Status::Pending]);
+
+        let tasks = db.list_tasks(&filter).unwrap();
+
+        assert_eq!(tasks, vec![pending]);
+    }
+
+    #[test]
+    fn list_tasks_filter_index_with_completed_returns_empty() {
+        let db = setup();
+        insert_task_from(
+            &db,
+            &Task {
+                uid: "test_yyyzz01".parse().unwrap(),
+                index: None,
+                description: Description::new("completed").unwrap(),
+                entry: Timestamp::new(1000).unwrap(),
+                completed: Some(Timestamp::new(2000).unwrap()),
+                deleted: None,
+            },
+        );
+        insert_task_from(
+            &db,
+            &Task {
+                uid: "test_yyyzz02".parse().unwrap(),
+                index: Some(Index::new(1).unwrap()),
+                description: Description::new("pending").unwrap(),
+                entry: Timestamp::new(3000).unwrap(),
+                completed: None,
+                deleted: None,
+            },
+        );
+        let filter = Filter::new()
+            .with_indices([Index::new(1).unwrap()])
+            .with_statuses([Status::Completed]);
+
+        let tasks = db.list_tasks(&filter).unwrap();
+
+        assert!(tasks.is_empty());
+    }
+
+    #[test]
+    fn list_tasks_filter_index_with_deleted_returns_empty() {
+        let db = setup();
+        insert_task_from(
+            &db,
+            &Task {
+                uid: "test_yyyzz03".parse().unwrap(),
+                index: None,
+                description: Description::new("deleted").unwrap(),
+                entry: Timestamp::new(1000).unwrap(),
+                completed: None,
+                deleted: Some(Timestamp::new(2000).unwrap()),
+            },
+        );
+        insert_task_from(
+            &db,
+            &Task {
+                uid: "test_yyyzz04".parse().unwrap(),
+                index: Some(Index::new(1).unwrap()),
+                description: Description::new("pending").unwrap(),
+                entry: Timestamp::new(3000).unwrap(),
+                completed: None,
+                deleted: None,
+            },
+        );
+        let filter = Filter::new()
+            .with_indices([Index::new(1).unwrap()])
+            .with_statuses([Status::Deleted]);
+
+        let tasks = db.list_tasks(&filter).unwrap();
+
+        assert!(tasks.is_empty());
+    }
+
+    #[test]
+    fn list_tasks_filter_nonexistent_index() {
+        let db = setup();
+        let task = Task {
+            uid: "test_zzzzz01".parse().unwrap(),
+            index: Some(Index::new(1).unwrap()),
+            description: Description::new("existing").unwrap(),
+            entry: Timestamp::new(1000).unwrap(),
+            completed: None,
+            deleted: None,
+        };
+        insert_task_from(&db, &task);
+        let filter = Filter::new().with_indices([Index::new(99).unwrap()]);
+
+        let tasks = db.list_tasks(&filter).unwrap();
+
+        assert!(tasks.is_empty());
+    }
+
+    // I. Filter by UID + Index
+
+    #[test]
+    fn list_tasks_filter_uid_and_index() {
+        let db = setup();
+        let by_uid = Task {
+            uid: "test_aaaab01".parse().unwrap(),
+            index: Some(Index::new(1).unwrap()),
+            description: Description::new("matched by uid").unwrap(),
+            entry: Timestamp::new(1000).unwrap(),
+            completed: None,
+            deleted: None,
+        };
+        let by_index = Task {
+            uid: "test_aaaab02".parse().unwrap(),
+            index: Some(Index::new(2).unwrap()),
+            description: Description::new("matched by index").unwrap(),
+            entry: Timestamp::new(2000).unwrap(),
+            completed: None,
+            deleted: None,
+        };
+        let excluded = Task {
+            uid: "test_aaaab03".parse().unwrap(),
+            index: Some(Index::new(3).unwrap()),
+            description: Description::new("excluded").unwrap(),
+            entry: Timestamp::new(3000).unwrap(),
+            completed: None,
+            deleted: None,
+        };
+        insert_task_from(&db, &by_uid);
+        insert_task_from(&db, &by_index);
+        insert_task_from(&db, &excluded);
+        let filter = Filter::new()
+            .with_uids(["test_aaaab01".parse::<UniqueID>().unwrap()])
+            .with_indices([Index::new(2).unwrap()]);
+
+        let tasks = db.list_tasks(&filter).unwrap();
+
+        assert_eq!(tasks, vec![by_uid, by_index]);
+    }
+
     #[test]
     fn list_tasks_filter_nonexistent_uid() {
         let db = setup();
