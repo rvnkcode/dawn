@@ -43,11 +43,14 @@ direction BT
 
     class Filter {
       -HashSet~UniqueID~ uids
+      -HashSet~Index~ indices
       -HashSet~Status~ statuses
       +new() Self
-      +with_uids(self, impl IntoIterator) Self
-      +with_statuses(self, impl IntoIterator) Self
+      +with_uids(self, uids) Self
+      +with_indices(self, indices) Self
+      +with_statuses(self, statuses) Self
       +uids(&self) &HashSet~UniqueID~
+      +indices(&self) &HashSet~Index~
       +statuses(&self) &HashSet~Status~
       +is_empty(&self) bool
     }
@@ -80,6 +83,7 @@ direction BT
   Task *-- Timestamp
   Task o-- Timestamp
   Filter o-- UniqueID
+  Filter o-- Index
   Filter o-- Status
   TaskCreation *-- Description
   Service~R~ ..> UniqueID : generates

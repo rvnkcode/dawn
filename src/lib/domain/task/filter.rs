@@ -1,9 +1,10 @@
-use crate::domain::task::{Status, UniqueID};
+use crate::domain::task::{Index, Status, UniqueID};
 use std::collections::HashSet;
 
 #[derive(Default)]
 pub struct Filter {
     uids: HashSet<UniqueID>,
+    indices: HashSet<Index>,
     statuses: HashSet<Status>,
 }
 
@@ -19,6 +20,13 @@ impl Filter {
         }
     }
 
+    pub fn with_indices(self, indices: impl IntoIterator<Item = Index>) -> Self {
+        Self {
+            indices: indices.into_iter().collect(),
+            ..self
+        }
+    }
+
     pub fn with_statuses(self, statuses: impl IntoIterator<Item = Status>) -> Self {
         Self {
             statuses: statuses.into_iter().collect(),
@@ -30,12 +38,16 @@ impl Filter {
         &self.uids
     }
 
+    pub fn indices(&self) -> &HashSet<Index> {
+        &self.indices
+    }
+
     pub fn statuses(&self) -> &HashSet<Status> {
         &self.statuses
     }
 
     pub fn is_empty(&self) -> bool {
-        self.uids.is_empty() && self.statuses.is_empty()
+        self.uids.is_empty() && self.indices.is_empty() && self.statuses.is_empty()
     }
 }
 
@@ -75,6 +87,29 @@ mod tests {
         assert_eq!(filter.uids().len(), 1);
     }
 
+    // Indices
+
+    #[test]
+    fn with_indices_single() {
+        let filter = Filter::new().with_indices([Index::new(1).unwrap()]);
+        assert_eq!(filter.indices().len(), 1);
+        assert!(filter.indices().contains(&Index::new(1).unwrap()));
+    }
+
+    #[test]
+    fn with_indices_multiple() {
+        let filter = Filter::new().with_indices([Index::new(1).unwrap(), Index::new(2).unwrap()]);
+        assert_eq!(filter.indices().len(), 2);
+        assert!(filter.indices().contains(&Index::new(1).unwrap()));
+        assert!(filter.indices().contains(&Index::new(2).unwrap()));
+    }
+
+    #[test]
+    fn with_indices_deduplicates() {
+        let filter = Filter::new().with_indices([Index::new(1).unwrap(), Index::new(1).unwrap()]);
+        assert_eq!(filter.indices().len(), 1);
+    }
+
     // Statuses
 
     #[test]
@@ -107,16 +142,23 @@ mod tests {
     }
 
     #[test]
+    fn is_empty_with_indices_only() {
+        let filter = Filter::new().with_indices([Index::new(1).unwrap()]);
+        assert!(!filter.is_empty());
+    }
+
+    #[test]
     fn is_empty_with_statuses_only() {
         let filter = Filter::new().with_statuses([Status::Pending]);
         assert!(!filter.is_empty());
     }
 
     #[test]
-    fn is_empty_with_both() {
+    fn is_empty_with_all() {
         let filter = Filter::new()
             .with_uids([uid("abcdefghijkl")])
-            .with_statuses([Status::Pending]);
+            .with_statuses([Status::Pending])
+            .with_indices([Index::new(1).unwrap()]);
         assert!(!filter.is_empty());
     }
 
@@ -129,6 +171,15 @@ mod tests {
             .with_uids([uid("mnopqrstuvwx")]);
         assert_eq!(filter.uids().len(), 1);
         assert!(filter.uids().contains(&uid("mnopqrstuvwx")));
+    }
+
+    #[test]
+    fn with_indices_last_call_wins() {
+        let filter = Filter::new()
+            .with_indices([Index::new(1).unwrap()])
+            .with_indices([Index::new(2).unwrap()]);
+        assert_eq!(filter.indices().len(), 1);
+        assert!(filter.indices().contains(&Index::new(2).unwrap()));
     }
 
     #[test]
