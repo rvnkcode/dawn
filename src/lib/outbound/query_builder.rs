@@ -90,6 +90,19 @@ fn repeat_vars(count: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rusqlite::types::{ToSqlOutput, Value, ValueRef};
+
+    fn to_value(param: &dyn ToSql) -> Value {
+        match param.to_sql().unwrap() {
+            ToSqlOutput::Owned(value) => value,
+            ToSqlOutput::Borrowed(ValueRef::Text(s)) => {
+                Value::Text(std::str::from_utf8(s).unwrap().to_string())
+            }
+            ToSqlOutput::Borrowed(ValueRef::Integer(i)) => Value::Integer(i),
+            ToSqlOutput::Borrowed(ValueRef::Null) => Value::Null,
+            other => panic!("unexpected: {other:?}"),
+        }
+    }
 
     #[test]
     fn build_where_clause_with_empty_filter() {
@@ -167,11 +180,13 @@ mod tests {
         use crate::domain::task::UniqueID;
 
         let uid = UniqueID::new();
+        let uid_str = uid.to_string();
         let filter = Filter::new().with_uids([uid]);
 
         let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
         assert_eq!(clause, "WHERE t.id IN (?)");
         assert_eq!(params.len(), 1);
+        assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
     }
 
     #[test]
@@ -180,11 +195,16 @@ mod tests {
 
         let uid1 = UniqueID::new();
         let uid2 = UniqueID::new();
+        let uid1_str = uid1.to_string();
+        let uid2_str = uid2.to_string();
         let filter = Filter::new().with_uids([uid1, uid2]);
 
         let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
         assert_eq!(clause, "WHERE t.id IN (?,?)");
         assert_eq!(params.len(), 2);
+        let values: Vec<Value> = params.iter().map(|p| to_value(p.as_ref())).collect();
+        assert!(values.contains(&Value::Text(uid1_str)));
+        assert!(values.contains(&Value::Text(uid2_str)));
     }
 
     // filter.indices
@@ -198,6 +218,7 @@ mod tests {
         let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
         assert_eq!(clause, "WHERE tpr.row_id IN (?)");
         assert_eq!(params.len(), 1);
+        assert_eq!(to_value(params[0].as_ref()), Value::Integer(1));
     }
 
     #[test]
@@ -209,6 +230,9 @@ mod tests {
         let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
         assert_eq!(clause, "WHERE tpr.row_id IN (?,?)");
         assert_eq!(params.len(), 2);
+        let values: Vec<Value> = params.iter().map(|p| to_value(p.as_ref())).collect();
+        assert!(values.contains(&Value::Integer(1)));
+        assert!(values.contains(&Value::Integer(2)));
     }
 
     // filter.uids + filter.indices
@@ -218,6 +242,7 @@ mod tests {
         use crate::domain::task::{Index, UniqueID};
 
         let uid = UniqueID::new();
+        let uid_str = uid.to_string();
         let filter = Filter::new()
             .with_uids([uid])
             .with_indices([Index::new(1).unwrap()]);
@@ -225,6 +250,8 @@ mod tests {
         let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
         assert_eq!(clause, "WHERE (t.id IN (?) OR tpr.row_id IN (?))");
         assert_eq!(params.len(), 2);
+        assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
+        assert_eq!(to_value(params[1].as_ref()), Value::Integer(1));
     }
 
     #[test]
@@ -232,6 +259,7 @@ mod tests {
         use crate::domain::task::{Index, UniqueID};
 
         let uid = UniqueID::new();
+        let uid_str = uid.to_string();
         let filter = Filter::new()
             .with_uids([uid])
             .with_indices([Index::new(1).unwrap()])
@@ -243,6 +271,8 @@ mod tests {
         assert!(clause.contains(" AND "));
         assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
         assert_eq!(params.len(), 2);
+        assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
+        assert_eq!(to_value(params[1].as_ref()), Value::Integer(1));
     }
 
     // filter.uids + filter.statuses
@@ -252,6 +282,7 @@ mod tests {
         use crate::domain::task::UniqueID;
 
         let uid = UniqueID::new();
+        let uid_str = uid.to_string();
         let filter = Filter::new()
             .with_uids([uid])
             .with_statuses([Status::Pending]);
@@ -262,5 +293,7 @@ mod tests {
         assert!(clause.contains(" AND "));
         assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
         assert_eq!(params.len(), 1);
+        assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
+    }
     }
 }
