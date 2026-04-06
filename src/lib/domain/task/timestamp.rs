@@ -16,6 +16,10 @@ impl Timestamp {
             Ok(Self(raw))
         }
     }
+
+    pub fn get(&self) -> i64 {
+        self.0
+    }
 }
 
 impl Display for Timestamp {
