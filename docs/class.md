@@ -76,6 +76,7 @@ direction BT
       <<interface>>
       +add(&self, &req)* Result~_~
       +next(&self)* Result~Vec~Task~~
+      +modify(&self, modification, &targets)* Result~_~
     }
 
     class TaskRepository {
@@ -102,6 +103,7 @@ direction BT
   Service~R~ ..|> TaskService : implements
   Service~R~ ..> TaskRepository : where R is TaskRepository
   TaskService ..> TaskCreation : accepts
+  TaskService ..> TaskModification : accepts
   TaskService ..> Task : returns
   TaskRepository ..> UniqueID : accepts
   TaskRepository ..> TaskCreation : accepts
