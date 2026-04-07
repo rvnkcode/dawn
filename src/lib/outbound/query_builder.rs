@@ -1,6 +1,7 @@
 use crate::domain::task::{Filter, Status, TaskModification, Timestamp, UniqueID};
 use anyhow::Context;
 use rusqlite::ToSql;
+use rusqlite::types::ToSqlOutput;
 
 const ALL_STATUSES: usize = 3;
 
@@ -101,10 +102,10 @@ pub(crate) fn build_update_clause(
         }),
         modification
             .completed
-            .map(|c| timestamp_set_entry("completed", c)),
+            .map(|c| ("completed = ?".to_string(), Box::new(c) as Box<dyn ToSql>)),
         modification
             .deleted
-            .map(|d| timestamp_set_entry("deleted", d)),
+            .map(|d| ("deleted = ?".to_string(), Box::new(d) as Box<dyn ToSql>)),
     ]
     .into_iter()
     .flatten()
@@ -117,8 +118,7 @@ pub(crate) fn build_update_clause(
         .chain(
             targets
                 .iter()
-                .map(|uid| Box::new(uid.to_string()) as Box<dyn ToSql>)
-                .collect::<Vec<Box<dyn ToSql>>>(),
+                .map(|uid| Box::new(uid.to_string()) as Box<dyn ToSql>),
         )
         .collect();
 
@@ -131,12 +131,10 @@ pub(crate) fn build_update_clause(
     Ok((clause, params))
 }
 
-fn timestamp_set_entry(column: &str, value: Option<Timestamp>) -> (String, Box<dyn ToSql>) {
-    let sql_value = value.map(|t| t.get());
-    (
-        format!("{column} = ?"),
-        Box::new(sql_value) as Box<dyn ToSql>,
-    )
+impl ToSql for Timestamp {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        Ok(ToSqlOutput::from(self.0))
+    }
 }
 
 // ref: https://docs.rs/rusqlite/latest/rusqlite/struct.ParamsFromIter.html#realistic-use-case
