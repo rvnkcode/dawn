@@ -60,6 +60,13 @@ direction BT
       +Description description
     }
 
+    class TaskModification {
+      +Option~Description~ description
+      +Option~Option~Timestamp~~ completed
+      +Option~Option~Timestamp~~ deleted
+      +is_empty(&self) bool
+    }
+
     class Service~R~ {
       -R repo
       +new(repo) Self
@@ -75,6 +82,7 @@ direction BT
       <<interface>>
       +create_task(&self, &id, &req)* Result~_~
       +list_tasks(&self, &filter)* Result~Vec~Task~~
+      +update_tasks(&self, modification, &targets)* Result~_~
     }
   }
 
@@ -87,14 +95,19 @@ direction BT
   Filter o-- Index
   Filter o-- Status
   TaskCreation *-- Description
+  TaskModification o-- Description
+  TaskModification o-- Timestamp
   Service~R~ ..> UniqueID : generates
   Service~R~ ..> Filter : determines
   Service~R~ ..|> TaskService : implements
   Service~R~ ..> TaskRepository : where R is TaskRepository
   TaskService ..> TaskCreation : accepts
+  TaskService ..> Task : returns
   TaskRepository ..> UniqueID : accepts
   TaskRepository ..> TaskCreation : accepts
+  TaskRepository ..> TaskModification : accepts
   TaskRepository ..> Filter : accepts
+  TaskRepository ..> Task : returns
 
   namespace Outbound {
     class SQLite {
