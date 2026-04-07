@@ -28,7 +28,7 @@ where
             .list_tasks(&Filter::new().with_statuses([Status::Pending]))
     }
 
-    fn modify(&self, modification: TaskModification, targets: &[&UniqueID]) -> anyhow::Result<()> {
+    fn modify(&self, modification: &TaskModification, targets: &[UniqueID]) -> anyhow::Result<()> {
         self.repo.update_tasks(modification, targets)
     }
 }

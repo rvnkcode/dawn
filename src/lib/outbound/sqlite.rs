@@ -129,8 +129,8 @@ impl TaskRepository for SQLite {
 
     fn update_tasks(
         &self,
-        modification: TaskModification,
-        targets: &[&UniqueID],
+        modification: &TaskModification,
+        targets: &[UniqueID],
     ) -> anyhow::Result<()> {
         let (query, params) = query_builder::build_update_clause(modification, targets)?;
         self.conn.execute(&query, params_from_iter(params.iter()))?;
@@ -1163,7 +1163,7 @@ mod tests {
             completed: None,
             deleted: None,
         };
-        db.update_tasks(modification, &[&id]).unwrap();
+        db.update_tasks(&modification, &[id]).unwrap();
 
         let tasks = db.list_tasks(&Filter::new()).unwrap();
         assert_eq!(tasks[0].description, Description::new("updated").unwrap());
@@ -1180,7 +1180,7 @@ mod tests {
             completed: Some(Some(Timestamp::new(1700000000).unwrap())),
             deleted: None,
         };
-        db.update_tasks(modification, &[&id]).unwrap();
+        db.update_tasks(&modification, &[id]).unwrap();
 
         let tasks = db
             .list_tasks(&Filter::new().with_statuses([Status::Completed]))
@@ -1209,7 +1209,7 @@ mod tests {
             completed: Some(None),
             deleted: None,
         };
-        db.update_tasks(modification, &[&id]).unwrap();
+        db.update_tasks(&modification, &[id]).unwrap();
 
         let tasks = db
             .list_tasks(&Filter::new().with_statuses([Status::Pending]))
@@ -1229,7 +1229,7 @@ mod tests {
             completed: None,
             deleted: Some(Some(Timestamp::new(1700000000).unwrap())),
         };
-        db.update_tasks(modification, &[&id]).unwrap();
+        db.update_tasks(&modification, &[id]).unwrap();
 
         let tasks = db
             .list_tasks(&Filter::new().with_statuses([Status::Deleted]))
@@ -1255,7 +1255,7 @@ mod tests {
             completed: None,
             deleted: Some(None),
         };
-        db.update_tasks(modification, &[&id]).unwrap();
+        db.update_tasks(&modification, &[id]).unwrap();
 
         let tasks = db
             .list_tasks(&Filter::new().with_statuses([Status::Pending]))
@@ -1276,7 +1276,7 @@ mod tests {
             completed: None,
             deleted: None,
         };
-        db.update_tasks(modification, &[&id]).unwrap();
+        db.update_tasks(&modification, &[id]).unwrap();
 
         assert!(get_modified(&db, "test_upd0005") > 0);
     }

@@ -77,14 +77,14 @@ direction BT
       <<interface>>
       +add(&self, &req)* Result~_~
       +next(&self)* Result~Vec~Task~~
-      +modify(&self, modification, &targets)* Result~_~
+      +modify(&self, &modification, &targets)* Result~_~
     }
 
     class TaskRepository {
       <<interface>>
       +create_task(&self, &id, &req)* Result~_~
       +list_tasks(&self, &filter)* Result~Vec~Task~~
-      +update_tasks(&self, modification, &targets)* Result~_~
+      +update_tasks(&self, &modification, &targets)* Result~_~
     }
   }
 
