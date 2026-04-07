@@ -1,7 +1,6 @@
-use crate::domain::task::{Filter, Status, TaskModification, Timestamp, UniqueID};
+use crate::domain::task::{Filter, Status, TaskModification, UniqueID};
 use anyhow::Context;
 use rusqlite::ToSql;
-use rusqlite::types::ToSqlOutput;
 
 const ALL_STATUSES: usize = 3;
 
@@ -100,12 +99,18 @@ pub(crate) fn build_update_clause(
                 Box::new(desc.to_string()) as Box<dyn ToSql>,
             )
         }),
-        modification
-            .completed
-            .map(|c| ("completed = ?".to_string(), Box::new(c) as Box<dyn ToSql>)),
-        modification
-            .deleted
-            .map(|d| ("deleted = ?".to_string(), Box::new(d) as Box<dyn ToSql>)),
+        modification.completed.map(|c| {
+            (
+                "completed = ?".to_string(),
+                Box::new(c.map(|ts| ts.get())) as Box<dyn ToSql>,
+            )
+        }),
+        modification.deleted.map(|d| {
+            (
+                "deleted = ?".to_string(),
+                Box::new(d.map(|ts| ts.get())) as Box<dyn ToSql>,
+            )
+        }),
     ]
     .into_iter()
     .flatten()
@@ -129,12 +134,6 @@ pub(crate) fn build_update_clause(
         repeat_vars(targets.len())
     );
     Ok((clause, params))
-}
-
-impl ToSql for Timestamp {
-    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
-        Ok(ToSqlOutput::from(self.0))
-    }
 }
 
 // ref: https://docs.rs/rusqlite/latest/rusqlite/struct.ParamsFromIter.html#realistic-use-case

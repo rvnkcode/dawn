@@ -2,7 +2,7 @@ use std::fmt::{self, Display, Formatter};
 use thiserror::Error;
 
 #[derive(Debug, PartialEq)]
-pub struct Timestamp(pub(crate) i64);
+pub struct Timestamp(i64);
 
 #[derive(Debug, Error)]
 #[error("Invalid range")]
@@ -15,6 +15,10 @@ impl Timestamp {
         } else {
             Ok(Self(raw))
         }
+    }
+
+    pub(crate) fn get(&self) -> i64 {
+        self.0
     }
 }
 
