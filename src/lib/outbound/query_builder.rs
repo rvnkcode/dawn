@@ -1,4 +1,4 @@
-use crate::domain::task::{Filter, Status};
+use crate::domain::task::{Filter, Status, TaskModification, Timestamp, UniqueID};
 use anyhow::Context;
 use rusqlite::ToSql;
 
@@ -78,6 +78,65 @@ fn build_status_clause(filter: &Filter) -> Option<String> {
     } else {
         Some(joined)
     }
+}
+
+pub(crate) fn build_update_clause(
+    modification: TaskModification,
+    targets: &[&UniqueID],
+) -> anyhow::Result<Clause> {
+    if modification.is_empty() {
+        return Err(anyhow::anyhow!("No modification specified"));
+    }
+    if targets.is_empty() {
+        return Err(anyhow::anyhow!("No target specified"));
+    }
+
+    // Collect update expressions and their parameters based on the provided modification
+    let (updates, update_params): (Vec<String>, Vec<Box<dyn ToSql>>) = [
+        modification.description.map(|desc| {
+            (
+                "description = ?".to_string(),
+                Box::new(desc.to_string()) as Box<dyn ToSql>,
+            )
+        }),
+        modification
+            .completed
+            .map(|c| timestamp_set_entry("completed", c)),
+        modification
+            .deleted
+            .map(|d| timestamp_set_entry("deleted", d)),
+    ]
+    .into_iter()
+    .flatten()
+    .unzip();
+
+    // Combine update values parameters with target IDs
+    let params: Vec<Box<dyn ToSql>> = update_params
+        .into_iter()
+        // collect target ID as SQL parameters
+        .chain(
+            targets
+                .iter()
+                .map(|uid| Box::new(uid.to_string()) as Box<dyn ToSql>)
+                .collect::<Vec<Box<dyn ToSql>>>(),
+        )
+        .collect();
+
+    // Build the final SQL clause with placeholders for updates and target IDs
+    let clause = format!(
+        "UPDATE task SET {} WHERE id IN ({})",
+        updates.join(", "),
+        repeat_vars(targets.len())
+    );
+    Ok((clause, params))
+}
+
+fn timestamp_set_entry(column: &str, value: Option<Timestamp>) -> (String, Box<dyn ToSql>) {
+    let sql_value = value.map(|t| t.get());
+    (
+        format!("{column} = ?"),
+        Box::new(sql_value) as Box<dyn ToSql>,
+    )
 }
 
 // ref: https://docs.rs/rusqlite/latest/rusqlite/struct.ParamsFromIter.html#realistic-use-case
@@ -295,5 +354,165 @@ mod tests {
         assert_eq!(params.len(), 1);
         assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
     }
+
+    // build_update_clause
+
+    #[test]
+    fn build_update_clause_with_empty_modification() {
+        use crate::domain::task::UniqueID;
+
+        let uid = UniqueID::new();
+        let modification = TaskModification {
+            description: None,
+            completed: None,
+            deleted: None,
+        };
+
+        assert!(build_update_clause(modification, &[&uid]).is_err());
+    }
+
+    #[test]
+    fn build_update_clause_with_empty_targets() {
+        use crate::domain::task::Description;
+
+        let modification = TaskModification {
+            description: Some(Description::new("updated").unwrap()),
+            completed: None,
+            deleted: None,
+        };
+
+        assert!(build_update_clause(modification, &[]).is_err());
+    }
+
+    #[test]
+    fn build_update_clause_with_description() {
+        use crate::domain::task::{Description, UniqueID};
+
+        let uid = UniqueID::new();
+        let modification = TaskModification {
+            description: Some(Description::new("updated").unwrap()),
+            completed: None,
+            deleted: None,
+        };
+
+        let (clause, params) = build_update_clause(modification, &[&uid]).unwrap();
+        assert_eq!(clause, "UPDATE task SET description = ? WHERE id IN (?)");
+        assert_eq!(params.len(), 2);
+        assert_eq!(to_value(params[0].as_ref()), Value::Text("updated".into()));
+        assert_eq!(to_value(params[1].as_ref()), Value::Text(uid.to_string()));
+    }
+
+    #[test]
+    fn build_update_clause_with_completed_set() {
+        use crate::domain::task::{Timestamp, UniqueID};
+
+        let uid = UniqueID::new();
+        let modification = TaskModification {
+            description: None,
+            completed: Some(Some(Timestamp::new(1700000000).unwrap())),
+            deleted: None,
+        };
+
+        let (clause, params) = build_update_clause(modification, &[&uid]).unwrap();
+        assert_eq!(clause, "UPDATE task SET completed = ? WHERE id IN (?)");
+        assert_eq!(params.len(), 2);
+        assert_eq!(to_value(params[0].as_ref()), Value::Integer(1700000000));
+        assert_eq!(to_value(params[1].as_ref()), Value::Text(uid.to_string()));
+    }
+
+    #[test]
+    fn build_update_clause_with_completed_cleared() {
+        use crate::domain::task::UniqueID;
+
+        let uid = UniqueID::new();
+        let modification = TaskModification {
+            description: None,
+            completed: Some(None),
+            deleted: None,
+        };
+
+        let (clause, params) = build_update_clause(modification, &[&uid]).unwrap();
+        assert_eq!(clause, "UPDATE task SET completed = ? WHERE id IN (?)");
+        assert_eq!(params.len(), 2);
+        assert_eq!(to_value(params[0].as_ref()), Value::Null);
+        assert_eq!(to_value(params[1].as_ref()), Value::Text(uid.to_string()));
+    }
+
+    #[test]
+    fn build_update_clause_with_deleted_set() {
+        use crate::domain::task::{Timestamp, UniqueID};
+
+        let uid = UniqueID::new();
+        let modification = TaskModification {
+            description: None,
+            completed: None,
+            deleted: Some(Some(Timestamp::new(1700000000).unwrap())),
+        };
+
+        let (clause, params) = build_update_clause(modification, &[&uid]).unwrap();
+        assert_eq!(clause, "UPDATE task SET deleted = ? WHERE id IN (?)");
+        assert_eq!(params.len(), 2);
+        assert_eq!(to_value(params[0].as_ref()), Value::Integer(1700000000));
+        assert_eq!(to_value(params[1].as_ref()), Value::Text(uid.to_string()));
+    }
+
+    #[test]
+    fn build_update_clause_with_deleted_cleared() {
+        use crate::domain::task::UniqueID;
+
+        let uid = UniqueID::new();
+        let modification = TaskModification {
+            description: None,
+            completed: None,
+            deleted: Some(None),
+        };
+
+        let (clause, params) = build_update_clause(modification, &[&uid]).unwrap();
+        assert_eq!(clause, "UPDATE task SET deleted = ? WHERE id IN (?)");
+        assert_eq!(params.len(), 2);
+        assert_eq!(to_value(params[0].as_ref()), Value::Null);
+        assert_eq!(to_value(params[1].as_ref()), Value::Text(uid.to_string()));
+    }
+
+    #[test]
+    fn build_update_clause_with_multiple_fields() {
+        use crate::domain::task::{Description, Timestamp, UniqueID};
+
+        let uid = UniqueID::new();
+        let modification = TaskModification {
+            description: Some(Description::new("updated").unwrap()),
+            completed: Some(Some(Timestamp::new(1700000000).unwrap())),
+            deleted: None,
+        };
+
+        let (clause, params) = build_update_clause(modification, &[&uid]).unwrap();
+        assert_eq!(
+            clause,
+            "UPDATE task SET description = ?, completed = ? WHERE id IN (?)"
+        );
+        assert_eq!(params.len(), 3);
+        assert_eq!(to_value(params[0].as_ref()), Value::Text("updated".into()));
+        assert_eq!(to_value(params[1].as_ref()), Value::Integer(1700000000));
+        assert_eq!(to_value(params[2].as_ref()), Value::Text(uid.to_string()));
+    }
+
+    #[test]
+    fn build_update_clause_with_multiple_targets() {
+        use crate::domain::task::{Description, UniqueID};
+
+        let uid1 = UniqueID::new();
+        let uid2 = UniqueID::new();
+        let modification = TaskModification {
+            description: Some(Description::new("updated").unwrap()),
+            completed: None,
+            deleted: None,
+        };
+
+        let (clause, params) = build_update_clause(modification, &[&uid1, &uid2]).unwrap();
+        assert_eq!(clause, "UPDATE task SET description = ? WHERE id IN (?,?)");
+        assert_eq!(params.len(), 3);
+        assert_eq!(to_value(params[0].as_ref()), Value::Text("updated".into()));
+        assert_eq!(to_value(params[1].as_ref()), Value::Text(uid1.to_string()));
+        assert_eq!(to_value(params[2].as_ref()), Value::Text(uid2.to_string()));
     }
 }

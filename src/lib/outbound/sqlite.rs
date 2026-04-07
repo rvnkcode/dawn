@@ -1,10 +1,11 @@
 use crate::{
     domain::task::{
-        Description, Filter, Index, Task, TaskCreation, Timestamp, UniqueID, port::TaskRepository,
+        Description, Filter, Index, Task, TaskCreation, TaskModification, Timestamp, UniqueID,
+        port::TaskRepository,
     },
     outbound::query_builder,
 };
-use rusqlite::Connection;
+use rusqlite::{Connection, params_from_iter};
 use std::cmp::Ordering;
 
 const DB_VERSION: u8 = 1;
@@ -124,6 +125,16 @@ impl TaskRepository for SQLite {
             })
             .collect::<anyhow::Result<Vec<Task>>>()?;
         Ok(tasks)
+    }
+
+    fn update_tasks(
+        &self,
+        modification: TaskModification,
+        targets: &[&UniqueID],
+    ) -> anyhow::Result<()> {
+        let (query, params) = query_builder::build_update_clause(modification, targets)?;
+        self.conn.execute(&query, params_from_iter(params.iter()))?;
+        Ok(())
     }
 }
 
@@ -853,6 +864,26 @@ mod tests {
     }
 
     #[test]
+    fn list_tasks_filter_nonexistent_uid() {
+        let db = setup();
+        let task = Task {
+            uid: "test_vvvvv01".parse().unwrap(),
+            index: Some(Index::new(1).unwrap()),
+            description: Description::new("existing").unwrap(),
+            entry: Timestamp::new(1000).unwrap(),
+            completed: None,
+            deleted: None,
+        };
+        insert_task_from(&db, &task);
+        let nonexistent: UniqueID = "test_vvvvv99".parse().unwrap();
+        let filter = Filter::new().with_uids([nonexistent]);
+
+        let tasks = db.list_tasks(&filter).unwrap();
+
+        assert!(tasks.is_empty());
+    }
+
+    #[test]
     fn list_tasks_filter_uid_with_status() {
         let db = setup();
         let pending = Task {
@@ -1119,23 +1150,134 @@ mod tests {
         assert_eq!(tasks, vec![by_uid, by_index]);
     }
 
+    // J. Update Tasks
+
     #[test]
-    fn list_tasks_filter_nonexistent_uid() {
+    fn update_tasks_changes_description() {
         let db = setup();
-        let task = Task {
-            uid: "test_vvvvv01".parse().unwrap(),
-            index: Some(Index::new(1).unwrap()),
-            description: Description::new("existing").unwrap(),
-            entry: Timestamp::new(1000).unwrap(),
+        let id: UniqueID = "test_upd0001".parse().unwrap();
+        insert_task(&db, "test_upd0001", "original");
+
+        let modification = TaskModification {
+            description: Some(Description::new("updated").unwrap()),
             completed: None,
             deleted: None,
         };
-        insert_task_from(&db, &task);
-        let nonexistent: UniqueID = "test_vvvvv99".parse().unwrap();
-        let filter = Filter::new().with_uids([nonexistent]);
+        db.update_tasks(modification, &[&id]).unwrap();
 
-        let tasks = db.list_tasks(&filter).unwrap();
+        let tasks = db.list_tasks(&Filter::new()).unwrap();
+        assert_eq!(tasks[0].description, Description::new("updated").unwrap());
+    }
 
-        assert!(tasks.is_empty());
+    #[test]
+    fn update_tasks_sets_completed() {
+        let db = setup();
+        let id: UniqueID = "test_upd0002".parse().unwrap();
+        insert_task(&db, "test_upd0002", "pending task");
+
+        let modification = TaskModification {
+            description: None,
+            completed: Some(Some(Timestamp::new(1700000000).unwrap())),
+            deleted: None,
+        };
+        db.update_tasks(modification, &[&id]).unwrap();
+
+        let tasks = db
+            .list_tasks(&Filter::new().with_statuses([Status::Completed]))
+            .unwrap();
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(
+            tasks[0].completed,
+            Some(Timestamp::new(1700000000).unwrap())
+        );
+    }
+
+    #[test]
+    fn update_tasks_clears_completed() {
+        let db = setup();
+        let id: UniqueID = "test_upd0003".parse().unwrap();
+        insert_task(&db, "test_upd0003", "completed task");
+        db.conn
+            .execute(
+                "UPDATE task SET completed = 1700000000 WHERE id = ?1",
+                rusqlite::params!["test_upd0003"],
+            )
+            .unwrap();
+
+        let modification = TaskModification {
+            description: None,
+            completed: Some(None),
+            deleted: None,
+        };
+        db.update_tasks(modification, &[&id]).unwrap();
+
+        let tasks = db
+            .list_tasks(&Filter::new().with_statuses([Status::Pending]))
+            .unwrap();
+        assert_eq!(tasks.len(), 1);
+        assert!(tasks[0].completed.is_none());
+    }
+
+    #[test]
+    fn update_tasks_sets_deleted() {
+        let db = setup();
+        let id: UniqueID = "test_upd0006".parse().unwrap();
+        insert_task(&db, "test_upd0006", "pending task");
+
+        let modification = TaskModification {
+            description: None,
+            completed: None,
+            deleted: Some(Some(Timestamp::new(1700000000).unwrap())),
+        };
+        db.update_tasks(modification, &[&id]).unwrap();
+
+        let tasks = db
+            .list_tasks(&Filter::new().with_statuses([Status::Deleted]))
+            .unwrap();
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0].deleted, Some(Timestamp::new(1700000000).unwrap()));
+    }
+
+    #[test]
+    fn update_tasks_clears_deleted() {
+        let db = setup();
+        let id: UniqueID = "test_upd0007".parse().unwrap();
+        insert_task(&db, "test_upd0007", "deleted task");
+        db.conn
+            .execute(
+                "UPDATE task SET deleted = 1700000000 WHERE id = ?1",
+                rusqlite::params!["test_upd0007"],
+            )
+            .unwrap();
+
+        let modification = TaskModification {
+            description: None,
+            completed: None,
+            deleted: Some(None),
+        };
+        db.update_tasks(modification, &[&id]).unwrap();
+
+        let tasks = db
+            .list_tasks(&Filter::new().with_statuses([Status::Pending]))
+            .unwrap();
+        assert_eq!(tasks.len(), 1);
+        assert!(tasks[0].deleted.is_none());
+    }
+
+    #[test]
+    fn update_tasks_fires_modified_trigger() {
+        let db = setup();
+        let id: UniqueID = "test_upd0005".parse().unwrap();
+        insert_task(&db, "test_upd0005", "original");
+        reset_modified(&db, "test_upd0005");
+
+        let modification = TaskModification {
+            description: Some(Description::new("changed").unwrap()),
+            completed: None,
+            deleted: None,
+        };
+        db.update_tasks(modification, &[&id]).unwrap();
+
+        assert!(get_modified(&db, "test_upd0005") > 0);
     }
 }

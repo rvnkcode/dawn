@@ -1,4 +1,4 @@
-use crate::domain::task::{Filter, Task, TaskCreation, UniqueID};
+use crate::domain::task::{Filter, Task, TaskCreation, TaskModification, UniqueID};
 
 pub trait TaskService {
     fn add(&self, req: &TaskCreation) -> anyhow::Result<()>;
@@ -8,4 +8,9 @@ pub trait TaskService {
 pub trait TaskRepository {
     fn create_task(&self, id: &UniqueID, req: &TaskCreation) -> anyhow::Result<()>;
     fn list_tasks(&self, filter: &Filter) -> anyhow::Result<Vec<Task>>;
+    fn update_tasks(
+        &self,
+        modification: TaskModification,
+        targets: &[&UniqueID],
+    ) -> anyhow::Result<()>;
 }

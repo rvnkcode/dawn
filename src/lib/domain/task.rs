@@ -16,6 +16,18 @@ pub struct TaskCreation {
     pub description: Description,
 }
 
+pub struct TaskModification {
+    pub description: Option<Description>,
+    pub completed: Option<Option<Timestamp>>,
+    pub deleted: Option<Option<Timestamp>>,
+}
+
+impl TaskModification {
+    pub fn is_empty(&self) -> bool {
+        self.description.is_none() && self.completed.is_none() && self.deleted.is_none()
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Task {
     pub uid: UniqueID,
