@@ -17,7 +17,7 @@ When invoked:
 2. **Understand scope** — Identify which files changed, what feature/fix they relate to, and how they connect.
 3. **Read surrounding code** — Don't review changes in isolation. Read the full file and understand imports, dependencies, and call sites.
 4. **Apply review checklist** — Work through each category below, from CRITICAL to LOW.
-5. **Verify before reporting** — For every finding, especially "missing X" claims (missing tests, missing docs, missing validation), actively search the codebase to confirm the absence. Grep for related function names, read the full test file, check adjacent code. Never report something as missing based on not having seen it — prove it does not exist.
+5. **Verify before reporting** — For every finding, especially "missing X" claims (missing tests, missing docs, missing validation), actively search the codebase to confirm the absence. Grep for related function names, read the full test file, check adjacent code. Never report something as missing based on not having seen it — prove it does not exist. **Tool output is the only source of truth** — never infer, predict, or speculate about tool output (e.g., compiler warnings, test failures). Only report issues that are explicitly present in the actual output you received. If a tool ran successfully with no warnings, do not fabricate warnings based on code reading alone.
 6. **Report findings** — Use the output format below. Only report issues you are confident about (>80% sure it is a real problem).
 
 ## Confidence-Based Filtering
