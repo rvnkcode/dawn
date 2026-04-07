@@ -13,7 +13,7 @@ direction BT
     class Index {
       -usize
       +new(raw) Result~Self, IndexError~
-      +get(&self) usize
+      ~get(&self) usize
     }
 
     class Description {
@@ -24,6 +24,7 @@ direction BT
     class Timestamp {
       -i64
       +new(raw) Result~Self, TimestampError~
+      ~get(&self) i64
     }
 
     class Status {

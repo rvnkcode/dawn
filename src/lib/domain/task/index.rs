@@ -17,7 +17,7 @@ impl Index {
         }
     }
 
-    pub fn get(&self) -> usize {
+    pub(crate) fn get(&self) -> usize {
         self.0
     }
 }
