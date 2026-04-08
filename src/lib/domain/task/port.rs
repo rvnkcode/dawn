@@ -4,6 +4,7 @@ pub trait TaskService {
     fn add(&self, req: &TaskCreation) -> anyhow::Result<()>;
     fn next(&self) -> anyhow::Result<Vec<Task>>;
     fn modify(&self, modification: &TaskModification, targets: &[UniqueID]) -> anyhow::Result<()>;
+    fn purge(&self, targets: &[UniqueID]) -> anyhow::Result<()>;
 }
 
 pub trait TaskRepository {
@@ -14,4 +15,5 @@ pub trait TaskRepository {
         modification: &TaskModification,
         targets: &[UniqueID],
     ) -> anyhow::Result<()>;
+    fn delete_tasks(&self, targets: &[UniqueID]) -> anyhow::Result<()>;
 }
