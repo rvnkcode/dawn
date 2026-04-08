@@ -78,6 +78,7 @@ direction BT
       +add(&self, &req)* Result~_~
       +next(&self)* Result~Vec~Task~~
       +modify(&self, &modification, &targets)* Result~_~
+      +purge(&self, &targets)* Result~_~
     }
 
     class TaskRepository {
@@ -85,6 +86,7 @@ direction BT
       +create_task(&self, &id, &req)* Result~_~
       +list_tasks(&self, &filter)* Result~Vec~Task~~
       +update_tasks(&self, &modification, &targets)* Result~_~
+      +delete_tasks(&self, &targets)* Result~_~
     }
   }
 
@@ -103,6 +105,7 @@ direction BT
   Service~R~ ..> Filter : determines
   Service~R~ ..|> TaskService : implements
   Service~R~ ..> TaskRepository : where R is TaskRepository
+  TaskService ..> UniqueID : accepts
   TaskService ..> TaskCreation : accepts
   TaskService ..> TaskModification : accepts
   TaskService ..> Task : returns

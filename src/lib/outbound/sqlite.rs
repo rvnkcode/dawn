@@ -136,6 +136,22 @@ impl TaskRepository for SQLite {
         self.conn.execute(&query, params_from_iter(params.iter()))?;
         Ok(())
     }
+
+    fn delete_tasks(&self, targets: &[UniqueID]) -> anyhow::Result<()> {
+        if targets.is_empty() {
+            return Err(anyhow::anyhow!("No target IDs provided for deletion"));
+        }
+        let query = format!(
+            "DELETE FROM task WHERE id IN ({})",
+            query_builder::repeat_vars(targets.len())
+        );
+        let params = targets
+            .iter()
+            .map(|id| id.to_string())
+            .collect::<Vec<String>>();
+        self.conn.execute(&query, params_from_iter(params.iter()))?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -1279,5 +1295,44 @@ mod tests {
         db.update_tasks(&modification, &[id]).unwrap();
 
         assert!(get_modified(&db, "test_upd0005") > 0);
+    }
+
+    // K. Delete Tasks
+
+    #[test]
+    fn delete_single_task() {
+        let db = setup();
+        let id: UniqueID = "test_del0001".parse().unwrap();
+        insert_task(&db, "test_del0001", "to be deleted");
+
+        db.delete_tasks(&[id]).unwrap();
+
+        let tasks = db.list_tasks(&Filter::new()).unwrap();
+        assert!(tasks.is_empty());
+    }
+
+    #[test]
+    fn delete_multiple_tasks() {
+        let db = setup();
+        let id1: UniqueID = "test_del0002".parse().unwrap();
+        let id2: UniqueID = "test_del0003".parse().unwrap();
+        insert_task(&db, "test_del0001", "survivor");
+        insert_task(&db, "test_del0002", "target one");
+        insert_task(&db, "test_del0003", "target two");
+
+        db.delete_tasks(&[id1, id2]).unwrap();
+
+        let tasks = db.list_tasks(&Filter::new()).unwrap();
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0].description, Description::new("survivor").unwrap());
+    }
+
+    #[test]
+    fn delete_empty_targets_returns_error() {
+        let db = setup();
+
+        let result = db.delete_tasks(&[]);
+
+        assert!(result.is_err());
     }
 }
