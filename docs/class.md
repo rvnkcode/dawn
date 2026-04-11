@@ -4,6 +4,38 @@ title: Class Diagram
 
 ```mermaid
 direction BT
+  namespace Inbound {
+    class Creation {
+      -Description description
+    }
+
+    class Command {
+      <<enumeration>>
+      +Add(Modification)
+    }
+
+    class Cli {
+      -Option~Command~ command
+      +new() Self
+      +handle_command(&self, task_service) Result~_~
+    }
+
+    class Handler~TS~ {
+      -TS task_service
+      +new(task_service) Self
+      +add(&self, args) Result~_~
+    }
+  }
+
+  Creation *-- Description
+  Creation ..> TaskCreation : into
+  Command *-- Creation : has
+  Cli o-- Command : executes
+  Cli ..> TaskService : accepts
+  Cli ..> Handler : calls
+  Handler ..> TaskService : where TS is TaskService
+  Handler ..> TaskCreation : arg into
+
   namespace Domain {
     class UniqueID {
       -String
