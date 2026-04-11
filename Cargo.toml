@@ -27,5 +27,8 @@ thiserror = "2.0.18"
 cli = ["sqlite", "dep:clap"]
 sqlite = ["dep:dirs", "dep:rusqlite"]
 
+[dev-dependencies]
+mockall = "0.13"
+
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)'] }
