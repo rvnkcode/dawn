@@ -1,4 +1,7 @@
-use std::fmt::{self, Display, Formatter};
+use std::{
+    fmt::{self, Display, Formatter},
+    str::FromStr,
+};
 use thiserror::Error;
 
 #[derive(Debug, PartialEq)]
@@ -22,6 +25,14 @@ impl Description {
 impl Display for Description {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl FromStr for Description {
+    type Err = DescriptionEmptyError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Description::new(s)
     }
 }
 
