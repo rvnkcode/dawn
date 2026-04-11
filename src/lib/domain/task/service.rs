@@ -23,6 +23,10 @@ where
         self.repo.create_task(&id, req)
     }
 
+    fn count_pending(&self) -> anyhow::Result<usize> {
+        self.repo.count_pending()
+    }
+
     fn next(&self) -> anyhow::Result<Vec<Task>> {
         self.repo
             .list_tasks(&Filter::new().with_statuses([Status::Pending]))

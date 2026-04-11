@@ -91,6 +91,15 @@ impl TaskRepository for SQLite {
         Ok(())
     }
 
+    fn count_pending(&self) -> anyhow::Result<usize> {
+        let count: i64 = self.conn.query_row(
+            "SELECT COUNT(*) FROM task WHERE deleted IS NULL AND completed IS NULL",
+            [],
+            |row| row.get(0),
+        )?;
+        Ok(count.try_into()?)
+    }
+
     fn list_tasks(&self, filter: &Filter) -> anyhow::Result<Vec<Task>> {
         let select_clause = "SELECT t.id, tpr.row_id, t.description, t.entry, t.completed, t.deleted \
             FROM task AS t \
@@ -1334,5 +1343,65 @@ mod tests {
         let result = db.delete_tasks(&[]);
 
         assert!(result.is_err());
+    }
+
+    // L. Count Pending
+
+    #[test]
+    fn count_pending_returns_error_when_table_missing() {
+        let db = setup();
+        db.conn.execute_batch("DROP TABLE task").unwrap();
+
+        let result = db.count_pending();
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn count_pending_returns_zero_when_no_tasks() {
+        let db = setup();
+
+        let count = db.count_pending().unwrap();
+
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn count_pending_returns_count_of_pending_tasks() {
+        let db = setup();
+        insert_task(&db, "test_cnt0001", "task one");
+        insert_task(&db, "test_cnt0002", "task two");
+        insert_task(&db, "test_cnt0003", "task three");
+
+        let count = db.count_pending().unwrap();
+
+        assert_eq!(count, 3);
+    }
+
+    #[test]
+    fn count_pending_excludes_deleted_and_completed_tasks() {
+        let db = setup();
+        insert_task(&db, "test_cnt0004", "pending one");
+        insert_task(&db, "test_cnt0005", "pending two");
+        insert_task(&db, "test_cnt0006", "pending three");
+        insert_task(&db, "test_cnt0007", "to complete");
+        insert_task(&db, "test_cnt0008", "to delete");
+
+        db.conn
+            .execute(
+                "UPDATE task SET completed = unixepoch() WHERE id = ?1",
+                rusqlite::params!["test_cnt0007"],
+            )
+            .unwrap();
+        db.conn
+            .execute(
+                "UPDATE task SET deleted = unixepoch() WHERE id = ?1",
+                rusqlite::params!["test_cnt0008"],
+            )
+            .unwrap();
+
+        let count = db.count_pending().unwrap();
+
+        assert_eq!(count, 3);
     }
 }

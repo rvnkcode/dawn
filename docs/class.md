@@ -76,6 +76,7 @@ direction BT
     class TaskService {
       <<interface>>
       +add(&self, &req)* Result~_~
+      +count_pending(&self)* Result~usize~
       +next(&self)* Result~Vec~Task~~
       +modify(&self, &modification, &targets)* Result~_~
       +purge(&self, &targets)* Result~_~
@@ -84,6 +85,7 @@ direction BT
     class TaskRepository {
       <<interface>>
       +create_task(&self, &id, &req)* Result~_~
+      +count_pending(&self)* Result~usize~
       +list_tasks(&self, &filter)* Result~Vec~Task~~
       +update_tasks(&self, &modification, &targets)* Result~_~
       +delete_tasks(&self, &targets)* Result~_~
