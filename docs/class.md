@@ -11,13 +11,13 @@ direction BT
 
     class Command {
       <<enumeration>>
-      +Add(Modification)
+      +Add(Creation)
     }
 
     class Cli {
       -Option~Command~ command
       +new() Self
-      +handle_command(&self, task_service) Result~_~
+      +handle_command(self, task_service) Result~_~
     }
 
     class Handler~TS~ {
@@ -137,6 +137,7 @@ direction BT
   TaskModification o-- Timestamp
   Service~R~ ..> UniqueID : generates
   Service~R~ ..> Filter : determines
+  Service~R~ ..> Status : uses
   Service~R~ ..|> TaskService : implements
   Service~R~ ..> TaskRepository : where R is TaskRepository
   TaskService ..> UniqueID : accepts
