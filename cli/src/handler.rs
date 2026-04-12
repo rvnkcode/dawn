@@ -1,6 +1,6 @@
-use crate::domain::task::{TaskCreation, port::TaskService};
+use dawn::domain::task::{TaskCreation, port::TaskService};
 
-pub(super) struct Handler<TS: TaskService> {
+pub(crate) struct Handler<TS: TaskService> {
     task_service: TS,
 }
 
@@ -20,7 +20,7 @@ impl<TS: TaskService> Handler<TS> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::task::{Description, port::MockTaskService};
+    use dawn::domain::task::{Description, port::MockTaskService};
 
     fn creation(desc: &str) -> TaskCreation {
         TaskCreation {

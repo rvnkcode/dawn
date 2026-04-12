@@ -37,15 +37,15 @@ Based on GTD (Getting Things Done) philosophy, Dawn integrates **task management
 
 ```sh
 # Build & Test
-cargo build --all-features
-cargo test --all-features            # Run all tests
-cargo llvm-cov --all-features --lib  # Coverage report (lib only, excludes bin)
+cargo build --workspace
+cargo test --workspace               # Run all tests
+cargo llvm-cov --workspace --lib     # Coverage report (lib only, excludes bin)
 
 # CLI Development
-cargo run --features cli -- <command>
+cargo run -p dawn-cli -- <command>
 
 # Lint
-cargo clippy --all-targets
+cargo clippy --workspace --all-targets
 cargo fmt --check
 ```
 

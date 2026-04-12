@@ -1,4 +1,5 @@
-use dawn::{domain::task::service::Service, inbound::Cli, outbound::SQLite};
+use dawn::{domain::task::service::Service, outbound::SQLite};
+use dawn_cli::Cli;
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::new();

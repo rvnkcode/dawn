@@ -41,41 +41,35 @@ Project skills contain:
 
 ---
 
-## File Structure (Single Crate with Feature Flags)
+## File Structure (Cargo Workspace)
 
 ```txt
 project/
-├── Cargo.toml                    # Single crate manifest
+├── Cargo.toml                    # Workspace root
 ├── Cargo.lock
-├── src/
-│   ├── bin/                      # Binary entry points
-│   │   ├── cli/                  # CLI (feature: cli)
-│   │   ├── tui/                  # TUI (feature: tui) [planned]
-│   │   └── gui/                  # GUI (feature: gui) [planned]
-│   └── lib/                      # Library code
+├── lib/                          # Library crate (dawn-lib)
+│   ├── Cargo.toml
+│   └── src/
 │       ├── lib.rs                # Library root
 │       ├── domain/               # Domain Core
-│       ├── inbound/              # Inbound Adapters
-│       │   └── cli.rs            # CLI adapter
-│       └── outbound/             # Outbound Adapters
-│           └── sqlite/           # SQLite adapter
-├── tests/                        # Integration Tests
+│       └── outbound/             # Outbound Adapters (SQLite)
+├── cli/                          # CLI crate (dawn-cli)
+│   ├── Cargo.toml
+│   ├── src/
+│   │   ├── main.rs              # Entry point
+│   │   ├── cli.rs               # Clap parser
+│   │   ├── arg.rs               # Argument types
+│   │   └── handler.rs           # Command handlers
+│   └── tests/                   # E2E tests
 └── docs/                         # Documentation
 ```
 
-### Feature Flags
-
-```toml
-[features]
-cli = ["dep:clap"]      # CLI interface
-tui = ["dep:ratatui"]   # TUI interface [planned]
-gui = ["dep:tauri"]     # GUI interface [planned]
-```
+Each inbound adapter is an independent workspace crate that depends on `dawn-lib`.
 
 ## Testing Requirements
 
 ```sh
-cargo test --all-features
+cargo test --workspace
 ```
 
 ## Deployment Workflow
@@ -83,7 +77,7 @@ cargo test --all-features
 ### Pre-Deployment Checklist
 
 - [ ] All tests passing locally
-- [ ] `cargo build --all-features` succeeds
+- [ ] `cargo build --workspace` succeeds
 - [ ] No hardcoded secrets
 - [ ] Environment variables documented
 - [ ] Database migrations ready

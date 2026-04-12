@@ -1,36 +1,18 @@
-# https://doc.rust-lang.org/cargo/reference/manifest.html
-[package]
-name = "dawn"
+# https://doc.rust-lang.org/cargo/reference/workspaces.html
+[workspace]
+resolver = "3"
+members = ["lib", "cli"]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
-repository = "https://github.com/rvnkcode/dawn"
 license = "MIT"
+repository = "https://github.com/rvnkcode/dawn"
 
-[lib]
-name = "dawn"
-path = "src/lib/lib.rs"
-
-[[bin]]
-name = "dawn"
-path = "src/bin/cli/main.rs"
-required-features = ["cli"]
-
-[dependencies]
+[workspace.dependencies]
 anyhow = "1.0.102"
-clap = { version = "4.6.0", features = ["derive"], optional = true }
-dirs = { version = "6.0.0", optional = true }
-nanoid = "0.4.0"
-rusqlite = { version = "0.39.0", features = ["bundled"], optional = true }
-thiserror = "2.0.18"
-
-[features]
-cli = ["sqlite", "dep:clap"]
-sqlite = ["dep:dirs", "dep:rusqlite"]
-
-[dev-dependencies]
-assert_cmd = "2.2.0"
+dawn = { path = "lib" }
 mockall = "0.14.0"
-tempfile = "3.27.0"
 
-[lints.rust]
+[workspace.lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)'] }
