@@ -18,6 +18,7 @@ When invoked:
 3. **Read surrounding code** — Don't review changes in isolation. Read the full file and understand imports, dependencies, and call sites.
 4. **Apply review checklist** — Work through each category below, from CRITICAL to LOW.
 5. **Verify before reporting** — For every finding, especially "missing X" claims (missing tests, missing docs, missing validation), actively search the codebase to confirm the absence. Grep for related function names, read the full test file, check adjacent code. Never report something as missing based on not having seen it — prove it does not exist. **Tool output is the only source of truth** — never infer, predict, or speculate about tool output (e.g., compiler warnings, test failures). Only report issues that are explicitly present in the actual output you received. If a tool ran successfully with no warnings, do not fabricate warnings based on code reading alone.
+   - **Verify domain assumptions** — Before flagging semantic or behavioral issues (e.g., "this value will be wrong when X happens"), consult the reference documentation in `/skills/` and verify the assumption by running the reference implementation (e.g., `task` command for Taskwarrior). Do not report domain behavior as a bug based on your own assumptions about how the system should work.
 6. **Report findings** — Use the output format below. Only report issues you are confident about (>80% sure it is a real problem).
 
 ## Confidence-Based Filtering
@@ -59,13 +60,18 @@ These MUST be flagged — they can cause real damage:
 - Does the code follow Hexagonal Architecture principles?
 - OOP principles are being followed?
 - Does the code follow functional programming principles?
-- Does the docs/class.md accurately describe the classes and their relationships?
+- **Class diagram accuracy** — Read `docs/class.md` and verify against the actual code:
+  1. Every public struct/enum/trait that changed must be reflected in the diagram
+  2. Method signatures must match (self vs &self vs &mut self, parameter types, return types)
+  3. Relationships (composition, aggregation, dependency, implementation) must match the code
+  4. New dependencies introduced by changed code must appear as relationships
 - Does the code follow DDD principles?
 - Are the SQL queries optimized and secure? Indexes used properly? Schema design appropriate?
 
-For more information about development principles, refer to the following rules:
+For more information about development principles and domain references:
 
 - `/rules/development-principles/` - Development principles and architecture guidelines
+- `/skills/taskwarrior/` - Taskwarrior reference (data model, commands, ID semantics). Consult before reviewing task-related logic.
 
 ### Performance (MEDIUM)
 
