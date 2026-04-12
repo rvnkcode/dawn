@@ -1,0 +1,24 @@
+[package]
+name = "dawn-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "dawn"
+path = "src/main.rs"
+
+[dependencies]
+dawn.workspace = true
+anyhow.workspace = true
+clap = { version = "4.6.0", features = ["derive"] }
+
+[dev-dependencies]
+dawn = { workspace = true, features = ["testing"] }
+assert_cmd = "2.2.0"
+mockall.workspace = true
+tempfile = "3.27.0"
+
+[lints]
+workspace = true

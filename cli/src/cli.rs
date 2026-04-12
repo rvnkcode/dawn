@@ -1,9 +1,6 @@
-mod arg;
-mod handler;
-use handler::Handler;
-
-use crate::{domain::task::port::TaskService, inbound::cli::arg::Creation};
+use crate::{arg::Creation, handler::Handler};
 use clap::{Parser, Subcommand};
+use dawn::domain::task::port::TaskService;
 
 #[derive(Parser)]
 #[command(about = "A command line todo manager.", long_about = None, subcommand_precedence_over_arg = true, version)]

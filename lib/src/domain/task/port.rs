@@ -1,6 +1,6 @@
 use crate::domain::task::{Filter, Task, TaskCreation, TaskModification, UniqueID};
 
-#[cfg_attr(test, mockall::automock)]
+#[cfg_attr(any(test, feature = "testing"), mockall::automock)]
 pub trait TaskService {
     fn add(&self, req: &TaskCreation) -> anyhow::Result<()>;
     fn count_pending(&self) -> anyhow::Result<usize>;
