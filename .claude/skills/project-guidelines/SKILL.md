@@ -64,7 +64,7 @@ project/
 └── docs/                         # Documentation
 ```
 
-Each inbound adapter is an independent workspace crate that depends on `dawn-lib`.
+Each inbound adapter is an independent workspace crate that depends on `dawn`.
 
 ## Testing Requirements
 
