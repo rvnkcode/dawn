@@ -7,6 +7,8 @@ use crate::{
 };
 use rusqlite::{Connection, params_from_iter};
 use std::cmp::Ordering;
+#[cfg(not(coverage))]
+use std::path::{Path, PathBuf};
 
 const DB_VERSION: u8 = 1;
 
@@ -67,7 +69,23 @@ pub enum SQLiteError {
 
 // Excluded from coverage because it depends on the filesystem
 #[cfg(not(coverage))]
-fn get_db_path() -> Result<std::path::PathBuf, SQLiteError> {
+fn ensure_parent_dir(path: &Path) -> Result<(), SQLiteError> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| {
+            SQLiteError::InitializationError(format!("Could not create directory: {}", e))
+        })?;
+    }
+    Ok(())
+}
+
+// Excluded from coverage because it depends on the filesystem
+#[cfg(not(coverage))]
+fn get_db_path() -> Result<PathBuf, SQLiteError> {
+    if let Ok(override_path) = std::env::var("DAWN_DB_PATH") {
+        let path = PathBuf::from(override_path);
+        ensure_parent_dir(&path)?;
+        return Ok(path);
+    }
     /*
      * linux: ~/.local
      * macOS: ~/Library/Application\ Support
@@ -75,11 +93,10 @@ fn get_db_path() -> Result<std::path::PathBuf, SQLiteError> {
     let data_dir = dirs::data_local_dir().ok_or(SQLiteError::InitializationError(
         "Could not determine local data directory".into(),
     ))?;
-    let path = data_dir.join("dawn");
-    std::fs::create_dir_all(&path).map_err(|e| {
-        SQLiteError::InitializationError(format!("Could not create application directory: {}", e))
-    })?;
-    Ok(path.join("dawn.db"))
+    let dawn_dir = data_dir.join("dawn");
+    let path = dawn_dir.join("dawn.db");
+    ensure_parent_dir(&path)?;
+    Ok(path)
 }
 
 impl TaskRepository for SQLite {

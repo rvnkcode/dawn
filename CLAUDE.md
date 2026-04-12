@@ -49,6 +49,10 @@ cargo clippy --all-targets
 cargo fmt --check
 ```
 
+## Environment Variables
+
+- `DAWN_DB_PATH` — override the SQLite database file path. Takes precedence over the platform default (`~/.local/share/dawn/dawn.db` on Linux, `~/Library/Application Support/dawn/dawn.db` on macOS). Intended for E2E tests (isolating per-test databases) and advanced users.
+
 ## Related Documentation
 
 All detailed guidelines are in the `.claude/` directory:
