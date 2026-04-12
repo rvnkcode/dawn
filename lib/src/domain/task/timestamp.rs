@@ -5,13 +5,13 @@ use thiserror::Error;
 pub struct Timestamp(i64);
 
 #[derive(Debug, Error)]
-#[error("Invalid range")]
-pub struct TimestampError;
+#[error("Timestamp must be >= 0, got {0}")]
+pub struct TimestampError(i64);
 
 impl Timestamp {
     pub fn new(raw: i64) -> Result<Self, TimestampError> {
         if raw < 0 {
-            Err(TimestampError)
+            Err(TimestampError(raw))
         } else {
             Ok(Self(raw))
         }
