@@ -72,7 +72,11 @@ pub enum SQLiteError {
 fn ensure_parent_dir(path: &Path) -> Result<(), SQLiteError> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| {
-            SQLiteError::InitializationError(format!("Could not create directory: {}", e))
+            SQLiteError::InitializationError(format!(
+                "Could not create directory '{}': {}",
+                parent.display(),
+                e
+            ))
         })?;
     }
     Ok(())
