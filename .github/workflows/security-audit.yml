@@ -19,8 +19,9 @@ jobs:
       - uses: actions/cache@v5
         with:
           path: ~/.cargo/advisory-db
-          key: advisory-db-${{ github.run_id }}
+          key: advisory-db-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: advisory-db-
-      - uses: rustsec/audit-check@v2.0.0
+      - uses: taiki-e/install-action@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          tool: cargo-audit
+      - run: cargo audit
