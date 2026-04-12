@@ -1,6 +1,6 @@
 use crate::domain::task::{TaskCreation, port::TaskService};
 
-pub struct Handler<TS: TaskService> {
+pub(super) struct Handler<TS: TaskService> {
     task_service: TS,
 }
 
