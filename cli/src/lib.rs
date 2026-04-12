@@ -1,7 +1,7 @@
 /*
  * This lib target exists so that `cargo llvm-cov --workspace --lib` includes
- * CLI unit tests in coverage reports. Removing it would cause a compile error
- * because `SQLite::new()` is `#[cfg(not(coverage))]`.
+ * this crate's CLI unit tests in coverage reports. Without a lib target,
+ * `--lib` skips the crate entirely.
  */
 
 mod arg;
