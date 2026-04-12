@@ -52,5 +52,12 @@ fn add_three_tasks_counter_is_3() {
 fn add_empty_description_rejected() {
     let dir = TempDir::new().expect("tempdir");
     let db = dir.path().join("dawn.db");
-    common::dawn_cmd(&db).args(["add", ""]).assert().failure();
+    common::dawn_cmd(&db).args(["add", ""]).assert().code(2);
+}
+
+#[test]
+fn add_whitespace_only_description_rejected() {
+    let dir = TempDir::new().expect("tempdir");
+    let db = dir.path().join("dawn.db");
+    common::dawn_cmd(&db).args(["add", "   "]).assert().code(2);
 }
