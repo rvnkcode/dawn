@@ -28,7 +28,9 @@ cli = ["sqlite", "dep:clap"]
 sqlite = ["dep:dirs", "dep:rusqlite"]
 
 [dev-dependencies]
+assert_cmd = "2.2.0"
 mockall = "0.14.0"
+tempfile = "3.27.0"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)'] }
