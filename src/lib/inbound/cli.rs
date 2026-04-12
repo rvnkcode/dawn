@@ -27,7 +27,7 @@ impl Cli {
     pub fn handle_command(self, task_service: impl TaskService) -> anyhow::Result<()> {
         let handler = Handler::new(task_service);
         match self.command {
-            Some(Command::Add(modification)) => handler.add(modification),
+            Some(Command::Add(creation)) => handler.add(creation),
             None => Ok(()),
         }
     }
