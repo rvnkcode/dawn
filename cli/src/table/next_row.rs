@@ -1,13 +1,13 @@
-use crate::table::{Duration, base_table::TableRow};
+use crate::table::{Age, base_table::TableRow};
 use dawn::domain::task::{Description, Index, Task};
 use tabled::Tabled;
 
 #[derive(Tabled, Debug)]
 #[tabled(rename_all = "PascalCase")]
-pub struct NextRow {
+pub(crate) struct NextRow {
     #[tabled(rename = "ID")]
     id: Index,
-    age: Duration,
+    age: Age,
     description: Description,
 }
 
@@ -15,14 +15,14 @@ impl TableRow for NextRow {
     fn new(task: Task, now: i64) -> anyhow::Result<Self> {
         Ok(Self {
             id: task.index.ok_or(NextRowError::MissingIndex)?,
-            age: Duration::new(&task.entry, now)?,
+            age: Age::new(&task.entry, now)?,
             description: task.description,
         })
     }
 }
 
 #[derive(thiserror::Error, Debug)]
-pub enum NextRowError {
+pub(crate) enum NextRowError {
     #[error("Index is None")]
     MissingIndex,
 }
@@ -30,7 +30,7 @@ pub enum NextRowError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{table::duration::DurationError, test_helper::task};
+    use crate::{table::age::AgeError, test_helper::task};
     use tabled::Tabled;
 
     #[test]
@@ -64,8 +64,8 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(
-            err.downcast_ref::<DurationError>(),
-            Some(&DurationError::InvalidDelta {
+            err.downcast_ref::<AgeError>(),
+            Some(&AgeError::InvalidDelta {
                 from: now + 10,
                 to: now,
             })
