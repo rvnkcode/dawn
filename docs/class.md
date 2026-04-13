@@ -27,28 +27,28 @@ direction BT
       +next(&self) Result~_~
     }
 
-    class Duration {
+    class Age {
       -String
-      +new(&entry, now) Result~Self, DurationError~
+      ~new(&entry, now) Result~Self, AgeError~
     }
 
     class TableRow {
       <<interface>>
-      +new(task, now)* Result~Self~
+      ~new(task, now)* Result~Self~
     }
 
     class NextRow {
       -Index id
-      -Duration age
+      -Age age
       -Description description
-      +new(task, now) Result~Self~
+      ~new(task, now) Result~Self~
     }
 
     class BaseTable~R~ {
       -Vec~R~ rows
-      +new(tasks) Result~Self~
-      +len(&self) usize
-      +render(&self) Table
+      ~new(tasks) Result~Self~
+      ~count(&self) usize
+      ~render(&self) Table
     }
   }
 
@@ -64,9 +64,9 @@ direction BT
   Handler~TS~ ..> Task : fetches
   Handler~TS~ ..> BaseTable~R~ : displays
   Handler~TS~ ..> NextRow : displays
-  Duration ..> Timestamp : accepts
+  Age ..> Timestamp : accepts
   NextRow *-- Index
-  NextRow *-- Duration
+  NextRow *-- Age
   NextRow *-- Description
   NextRow ..|> TableRow : implements
   BaseTable~R~ ..> TableRow : where R is TableRow and Tabled
@@ -92,7 +92,7 @@ direction BT
     class Timestamp {
       -i64
       +new(raw) Result~Self, TimestampError~
-      ~get(&self) i64
+      +as_seconds(&self) i64
     }
 
     class Status {
