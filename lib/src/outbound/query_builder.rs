@@ -102,13 +102,13 @@ pub(crate) fn build_update_clause(
         modification.completed.as_ref().map(|c| {
             (
                 "completed = ?".to_string(),
-                Box::new(c.as_ref().map(|ts| ts.get())) as Box<dyn ToSql>,
+                Box::new(c.as_ref().map(|ts| ts.as_seconds())) as Box<dyn ToSql>,
             )
         }),
         modification.deleted.as_ref().map(|d| {
             (
                 "deleted = ?".to_string(),
-                Box::new(d.as_ref().map(|ts| ts.get())) as Box<dyn ToSql>,
+                Box::new(d.as_ref().map(|ts| ts.as_seconds())) as Box<dyn ToSql>,
             )
         }),
     ]
