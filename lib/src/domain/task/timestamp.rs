@@ -17,7 +17,7 @@ impl Timestamp {
         }
     }
 
-    pub(crate) fn get(&self) -> i64 {
+    pub fn as_seconds(&self) -> i64 {
         self.0
     }
 }
