@@ -55,6 +55,7 @@ direction BT
   Creation *-- Description
   Creation ..> TaskCreation : into
   Command *-- Creation : has
+  Cli ..> Creation : parses
   Cli o-- Command : executes
   Cli ..> TaskService : accepts
   Cli ..> Handler : calls
@@ -62,6 +63,7 @@ direction BT
   Handler~TS~ ..> TaskCreation : arg into
   Handler~TS~ ..> Task : fetches
   Handler~TS~ ..> BaseTable~R~ : displays
+  Handler~TS~ ..> NextRow : displays
   Duration ..> Timestamp : accepts
   NextRow *-- Index
   NextRow *-- Duration
