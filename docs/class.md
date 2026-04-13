@@ -24,11 +24,31 @@ direction BT
       -TS task_service
       +new(task_service) Self
       +add(&self, args) Result~_~
+      +next(&self) Result~_~
     }
 
     class Duration {
       -String
       +new(&entry, now) Result~Self, DurationError~
+    }
+
+    class TableRow {
+      <<interface>>
+      +new(task, now)* Result~Self~
+    }
+
+    class NextRow {
+      -Index id
+      -Duration age
+      -Description description
+      +new(task, now) Result~Self~
+    }
+
+    class BaseTable~R~ {
+      -Vec~R~ rows
+      +new(tasks) Result~Self~
+      +len(&self) usize
+      +render(&self) Table
     }
   }
 
@@ -40,7 +60,15 @@ direction BT
   Cli ..> Handler : calls
   Handler~TS~ ..> TaskService : where TS is TaskService
   Handler~TS~ ..> TaskCreation : arg into
+  Handler~TS~ ..> Task : fetches
+  Handler~TS~ ..> BaseTable~R~ : displays
   Duration ..> Timestamp : accepts
+  NextRow *-- Index
+  NextRow *-- Duration
+  NextRow *-- Description
+  NextRow ..|> TableRow : implements
+  BaseTable~R~ ..> TableRow : where R is TableRow and Tabled
+  BaseTable~R~ ..> Task : accepts
 
   namespace Domain {
     class UniqueID {

@@ -8,5 +8,7 @@ mod arg;
 mod cli;
 mod handler;
 mod table;
+#[cfg(test)]
+mod test_helper;
 
 pub use cli::Cli;
