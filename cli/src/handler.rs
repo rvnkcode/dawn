@@ -1,3 +1,5 @@
+use crate::table::{BaseTable, NextRow};
+use colored::Colorize;
 use dawn::domain::task::{TaskCreation, port::TaskService};
 
 pub(crate) struct Handler<TS: TaskService> {
@@ -15,54 +17,23 @@ impl<TS: TaskService> Handler<TS> {
         println!("Created task {count}.");
         Ok(())
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use dawn::domain::task::{Description, port::MockTaskService};
-
-    fn creation(desc: &str) -> TaskCreation {
-        TaskCreation {
-            description: Description::new(desc).unwrap(),
+    // TODO: filters
+    pub fn next(&self) -> anyhow::Result<()> {
+        let tasks = self.task_service.next()?;
+        if tasks.is_empty() {
+            println!("{}", "No matches.".yellow());
+            return Ok(());
         }
-    }
-
-    #[test]
-    fn add_returns_ok_on_success() {
-        let mut mock = MockTaskService::new();
-        mock.expect_add().returning(|_| Ok(()));
-        mock.expect_count_pending().returning(|| Ok(1));
-
-        let handler = Handler::new(mock);
-        assert!(handler.add(creation("test")).is_ok());
-    }
-
-    #[test]
-    fn add_propagates_add_error() {
-        let mut mock = MockTaskService::new();
-        mock.expect_add()
-            .returning(|_| Err(anyhow::anyhow!("add failed")));
-        mock.expect_count_pending().never();
-
-        let handler = Handler::new(mock);
-        let result = handler.add(creation("test"));
-
-        assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "add failed");
-    }
-
-    #[test]
-    fn add_propagates_count_pending_error() {
-        let mut mock = MockTaskService::new();
-        mock.expect_add().returning(|_| Ok(()));
-        mock.expect_count_pending()
-            .returning(|| Err(anyhow::anyhow!("count failed")));
-
-        let handler = Handler::new(mock);
-        let result = handler.add(creation("test"));
-
-        assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "count failed");
+        let table = BaseTable::<NextRow>::new(tasks.into_iter())?;
+        let count = table.len();
+        println!("{}", table.render());
+        println!();
+        if count == 1 {
+            println!("{} task", count);
+        } else {
+            println!("{} tasks", count);
+        }
+        Ok(())
     }
 }

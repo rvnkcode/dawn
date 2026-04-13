@@ -25,7 +25,7 @@ impl Cli {
         let handler = Handler::new(task_service);
         match self.command {
             Some(Command::Add(creation)) => handler.add(creation),
-            None => Ok(()),
+            None => handler.next(),
         }
     }
 }
