@@ -7,5 +7,6 @@
 mod arg;
 mod cli;
 mod handler;
+mod table;
 
 pub use cli::Cli;
