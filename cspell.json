@@ -4,6 +4,7 @@
   "ignorePaths": [".git", "target"],
   "words": [
     "clippy",
+    "mockall",
     "rusqlite",
     "rustdoc",
     "sqlfluff",
