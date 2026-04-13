@@ -25,6 +25,11 @@ direction BT
       +new(task_service) Self
       +add(&self, args) Result~_~
     }
+
+    class Duration {
+      -String
+      +new(&entry, now) Result~Self, DurationError~
+    }
   }
 
   Creation *-- Description
@@ -33,8 +38,9 @@ direction BT
   Cli o-- Command : executes
   Cli ..> TaskService : accepts
   Cli ..> Handler : calls
-  Handler ..> TaskService : where TS is TaskService
-  Handler ..> TaskCreation : arg into
+  Handler~TS~ ..> TaskService : where TS is TaskService
+  Handler~TS~ ..> TaskCreation : arg into
+  Duration ..> Timestamp : accepts
 
   namespace Domain {
     class UniqueID {
