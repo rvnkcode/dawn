@@ -39,7 +39,7 @@ Based on GTD (Getting Things Done) philosophy, Dawn integrates **task management
 # Build & Test
 cargo build --workspace
 cargo test --workspace               # Run all tests
-cargo llvm-cov --workspace --lib     # Coverage report (lib only, excludes bin)
+cargo llvm-cov --workspace --lib --ignore-filename-regex='(cli/src/(cli|arg|handler)|lib/src/domain/task/service)\.rs$'     # Coverage report (lib only, excludes bin)
 
 # CLI Development
 cargo run -p dawn-cli -- <command>
