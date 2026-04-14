@@ -8,7 +8,7 @@ use thiserror::Error;
 pub struct Description(String);
 
 #[derive(Debug, Error)]
-#[error("Additional text must be provided.")]
+#[error("additional text must be provided")]
 pub struct DescriptionEmptyError;
 
 impl Description {
