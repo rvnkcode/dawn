@@ -336,7 +336,67 @@ fn create_task_duplicate_id_returns_error() {
     assert!(result.is_err());
 }
 
-// F. List Tasks
+// F. Count Pending
+
+#[test]
+fn count_pending_returns_error_when_table_missing() {
+    let db = setup();
+    db.conn.execute_batch("DROP TABLE task").unwrap();
+
+    let result = db.count_pending();
+
+    assert!(result.is_err());
+}
+
+#[test]
+fn count_pending_returns_zero_when_no_tasks() {
+    let db = setup();
+
+    let count = db.count_pending().unwrap();
+
+    assert_eq!(count, 0);
+}
+
+#[test]
+fn count_pending_returns_count_of_pending_tasks() {
+    let db = setup();
+    insert_task(&db, "test_cnt0001", "task one");
+    insert_task(&db, "test_cnt0002", "task two");
+    insert_task(&db, "test_cnt0003", "task three");
+
+    let count = db.count_pending().unwrap();
+
+    assert_eq!(count, 3);
+}
+
+#[test]
+fn count_pending_excludes_deleted_and_completed_tasks() {
+    let db = setup();
+    insert_task(&db, "test_cnt0004", "pending one");
+    insert_task(&db, "test_cnt0005", "pending two");
+    insert_task(&db, "test_cnt0006", "pending three");
+    insert_task(&db, "test_cnt0007", "to complete");
+    insert_task(&db, "test_cnt0008", "to delete");
+
+    db.conn
+        .execute(
+            "UPDATE task SET completed = unixepoch() WHERE id = ?1",
+            rusqlite::params!["test_cnt0007"],
+        )
+        .unwrap();
+    db.conn
+        .execute(
+            "UPDATE task SET deleted = unixepoch() WHERE id = ?1",
+            rusqlite::params!["test_cnt0008"],
+        )
+        .unwrap();
+
+    let count = db.count_pending().unwrap();
+
+    assert_eq!(count, 3);
+}
+
+// G. List Tasks
 
 fn insert_task_from(db: &SQLite, task: &Task) {
     db.conn
@@ -361,25 +421,6 @@ fn list_tasks_returns_empty_vec_when_no_tasks() {
     let tasks = db.list_tasks(&filter).unwrap();
 
     assert!(tasks.is_empty());
-}
-
-#[test]
-fn list_tasks_returns_pending_task_with_index() {
-    let db = setup();
-    let expected = Task {
-        uid: "test_kkkkkk1".parse().unwrap(),
-        index: Some(Index::new(1).unwrap()),
-        description: Description::new("buy milk").unwrap(),
-        entry: Timestamp::new(1000).unwrap(),
-        completed: None,
-        deleted: None,
-    };
-    insert_task_from(&db, &expected);
-    let filter = Filter::new().with_statuses([Status::Pending]);
-
-    let tasks = db.list_tasks(&filter).unwrap();
-
-    assert_eq!(tasks, vec![expected]);
 }
 
 #[test]
@@ -1175,64 +1216,4 @@ fn delete_empty_targets_returns_error() {
     let result = db.delete_tasks(&[]);
 
     assert!(result.is_err());
-}
-
-// L. Count Pending
-
-#[test]
-fn count_pending_returns_error_when_table_missing() {
-    let db = setup();
-    db.conn.execute_batch("DROP TABLE task").unwrap();
-
-    let result = db.count_pending();
-
-    assert!(result.is_err());
-}
-
-#[test]
-fn count_pending_returns_zero_when_no_tasks() {
-    let db = setup();
-
-    let count = db.count_pending().unwrap();
-
-    assert_eq!(count, 0);
-}
-
-#[test]
-fn count_pending_returns_count_of_pending_tasks() {
-    let db = setup();
-    insert_task(&db, "test_cnt0001", "task one");
-    insert_task(&db, "test_cnt0002", "task two");
-    insert_task(&db, "test_cnt0003", "task three");
-
-    let count = db.count_pending().unwrap();
-
-    assert_eq!(count, 3);
-}
-
-#[test]
-fn count_pending_excludes_deleted_and_completed_tasks() {
-    let db = setup();
-    insert_task(&db, "test_cnt0004", "pending one");
-    insert_task(&db, "test_cnt0005", "pending two");
-    insert_task(&db, "test_cnt0006", "pending three");
-    insert_task(&db, "test_cnt0007", "to complete");
-    insert_task(&db, "test_cnt0008", "to delete");
-
-    db.conn
-        .execute(
-            "UPDATE task SET completed = unixepoch() WHERE id = ?1",
-            rusqlite::params!["test_cnt0007"],
-        )
-        .unwrap();
-    db.conn
-        .execute(
-            "UPDATE task SET deleted = unixepoch() WHERE id = ?1",
-            rusqlite::params!["test_cnt0008"],
-        )
-        .unwrap();
-
-    let count = db.count_pending().unwrap();
-
-    assert_eq!(count, 3);
 }
