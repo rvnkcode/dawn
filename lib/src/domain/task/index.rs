@@ -5,7 +5,7 @@ use thiserror::Error;
 pub struct Index(usize);
 
 #[derive(Debug, Error)]
-#[error("Index must be >= 1, got {0}")]
+#[error("index must be >= 1, got {0}")]
 pub struct IndexError(usize);
 
 impl Index {
@@ -17,6 +17,7 @@ impl Index {
         }
     }
 
+    // For SQL query parameters
     pub(crate) fn get(&self) -> usize {
         self.0
     }
