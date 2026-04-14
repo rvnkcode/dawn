@@ -85,10 +85,10 @@ pub(crate) fn build_update_clause(
     targets: &[UniqueID],
 ) -> anyhow::Result<Clause> {
     if modification.is_empty() {
-        return Err(anyhow::anyhow!("No modification specified"));
+        return Err(anyhow::anyhow!("no modification specified"));
     }
     if targets.is_empty() {
-        return Err(anyhow::anyhow!("No target specified"));
+        return Err(anyhow::anyhow!("no target specified"));
     }
 
     // Collect update expressions and their parameters based on the provided modification
