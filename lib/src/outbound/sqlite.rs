@@ -38,6 +38,7 @@ impl SQLite {
         Ok(user_version)
     }
 
+    // mut self because of transaction
     pub fn initialize(&mut self) -> Result<(), SQLiteError> {
         let user_version = self.get_user_version()?;
         match user_version.cmp(&DB_VERSION) {
@@ -85,6 +86,7 @@ fn ensure_parent_dir(path: &Path) -> Result<(), SQLiteError> {
 // Excluded from coverage because it depends on the filesystem
 #[cfg(not(coverage))]
 fn get_db_path() -> Result<PathBuf, SQLiteError> {
+    // Uses env var for E2E tests to isolate test data from real data
     if let Ok(override_path) = std::env::var("DAWN_DB_PATH") {
         let path = PathBuf::from(override_path);
         ensure_parent_dir(&path)?;
