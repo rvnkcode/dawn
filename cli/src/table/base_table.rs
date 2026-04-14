@@ -3,7 +3,11 @@ use colored::control::SHOULD_COLORIZE;
 use dawn::domain::task::Task;
 use tabled::{
     Table, Tabled,
-    settings::{Color, Padding, Style, object::Rows, themes::Colorization},
+    settings::{
+        Color, Padding, Style,
+        object::{ObjectIterator, Rows},
+        themes::Colorization,
+    },
 };
 
 pub(crate) trait TableRow: Sized {
@@ -31,10 +35,9 @@ impl<R: TableRow + Tabled> BaseTable<R> {
         let mut table = Table::new(&self.rows);
         table.with(Style::empty()).with(Padding::new(1, 0, 0, 0));
         if SHOULD_COLORIZE.should_colorize() {
-            let primary = Color::default();
             let secondary = Color::new("\u{1b}[48;5;234m", "\u{1b}[49m");
             table
-                .with(Colorization::rows([primary, secondary]))
+                .with(Colorization::exact([secondary], Rows::new(2..).step_by(2)))
                 .modify(Rows::first(), Color::UNDERLINE);
         }
         table
