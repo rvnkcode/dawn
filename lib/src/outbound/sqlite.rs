@@ -51,7 +51,7 @@ impl SQLite {
             Ordering::Equal => {} // Do nothing
             Ordering::Greater => {
                 return Err(SQLiteError::InitializationError(format!(
-                    "database version ({user_version}) is newer than supported version ({DB_VERSION}). Please upgrade Dawn."
+                    "database version ({user_version}) is newer than supported version ({DB_VERSION})"
                 )));
             }
         }
@@ -61,7 +61,7 @@ impl SQLite {
 
 #[derive(Debug, thiserror::Error)]
 pub enum SQLiteError {
-    #[error("Database initialization error: {0}")]
+    #[error("database initialization error: {0}")]
     InitializationError(String),
     #[error(transparent)]
     RusqliteError(#[from] rusqlite::Error),
@@ -73,7 +73,7 @@ fn ensure_parent_dir(path: &Path) -> Result<(), SQLiteError> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| {
             SQLiteError::InitializationError(format!(
-                "Could not create directory '{}': {}",
+                "could not create directory '{}': {}",
                 parent.display(),
                 e
             ))
@@ -95,7 +95,7 @@ fn get_db_path() -> Result<PathBuf, SQLiteError> {
      * macOS: ~/Library/Application\ Support
      */
     let data_dir = dirs::data_local_dir().ok_or(SQLiteError::InitializationError(
-        "Could not determine local data directory".into(),
+        "could not determine local data directory".into(),
     ))?;
     let dawn_dir = data_dir.join("dawn");
     let path = dawn_dir.join("dawn.db");
