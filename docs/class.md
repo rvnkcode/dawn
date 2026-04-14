@@ -22,9 +22,9 @@ direction BT
 
     class Handler~TS~ {
       -TS task_service
-      +new(task_service) Self
-      +add(&self, args) Result~_~
-      +next(&self) Result~_~
+      ~new(task_service) Self
+      ~add(&self, args) Result~_~
+      ~next(&self) Result~_~
     }
 
     class Age {

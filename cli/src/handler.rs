@@ -7,11 +7,11 @@ pub(crate) struct Handler<TS: TaskService> {
 }
 
 impl<TS: TaskService> Handler<TS> {
-    pub fn new(task_service: TS) -> Self {
+    pub(crate) fn new(task_service: TS) -> Self {
         Self { task_service }
     }
 
-    pub fn add(&self, args: impl Into<TaskCreation>) -> anyhow::Result<()> {
+    pub(crate) fn add(&self, args: impl Into<TaskCreation>) -> anyhow::Result<()> {
         self.task_service.add(&args.into())?;
         let count = self.task_service.count_pending()?;
         println!("Created task {count}.");
@@ -19,7 +19,7 @@ impl<TS: TaskService> Handler<TS> {
     }
 
     // TODO: filters
-    pub fn next(&self) -> anyhow::Result<()> {
+    pub(crate) fn next(&self) -> anyhow::Result<()> {
         let tasks = self.task_service.next()?;
         if tasks.is_empty() {
             println!("{}", "No matches.".yellow());
