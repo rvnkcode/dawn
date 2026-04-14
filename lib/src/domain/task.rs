@@ -11,7 +11,6 @@ pub use timestamp::Timestamp;
 pub mod unique_id;
 pub use unique_id::UniqueID;
 
-#[derive(Debug, PartialEq)]
 pub struct TaskCreation {
     pub description: Description,
 }
