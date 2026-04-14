@@ -162,6 +162,44 @@ fn build_where_clause_with_uid_and_index() {
     assert_eq!(to_value(params[1].as_ref()), Value::Integer(1));
 }
 
+// filter IDs + status
+
+#[test]
+fn build_where_clause_with_uid_and_status() {
+    use crate::domain::task::UniqueID;
+
+    let uid = UniqueID::new();
+    let uid_str = uid.to_string();
+    let filter = Filter::new()
+        .with_uids([uid])
+        .with_statuses([Status::Pending]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert!(clause.starts_with("WHERE "));
+    assert!(clause.contains("t.id IN (?)"));
+    assert!(clause.contains(" AND "));
+    assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
+    assert_eq!(params.len(), 1);
+    assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
+}
+
+#[test]
+fn build_where_clause_with_index_and_status() {
+    use crate::domain::task::Index;
+
+    let filter = Filter::new()
+        .with_indices([Index::new(1).unwrap()])
+        .with_statuses([Status::Pending]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert!(clause.starts_with("WHERE "));
+    assert!(clause.contains("tpr.row_id IN (?)"));
+    assert!(clause.contains(" AND "));
+    assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
+    assert_eq!(params.len(), 1);
+    assert_eq!(to_value(params[0].as_ref()), Value::Integer(1));
+}
+
 #[test]
 fn build_where_clause_with_uid_and_index_and_status() {
     use crate::domain::task::{Index, UniqueID};
@@ -181,27 +219,6 @@ fn build_where_clause_with_uid_and_index_and_status() {
     assert_eq!(params.len(), 2);
     assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
     assert_eq!(to_value(params[1].as_ref()), Value::Integer(1));
-}
-
-// filter.uids + filter.statuses
-
-#[test]
-fn build_where_clause_with_uid_and_status() {
-    use crate::domain::task::UniqueID;
-
-    let uid = UniqueID::new();
-    let uid_str = uid.to_string();
-    let filter = Filter::new()
-        .with_uids([uid])
-        .with_statuses([Status::Pending]);
-
-    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert!(clause.starts_with("WHERE "));
-    assert!(clause.contains("t.id IN (?)"));
-    assert!(clause.contains(" AND "));
-    assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
-    assert_eq!(params.len(), 1);
-    assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
 }
 
 // build_update_clause
