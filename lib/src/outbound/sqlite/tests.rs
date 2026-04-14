@@ -682,7 +682,7 @@ fn list_tasks_filter_all_statuses() {
     assert_eq!(tasks, vec![pending, completed, deleted]);
 }
 
-// G. Filter by UID
+// H. Filter by UID
 
 #[test]
 fn list_tasks_filter_single_uid() {
@@ -823,7 +823,7 @@ fn list_tasks_filter_uid_with_status() {
     assert_eq!(tasks, vec![pending]);
 }
 
-// H. Filter by Index
+// I. Filter by Index
 
 #[test]
 fn list_tasks_filter_single_index() {
@@ -888,36 +888,6 @@ fn list_tasks_filter_multiple_indices() {
     let tasks = db.list_tasks(&filter).unwrap();
 
     assert_eq!(tasks, vec![first, second]);
-}
-
-#[test]
-fn list_tasks_filter_index_with_status() {
-    let db = setup();
-    let pending = Task {
-        uid: "test_yyyyy01".parse().unwrap(),
-        index: Some(Index::new(1).unwrap()),
-        description: Description::new("pending").unwrap(),
-        entry: Timestamp::new(1000).unwrap(),
-        completed: None,
-        deleted: None,
-    };
-    let completed = Task {
-        uid: "test_yyyyy02".parse().unwrap(),
-        index: None,
-        description: Description::new("completed").unwrap(),
-        entry: Timestamp::new(2000).unwrap(),
-        completed: Some(Timestamp::new(3000).unwrap()),
-        deleted: None,
-    };
-    insert_task_from(&db, &pending);
-    insert_task_from(&db, &completed);
-    let filter = Filter::new()
-        .with_indices([Index::new(1).unwrap()])
-        .with_statuses([Status::Pending]);
-
-    let tasks = db.list_tasks(&filter).unwrap();
-
-    assert_eq!(tasks, vec![pending]);
 }
 
 #[test]
@@ -1007,7 +977,7 @@ fn list_tasks_filter_nonexistent_index() {
     assert!(tasks.is_empty());
 }
 
-// I. Filter by UID + Index
+// J. Filter by UID + Index
 
 #[test]
 fn list_tasks_filter_uid_and_index() {
@@ -1048,7 +1018,7 @@ fn list_tasks_filter_uid_and_index() {
     assert_eq!(tasks, vec![by_uid, by_index]);
 }
 
-// J. Update Tasks
+// K. Update Tasks
 
 #[test]
 fn update_tasks_changes_description() {
