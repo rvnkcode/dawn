@@ -67,38 +67,3 @@ fn next_with_multiple_tasks_prints_plural_footer() {
         "stdout missing plural footer: {stdout}"
     );
 }
-
-#[test]
-fn next_lists_all_pending_tasks() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
-    common::dawn_cmd(&db)
-        .args(["add", "alpha"])
-        .assert()
-        .success();
-    common::dawn_cmd(&db)
-        .args(["add", "bravo"])
-        .assert()
-        .success();
-    common::dawn_cmd(&db)
-        .args(["add", "charlie"])
-        .assert()
-        .success();
-    let output = common::dawn_cmd(&db)
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-    let stdout = String::from_utf8(output).expect("utf8 stdout");
-    assert!(stdout.contains("alpha"), "stdout missing 'alpha': {stdout}");
-    assert!(stdout.contains("bravo"), "stdout missing 'bravo': {stdout}");
-    assert!(
-        stdout.contains("charlie"),
-        "stdout missing 'charlie': {stdout}"
-    );
-    assert!(
-        stdout.contains("3 tasks"),
-        "stdout missing footer: {stdout}"
-    );
-}

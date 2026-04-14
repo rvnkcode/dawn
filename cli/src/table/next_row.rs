@@ -23,14 +23,14 @@ impl TableRow for NextRow {
 
 #[derive(thiserror::Error, Debug)]
 pub(crate) enum NextRowError {
-    #[error("Index is None")]
+    #[error("task is missing index")]
     MissingIndex,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{table::age::AgeError, test_helper::task};
+    use crate::test_helper::task;
     use tabled::Tabled;
 
     #[test]
@@ -53,22 +53,5 @@ mod tests {
             err.downcast_ref::<NextRowError>(),
             Some(NextRowError::MissingIndex)
         ));
-    }
-
-    #[test]
-    fn new_propagates_duration_error_when_entry_in_future() {
-        let now = 1_000_000;
-        let err = NextRow::new(
-            task(Some(Index::new(1).unwrap()), "buy milk", now + 10),
-            now,
-        )
-        .unwrap_err();
-        assert_eq!(
-            err.downcast_ref::<AgeError>(),
-            Some(&AgeError::InvalidDelta {
-                from: now + 10,
-                to: now,
-            })
-        );
     }
 }

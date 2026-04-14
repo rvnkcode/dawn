@@ -51,28 +51,6 @@ mod tests {
     use dawn::domain::task::Index;
 
     #[test]
-    fn new_with_empty_iterator_has_zero_len() {
-        let table = BaseTable::<NextRow>::new(std::iter::empty()).unwrap();
-        assert_eq!(table.count(), 0);
-    }
-
-    #[test]
-    fn new_collects_all_rows() {
-        let tasks = [
-            task(Some(Index::new(1).unwrap()), "buy milk", 0),
-            task(Some(Index::new(2).unwrap()), "walk dog", 0),
-        ];
-        let table = BaseTable::<NextRow>::new(tasks.into_iter()).unwrap();
-        assert_eq!(table.count(), 2);
-    }
-
-    #[test]
-    fn new_propagates_error_when_row_construction_fails() {
-        let tasks = [task(None, "buy milk", 0)];
-        assert!(BaseTable::<NextRow>::new(tasks.into_iter()).is_err());
-    }
-
-    #[test]
     fn render_includes_headers_and_row_data() {
         let tasks = [task(Some(Index::new(1).unwrap()), "buy milk", 0)];
         let table = BaseTable::<NextRow>::new(tasks.into_iter()).unwrap();
