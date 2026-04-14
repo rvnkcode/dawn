@@ -17,6 +17,7 @@ pub struct TaskCreation {
 
 pub struct TaskModification {
     pub description: Option<Description>,
+    // TODO: entry
     pub completed: Option<Option<Timestamp>>,
     pub deleted: Option<Option<Timestamp>>,
 }
