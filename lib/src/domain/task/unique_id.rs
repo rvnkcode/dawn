@@ -26,9 +26,9 @@ impl Display for UniqueID {
 
 #[derive(Debug, Eq, PartialEq, Error)]
 pub enum UniqueIDParseError {
-    #[error("UniqueID must be {ID_LENGTH} characters, got {0}")]
+    #[error("ID must be {ID_LENGTH} characters, got {0}")]
     InvalidLength(usize),
-    #[error("UniqueID contains invalid character: '{0}'")]
+    #[error("ID contains invalid character: '{0}'")]
     InvalidCharacter(char),
 }
 
