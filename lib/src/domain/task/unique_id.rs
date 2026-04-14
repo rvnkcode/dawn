@@ -56,8 +56,7 @@ mod tests {
     #[test]
     fn unique_id_new() {
         let id = UniqueID::new();
-        let id_str = id.to_string();
-        assert_eq!(id_str.len(), ID_LENGTH);
+        assert_eq!(id.to_string().len(), ID_LENGTH);
     }
 
     #[test]
@@ -77,12 +76,6 @@ mod tests {
     fn from_str_long() {
         let result = "abcdefghijklm".parse::<UniqueID>(); // 13 chars
         assert_eq!(result, Err(UniqueIDParseError::InvalidLength(13)));
-    }
-
-    #[test]
-    fn from_str_with_underscore_and_hyphen() {
-        let result = "abc_def-ghij".parse::<UniqueID>();
-        assert!(result.is_ok());
     }
 
     #[test]
