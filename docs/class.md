@@ -160,31 +160,38 @@ direction BT
     }
   }
 
+  %% Adapters
+  Service~R~ ..|> TaskService : implements
+  Service~R~ ..> TaskRepository : where R is TaskRepository
+
+  %% Create
+  TaskCreation *-- Description
+  TaskService ..> TaskCreation : accepts
+  Service~R~ ..> UniqueID : generates
+  TaskRepository ..> UniqueID : accepts
+  TaskRepository ..> TaskCreation : accepts
+
+  %% Read
   Task *-- UniqueID
   Task o-- Index
   Task *-- Description
-  Task *-- Timestamp
-  Task o-- Timestamp
+  Task *-- Timestamp : entry
+  Task o-- Timestamp : completed, deleted
   Filter o-- UniqueID
   Filter o-- Index
   Filter o-- Status
-  TaskCreation *-- Description
-  TaskModification o-- Description
-  TaskModification o-- Timestamp
-  Service~R~ ..> UniqueID : generates
   Service~R~ ..> Filter : determines
-  Service~R~ ..> Status : uses
-  Service~R~ ..|> TaskService : implements
-  Service~R~ ..> TaskRepository : where R is TaskRepository
-  TaskService ..> UniqueID : accepts
-  TaskService ..> TaskCreation : accepts
-  TaskService ..> TaskModification : accepts
+  Service~R~ ..> Status : targets
   TaskService ..> Task : returns
-  TaskRepository ..> UniqueID : accepts
-  TaskRepository ..> TaskCreation : accepts
-  TaskRepository ..> TaskModification : accepts
   TaskRepository ..> Filter : accepts
   TaskRepository ..> Task : returns
+
+  %% Update
+  TaskModification o-- Description
+  TaskModification o-- Timestamp
+  TaskService ..> UniqueID : accepts
+  TaskService ..> TaskModification : accepts
+  TaskRepository ..> TaskModification : accepts
 
   namespace Outbound {
     class SQLite {
