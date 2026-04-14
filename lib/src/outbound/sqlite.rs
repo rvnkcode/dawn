@@ -171,7 +171,7 @@ impl TaskRepository for SQLite {
 
     fn delete_tasks(&self, targets: &[UniqueID]) -> anyhow::Result<()> {
         if targets.is_empty() {
-            return Err(anyhow::anyhow!("No target IDs provided for deletion"));
+            return Err(anyhow::anyhow!("no target IDs provided for deletion"));
         }
         let query = format!(
             "DELETE FROM task WHERE id IN ({})",
