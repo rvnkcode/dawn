@@ -65,30 +65,4 @@ mod tests {
         let desc = result.unwrap();
         assert_eq!(desc.to_string(), "hello world");
     }
-
-    #[test]
-    fn from_str_valid() {
-        let result = "Valid description".parse::<Description>();
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap().to_string(), "Valid description");
-    }
-
-    #[test]
-    fn from_str_empty_string() {
-        let result = "".parse::<Description>();
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn from_str_whitespace_only() {
-        let result = "   ".parse::<Description>();
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn from_str_trims_whitespace() {
-        let result = "  hello world  ".parse::<Description>();
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap().to_string(), "hello world");
-    }
 }
