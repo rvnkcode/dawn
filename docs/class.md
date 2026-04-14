@@ -52,18 +52,19 @@ direction BT
     }
   }
 
+  Cli ..> TaskService : accepts
+  Cli ..> Handler : calls
+  Handler~TS~ ..> TaskService : where TS is TaskService
+
+  %% Create
   Creation *-- Description
   Creation ..> TaskCreation : into
   Command *-- Creation : has
   Cli ..> Creation : parses
   Cli o-- Command : executes
-  Cli ..> TaskService : accepts
-  Cli ..> Handler : calls
-  Handler~TS~ ..> TaskService : where TS is TaskService
   Handler~TS~ ..> TaskCreation : arg into
-  Handler~TS~ ..> Task : fetches
-  Handler~TS~ ..> BaseTable~R~ : displays
-  Handler~TS~ ..> NextRow : displays
+
+  %% Read
   Age ..> Timestamp : accepts
   NextRow *-- Index
   NextRow *-- Age
@@ -71,6 +72,9 @@ direction BT
   NextRow ..|> TableRow : implements
   BaseTable~R~ ..> TableRow : where R is TableRow and Tabled
   BaseTable~R~ ..> Task : accepts
+  Handler~TS~ ..> Task : fetches
+  Handler~TS~ ..> BaseTable~R~ : displays
+  Handler~TS~ ..> NextRow : displays
 
   namespace Domain {
     class UniqueID {
