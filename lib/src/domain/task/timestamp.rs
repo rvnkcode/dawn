@@ -5,7 +5,7 @@ use thiserror::Error;
 pub struct Timestamp(i64);
 
 #[derive(Debug, Error)]
-#[error("Timestamp must be >= 0, got {0}")]
+#[error("timestamp must be >= 0, got {0}")]
 pub struct TimestampError(i64);
 
 impl Timestamp {
