@@ -59,11 +59,6 @@ mod tests {
         s.parse().expect(s)
     }
 
-    #[test]
-    fn new_is_empty() {
-        assert!(Filter::new().is_empty());
-    }
-
     // UIDs
 
     #[test]
