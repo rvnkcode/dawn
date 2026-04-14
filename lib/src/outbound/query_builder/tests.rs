@@ -71,6 +71,8 @@ fn build_where_clause_with_all_statuses() {
     assert!(build_where_clause(&filter).unwrap().is_none());
 }
 
+// filter.uids
+
 #[test]
 fn repeat_vars_single() {
     assert_eq!(repeat_vars(1), "?");
@@ -80,8 +82,6 @@ fn repeat_vars_single() {
 fn repeat_vars_multiple() {
     assert_eq!(repeat_vars(3), "?,?,?");
 }
-
-// filter.uids
 
 #[test]
 fn build_where_clause_with_single_uid() {
