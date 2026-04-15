@@ -167,7 +167,7 @@ mod tests {
 
     #[test]
     fn calendar_months_borrow_still_weeks() {
-        /* 2024-01-20 → 2024-04-10: day-of-month borrow → 2 calendar months → weeks */
+        // 2024-01-20 → 2024-04-10: day-of-month borrow → 2 calendar months → weeks
         let from = ymd(2024, 1, 20);
         let to = ymd(2024, 4, 10);
         assert_eq!(Age::new(&ts(from), to).unwrap().to_string(), "11w");
@@ -177,7 +177,7 @@ mod tests {
     fn calendar_months_nine_across_year() {
         let from = ymd(2024, 3, 20);
         let to = ymd(2025, 1, 10);
-        /* month borrow: 2025-01 vs 2024-03 → 10 months, day-of-month borrow → 9 */
+        // month borrow: 2025-01 vs 2024-03 → 10 months, day-of-month borrow → 9
         assert_eq!(Age::new(&ts(from), to).unwrap().to_string(), "9mo");
     }
 
@@ -197,7 +197,7 @@ mod tests {
 
     #[test]
     fn year_just_before_anniversary_shows_months() {
-        /* 2024-01-15 → 2025-01-14: not yet 1 year → 11mo */
+        // 2024-01-15 → 2025-01-14: not yet 1 year → 11mo
         let from = ymd(2024, 1, 15);
         let to = ymd(2025, 1, 14);
         assert_eq!(Age::new(&ts(from), to).unwrap().to_string(), "11mo");
