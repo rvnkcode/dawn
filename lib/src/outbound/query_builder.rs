@@ -138,9 +138,7 @@ pub(crate) fn build_update_clause(
 
 // ref: https://docs.rs/rusqlite/latest/rusqlite/struct.ParamsFromIter.html#realistic-use-case
 pub(crate) fn repeat_vars(count: usize) -> String {
-    std::iter::repeat_n("?", count)
-        .collect::<Vec<_>>()
-        .join(",")
+    vec!["?"; count].join(",")
 }
 
 #[cfg(test)]
