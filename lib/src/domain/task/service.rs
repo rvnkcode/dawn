@@ -29,7 +29,7 @@ where
 
     fn next(&self) -> anyhow::Result<Vec<Task>> {
         self.repo
-            .list_tasks(&Filter::new().with_statuses([Status::Pending]))
+            .list_tasks(&Filter::default().with_statuses([Status::Pending]))
     }
 
     fn modify(&self, modification: &TaskModification, targets: &[UniqueID]) -> anyhow::Result<()> {

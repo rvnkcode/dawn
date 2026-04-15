@@ -24,7 +24,7 @@ fn insert_task_from(db: &SQLite, task: &Task) {
 #[test]
 fn list_tasks_returns_empty_vec_when_no_tasks() {
     let db = setup();
-    let filter = Filter::new();
+    let filter = Filter::default();
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -61,7 +61,7 @@ fn list_tasks_orders_by_entry_then_id() {
     insert_task_from(&db, &earlier);
     insert_task_from(&db, &first_by_id);
     insert_task_from(&db, &second_by_id);
-    let filter = Filter::new();
+    let filter = Filter::default();
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -98,7 +98,7 @@ fn list_tasks_filter_pending_only() {
     insert_task_from(&db, &pending);
     insert_task_from(&db, &completed);
     insert_task_from(&db, &deleted);
-    let filter = Filter::new().with_statuses([Status::Pending]);
+    let filter = Filter::default().with_statuses([Status::Pending]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -135,7 +135,7 @@ fn list_tasks_filter_completed_only() {
     insert_task_from(&db, &pending);
     insert_task_from(&db, &completed);
     insert_task_from(&db, &deleted);
-    let filter = Filter::new().with_statuses([Status::Completed]);
+    let filter = Filter::default().with_statuses([Status::Completed]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -172,7 +172,7 @@ fn list_tasks_filter_deleted_only() {
     insert_task_from(&db, &pending);
     insert_task_from(&db, &completed);
     insert_task_from(&db, &deleted);
-    let filter = Filter::new().with_statuses([Status::Deleted]);
+    let filter = Filter::default().with_statuses([Status::Deleted]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -209,7 +209,7 @@ fn list_tasks_no_filter_returns_all() {
     insert_task_from(&db, &pending);
     insert_task_from(&db, &completed);
     insert_task_from(&db, &deleted);
-    let filter = Filter::new();
+    let filter = Filter::default();
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -246,7 +246,7 @@ fn list_tasks_filter_two_statuses() {
     insert_task_from(&db, &pending);
     insert_task_from(&db, &completed);
     insert_task_from(&db, &deleted);
-    let filter = Filter::new().with_statuses([Status::Pending, Status::Completed]);
+    let filter = Filter::default().with_statuses([Status::Pending, Status::Completed]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -283,7 +283,8 @@ fn list_tasks_filter_all_statuses() {
     insert_task_from(&db, &pending);
     insert_task_from(&db, &completed);
     insert_task_from(&db, &deleted);
-    let filter = Filter::new().with_statuses([Status::Pending, Status::Completed, Status::Deleted]);
+    let filter =
+        Filter::default().with_statuses([Status::Pending, Status::Completed, Status::Deleted]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -322,7 +323,7 @@ fn list_tasks_filter_single_uid() {
     insert_task_from(&db, &target);
     insert_task_from(&db, &other1);
     insert_task_from(&db, &other2);
-    let filter = Filter::new().with_uids(["test_sssss01".parse::<UniqueID>().unwrap()]);
+    let filter = Filter::default().with_uids(["test_sssss01".parse::<UniqueID>().unwrap()]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -359,7 +360,7 @@ fn list_tasks_filter_multiple_uids() {
     insert_task_from(&db, &first);
     insert_task_from(&db, &second);
     insert_task_from(&db, &excluded);
-    let filter = Filter::new().with_uids([
+    let filter = Filter::default().with_uids([
         "test_ttttt01".parse::<UniqueID>().unwrap(),
         "test_ttttt02".parse::<UniqueID>().unwrap(),
     ]);
@@ -382,7 +383,7 @@ fn list_tasks_filter_nonexistent_uid() {
     };
     insert_task_from(&db, &task);
     let nonexistent: UniqueID = "test_vvvvv99".parse().unwrap();
-    let filter = Filter::new().with_uids([nonexistent]);
+    let filter = Filter::default().with_uids([nonexistent]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -419,7 +420,7 @@ fn list_tasks_filter_uid_with_status() {
     insert_task_from(&db, &pending);
     insert_task_from(&db, &completed);
     insert_task_from(&db, &other);
-    let filter = Filter::new()
+    let filter = Filter::default()
         .with_uids([
             "test_uuuuu01".parse::<UniqueID>().unwrap(),
             "test_uuuuu02".parse::<UniqueID>().unwrap(),
@@ -454,7 +455,7 @@ fn list_tasks_filter_single_index() {
     };
     insert_task_from(&db, &target);
     insert_task_from(&db, &other);
-    let filter = Filter::new().with_indices([Index::new(1).unwrap()]);
+    let filter = Filter::default().with_indices([Index::new(1).unwrap()]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -491,7 +492,7 @@ fn list_tasks_filter_multiple_indices() {
     insert_task_from(&db, &first);
     insert_task_from(&db, &second);
     insert_task_from(&db, &excluded);
-    let filter = Filter::new().with_indices([Index::new(1).unwrap(), Index::new(2).unwrap()]);
+    let filter = Filter::default().with_indices([Index::new(1).unwrap(), Index::new(2).unwrap()]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -523,7 +524,7 @@ fn list_tasks_filter_index_with_completed_returns_empty() {
             deleted: None,
         },
     );
-    let filter = Filter::new()
+    let filter = Filter::default()
         .with_indices([Index::new(1).unwrap()])
         .with_statuses([Status::Completed]);
 
@@ -557,7 +558,7 @@ fn list_tasks_filter_index_with_deleted_returns_empty() {
             deleted: None,
         },
     );
-    let filter = Filter::new()
+    let filter = Filter::default()
         .with_indices([Index::new(1).unwrap()])
         .with_statuses([Status::Deleted]);
 
@@ -578,7 +579,7 @@ fn list_tasks_filter_nonexistent_index() {
         deleted: None,
     };
     insert_task_from(&db, &task);
-    let filter = Filter::new().with_indices([Index::new(99).unwrap()]);
+    let filter = Filter::default().with_indices([Index::new(99).unwrap()]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -617,7 +618,7 @@ fn list_tasks_filter_uid_and_index() {
     insert_task_from(&db, &by_uid);
     insert_task_from(&db, &by_index);
     insert_task_from(&db, &excluded);
-    let filter = Filter::new()
+    let filter = Filter::default()
         .with_uids(["test_aaaab01".parse::<UniqueID>().unwrap()])
         .with_indices([Index::new(2).unwrap()]);
 

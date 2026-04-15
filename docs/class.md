@@ -119,7 +119,6 @@ direction BT
       -HashSet~UniqueID~ uids
       -HashSet~Index~ indices
       -HashSet~Status~ statuses
-      +new() Self
       +with_uids(self, uids) Self
       +with_indices(self, indices) Self
       +with_statuses(self, statuses) Self

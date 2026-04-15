@@ -15,7 +15,7 @@ fn to_value(param: &dyn ToSql) -> Value {
 
 #[test]
 fn build_where_clause_with_empty_filter() {
-    let filter = Filter::new();
+    let filter = Filter::default();
 
     assert!(build_where_clause(&filter).unwrap().is_none());
 }
@@ -24,7 +24,7 @@ fn build_where_clause_with_empty_filter() {
 
 #[test]
 fn build_where_clause_with_pending_only() {
-    let filter = Filter::new().with_statuses([Status::Pending]);
+    let filter = Filter::default().with_statuses([Status::Pending]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(clause, "WHERE (t.deleted IS NULL AND t.completed IS NULL)");
@@ -33,7 +33,7 @@ fn build_where_clause_with_pending_only() {
 
 #[test]
 fn build_where_clause_with_completed_only() {
-    let filter = Filter::new().with_statuses([Status::Completed]);
+    let filter = Filter::default().with_statuses([Status::Completed]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(
@@ -45,7 +45,7 @@ fn build_where_clause_with_completed_only() {
 
 #[test]
 fn build_where_clause_with_deleted_only() {
-    let filter = Filter::new().with_statuses([Status::Deleted]);
+    let filter = Filter::default().with_statuses([Status::Deleted]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(clause, "WHERE (t.deleted IS NOT NULL)");
@@ -54,7 +54,7 @@ fn build_where_clause_with_deleted_only() {
 
 #[test]
 fn build_where_clause_with_two_statuses() {
-    let filter = Filter::new().with_statuses([Status::Pending, Status::Completed]);
+    let filter = Filter::default().with_statuses([Status::Pending, Status::Completed]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert!(clause.starts_with("WHERE "));
@@ -66,7 +66,8 @@ fn build_where_clause_with_two_statuses() {
 
 #[test]
 fn build_where_clause_with_all_statuses() {
-    let filter = Filter::new().with_statuses([Status::Pending, Status::Completed, Status::Deleted]);
+    let filter =
+        Filter::default().with_statuses([Status::Pending, Status::Completed, Status::Deleted]);
 
     assert!(build_where_clause(&filter).unwrap().is_none());
 }
@@ -89,7 +90,7 @@ fn build_where_clause_with_single_uid() {
 
     let uid = UniqueID::new();
     let uid_str = uid.to_string();
-    let filter = Filter::new().with_uids([uid]);
+    let filter = Filter::default().with_uids([uid]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(clause, "WHERE t.id IN (?)");
@@ -105,7 +106,7 @@ fn build_where_clause_with_multiple_uids() {
     let uid2 = UniqueID::new();
     let uid1_str = uid1.to_string();
     let uid2_str = uid2.to_string();
-    let filter = Filter::new().with_uids([uid1, uid2]);
+    let filter = Filter::default().with_uids([uid1, uid2]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(clause, "WHERE t.id IN (?,?)");
@@ -121,7 +122,7 @@ fn build_where_clause_with_multiple_uids() {
 fn build_where_clause_with_single_index() {
     use crate::domain::task::Index;
 
-    let filter = Filter::new().with_indices([Index::new(1).unwrap()]);
+    let filter = Filter::default().with_indices([Index::new(1).unwrap()]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(clause, "WHERE tpr.row_id IN (?)");
@@ -133,7 +134,7 @@ fn build_where_clause_with_single_index() {
 fn build_where_clause_with_multiple_indices() {
     use crate::domain::task::Index;
 
-    let filter = Filter::new().with_indices([Index::new(1).unwrap(), Index::new(2).unwrap()]);
+    let filter = Filter::default().with_indices([Index::new(1).unwrap(), Index::new(2).unwrap()]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(clause, "WHERE tpr.row_id IN (?,?)");
@@ -151,7 +152,7 @@ fn build_where_clause_with_uid_and_index() {
 
     let uid = UniqueID::new();
     let uid_str = uid.to_string();
-    let filter = Filter::new()
+    let filter = Filter::default()
         .with_uids([uid])
         .with_indices([Index::new(1).unwrap()]);
 
@@ -170,7 +171,7 @@ fn build_where_clause_with_uid_and_status() {
 
     let uid = UniqueID::new();
     let uid_str = uid.to_string();
-    let filter = Filter::new()
+    let filter = Filter::default()
         .with_uids([uid])
         .with_statuses([Status::Pending]);
 
@@ -187,7 +188,7 @@ fn build_where_clause_with_uid_and_status() {
 fn build_where_clause_with_index_and_status() {
     use crate::domain::task::Index;
 
-    let filter = Filter::new()
+    let filter = Filter::default()
         .with_indices([Index::new(1).unwrap()])
         .with_statuses([Status::Pending]);
 
@@ -206,7 +207,7 @@ fn build_where_clause_with_uid_and_index_and_status() {
 
     let uid = UniqueID::new();
     let uid_str = uid.to_string();
-    let filter = Filter::new()
+    let filter = Filter::default()
         .with_uids([uid])
         .with_indices([Index::new(1).unwrap()])
         .with_statuses([Status::Pending]);
