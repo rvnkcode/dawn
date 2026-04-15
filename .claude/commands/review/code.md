@@ -1,7 +1,7 @@
 ---
-description: Comprehensive Rust code review for idiomatic patterns, error handling, and security. Invokes the code-reviewer agent.
+description: Comprehensive project code review for idiomatic patterns, error handling, and security. Invokes the code-reviewer agent.
 ---
 
-# Rust Code Review
+# Code Review
 
-This command invokes the **code-reviewer** agent for comprehensive reviews of Rust code.
+This command invokes the **code-reviewer** agent for comprehensive reviews of project code.
