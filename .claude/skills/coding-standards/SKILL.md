@@ -1,12 +1,16 @@
 ---
 name: coding-standards
-description: Universal coding standards, best practices, and patterns for Rust development.
+description: Baseline cross-project coding conventions for naming, readability, immutability, and code-quality review.
 origin: ECC
 ---
 
 # Coding Standards & Best Practices
 
-Universal coding standards applicable across all projects.
+Baseline coding conventions applicable across projects.
+
+This skill is the shared floor, not the detailed framework playbook.
+
+- Use `rules/common/coding-style.md` when you need the shortest reusable rule layer instead of a full skill walkthrough.
 
 ## When to Activate
 
@@ -16,6 +20,20 @@ Universal coding standards applicable across all projects.
 - Enforcing naming, formatting, or structural consistency
 - Setting up linting, formatting, or type-checking rules
 - Onboarding new contributors to coding conventions
+
+## Scope Boundaries
+
+Activate this skill for:
+
+- descriptive naming
+- immutability defaults
+- readability, KISS, DRY, and YAGNI enforcement
+- error-handling expectations and code-smell review
+
+Do not use this skill as the primary source for:
+
+- backend architecture, API design, or database layering
+- domain-specific framework guidance when a narrower ECC skill already exists
 
 ## Code Quality Principles
 
