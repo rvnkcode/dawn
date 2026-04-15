@@ -11,9 +11,9 @@ fn insert_task_from(db: &SQLite, task: &Task) {
             rusqlite::params![
                 task.uid.to_string(),
                 task.description.to_string(),
-                task.entry.to_string(),
-                task.completed.as_ref().map(|t| t.to_string()),
-                task.deleted.as_ref().map(|t| t.to_string()),
+                task.entry.as_seconds(),
+                task.completed.as_ref().map(Timestamp::as_seconds),
+                task.deleted.as_ref().map(Timestamp::as_seconds),
             ],
         )
         .expect("insert_task_from: failed to insert test fixture");
