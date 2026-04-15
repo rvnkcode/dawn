@@ -6,14 +6,17 @@ Flag violations by severity: **CRITICAL** (must fix) > **HIGH** (should fix) > *
 ## Project Overview
 
 Dawn is a cross-platform native application for personal task and calendar management, built on GTD philosophy.
-Rust single-crate with feature flags (`cli`, `tui`, `gui`). SQLite for local storage.
+Rust Cargo workspace with two crates: `lib/` (domain + outbound adapters) and `cli/` (inbound CLI adapter). SQLite for local storage. Phase 1 MVP scope is CLI only; TUI and GUI are planned but not yet implemented.
 
 ## Architecture
 
 ### Hexagonal Architecture
 
-- **Layers**: `domain/` → `inbound/` (CLI, TUI, GUI) → `outbound/` (SQLite, file I/O)
-- **Dependency direction**: Inbound/Outbound → Domain. Domain MUST NOT depend on adapters or frameworks
+- **Layers**:
+  - `lib/src/domain/` — Entities, value objects, domain services, port traits
+  - `lib/src/outbound/` — Outbound adapters (SQLite, query builder, file I/O)
+  - `cli/src/` — Inbound CLI adapter (drives the domain via ports exposed from `lib`)
+- **Dependency direction**: Inbound (`cli`) and Outbound (`lib/outbound`) → Domain (`lib/domain`). Domain MUST NOT depend on adapters or frameworks
 - External interactions go through Port traits; adapters implement ports, never the reverse
 - Domain logic must be framework-free and testable in isolation
 
@@ -100,12 +103,19 @@ Use Taskwarrior terminology consistently: `Task`, `TaskId`, `Description`, `Proj
 - Error messages must not leak sensitive data
 - Never trust external data (API responses, user input, file content)
 
+## Configuration
+
+- **`DAWN_DB_PATH`** — overrides the SQLite database file path. Takes precedence over the platform default (`~/.local/share/dawn/dawn.db` on Linux, `~/Library/Application Support/dawn/dawn.db` on macOS). Used by E2E tests for per-test isolation
+
 ## Testing
 
-- **Minimum 80% test coverage**
+- **Minimum 80% test coverage** (measured via `cargo llvm-cov --workspace --lib`, excluding the E2E-only paths listed below)
 - **TDD is mandatory**: RED → GREEN → REFACTOR (write test first, watch it fail, implement, pass, refactor)
-- Unit tests for domain logic (`#[cfg(test)]` modules in source files)
+- Unit tests for domain logic and outbound adapters (`#[cfg(test)]` modules in source files)
 - Integration tests for adapters (`tests/` directory)
+- **E2E-only layers** (no unit tests required; covered by CLI E2E tests):
+  - `cli/src/cli.rs`, `cli/src/arg.rs`, `cli/src/handler.rs`
+  - `lib/src/domain/task/service.rs`
 - AAA pattern: Arrange → Act → Assert
 - Descriptive test names reflecting the scenario
 - Mock external services via ports, not by bypassing the architecture
