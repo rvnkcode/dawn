@@ -61,9 +61,9 @@ mod tests {
 
     #[test]
     fn from_str_valid() {
-        let result = "abcdefghijkl".parse::<UniqueID>(); // 12 chars
+        let result = "abcdefghi-_0".parse::<UniqueID>(); // 12 chars
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().to_string(), "abcdefghijkl");
+        assert_eq!(result.unwrap().to_string(), "abcdefghi-_0");
     }
 
     #[test]
