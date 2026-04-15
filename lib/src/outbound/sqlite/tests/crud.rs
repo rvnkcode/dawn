@@ -120,7 +120,7 @@ fn update_tasks_changes_description() {
     };
     db.update_tasks(&modification, &[id]).unwrap();
 
-    let tasks = db.list_tasks(&Filter::new()).unwrap();
+    let tasks = db.list_tasks(&Filter::default()).unwrap();
     assert_eq!(tasks[0].description, Description::new("updated").unwrap());
 }
 
@@ -138,7 +138,7 @@ fn update_tasks_sets_completed() {
     db.update_tasks(&modification, &[id]).unwrap();
 
     let tasks = db
-        .list_tasks(&Filter::new().with_statuses([Status::Completed]))
+        .list_tasks(&Filter::default().with_statuses([Status::Completed]))
         .unwrap();
     assert_eq!(tasks.len(), 1);
     assert_eq!(
@@ -167,7 +167,7 @@ fn update_tasks_clears_completed() {
     db.update_tasks(&modification, &[id]).unwrap();
 
     let tasks = db
-        .list_tasks(&Filter::new().with_statuses([Status::Pending]))
+        .list_tasks(&Filter::default().with_statuses([Status::Pending]))
         .unwrap();
     assert_eq!(tasks.len(), 1);
     assert!(tasks[0].completed.is_none());
@@ -187,7 +187,7 @@ fn update_tasks_sets_deleted() {
     db.update_tasks(&modification, &[id]).unwrap();
 
     let tasks = db
-        .list_tasks(&Filter::new().with_statuses([Status::Deleted]))
+        .list_tasks(&Filter::default().with_statuses([Status::Deleted]))
         .unwrap();
     assert_eq!(tasks.len(), 1);
     assert_eq!(tasks[0].deleted, Some(Timestamp::new(1700000000).unwrap()));
@@ -213,7 +213,7 @@ fn update_tasks_clears_deleted() {
     db.update_tasks(&modification, &[id]).unwrap();
 
     let tasks = db
-        .list_tasks(&Filter::new().with_statuses([Status::Pending]))
+        .list_tasks(&Filter::default().with_statuses([Status::Pending]))
         .unwrap();
     assert_eq!(tasks.len(), 1);
     assert!(tasks[0].deleted.is_none());
@@ -246,7 +246,7 @@ fn delete_single_task() {
 
     db.delete_tasks(&[id]).unwrap();
 
-    let tasks = db.list_tasks(&Filter::new()).unwrap();
+    let tasks = db.list_tasks(&Filter::default()).unwrap();
     assert!(tasks.is_empty());
 }
 
@@ -261,7 +261,7 @@ fn delete_multiple_tasks() {
 
     db.delete_tasks(&[id1, id2]).unwrap();
 
-    let tasks = db.list_tasks(&Filter::new()).unwrap();
+    let tasks = db.list_tasks(&Filter::default()).unwrap();
     assert_eq!(tasks.len(), 1);
     assert_eq!(tasks[0].description, Description::new("survivor").unwrap());
 }

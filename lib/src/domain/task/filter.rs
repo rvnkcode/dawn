@@ -9,10 +9,6 @@ pub struct Filter {
 }
 
 impl Filter {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn with_uids(self, uids: impl IntoIterator<Item = UniqueID>) -> Self {
         Self {
             uids: uids.into_iter().collect(),
@@ -63,14 +59,14 @@ mod tests {
 
     #[test]
     fn with_uids_single() {
-        let filter = Filter::new().with_uids([uid("abcdefghijkl")]);
+        let filter = Filter::default().with_uids([uid("abcdefghijkl")]);
         assert_eq!(filter.uids().len(), 1);
         assert!(filter.uids().contains(&uid("abcdefghijkl")));
     }
 
     #[test]
     fn with_uids_multiple() {
-        let filter = Filter::new().with_uids([uid("abcdefghijkl"), uid("mnopqrstuvwx")]);
+        let filter = Filter::default().with_uids([uid("abcdefghijkl"), uid("mnopqrstuvwx")]);
         assert_eq!(filter.uids().len(), 2);
         assert!(filter.uids().contains(&uid("abcdefghijkl")));
         assert!(filter.uids().contains(&uid("mnopqrstuvwx")));
@@ -78,7 +74,7 @@ mod tests {
 
     #[test]
     fn with_uids_deduplicates() {
-        let filter = Filter::new().with_uids([uid("abcdefghijkl"), uid("abcdefghijkl")]);
+        let filter = Filter::default().with_uids([uid("abcdefghijkl"), uid("abcdefghijkl")]);
         assert_eq!(filter.uids().len(), 1);
     }
 
@@ -86,14 +82,15 @@ mod tests {
 
     #[test]
     fn with_indices_single() {
-        let filter = Filter::new().with_indices([Index::new(1).unwrap()]);
+        let filter = Filter::default().with_indices([Index::new(1).unwrap()]);
         assert_eq!(filter.indices().len(), 1);
         assert!(filter.indices().contains(&Index::new(1).unwrap()));
     }
 
     #[test]
     fn with_indices_multiple() {
-        let filter = Filter::new().with_indices([Index::new(1).unwrap(), Index::new(2).unwrap()]);
+        let filter =
+            Filter::default().with_indices([Index::new(1).unwrap(), Index::new(2).unwrap()]);
         assert_eq!(filter.indices().len(), 2);
         assert!(filter.indices().contains(&Index::new(1).unwrap()));
         assert!(filter.indices().contains(&Index::new(2).unwrap()));
@@ -101,7 +98,8 @@ mod tests {
 
     #[test]
     fn with_indices_deduplicates() {
-        let filter = Filter::new().with_indices([Index::new(1).unwrap(), Index::new(1).unwrap()]);
+        let filter =
+            Filter::default().with_indices([Index::new(1).unwrap(), Index::new(1).unwrap()]);
         assert_eq!(filter.indices().len(), 1);
     }
 
@@ -109,14 +107,14 @@ mod tests {
 
     #[test]
     fn with_statuses_single() {
-        let filter = Filter::new().with_statuses([Status::Pending]);
+        let filter = Filter::default().with_statuses([Status::Pending]);
         assert_eq!(filter.statuses().len(), 1);
         assert!(filter.statuses().contains(&Status::Pending));
     }
 
     #[test]
     fn with_statuses_multiple() {
-        let filter = Filter::new().with_statuses([Status::Pending, Status::Completed]);
+        let filter = Filter::default().with_statuses([Status::Pending, Status::Completed]);
         assert_eq!(filter.statuses().len(), 2);
         assert!(filter.statuses().contains(&Status::Pending));
         assert!(filter.statuses().contains(&Status::Completed));
@@ -124,7 +122,7 @@ mod tests {
 
     #[test]
     fn with_statuses_deduplicates() {
-        let filter = Filter::new().with_statuses([Status::Pending, Status::Pending]);
+        let filter = Filter::default().with_statuses([Status::Pending, Status::Pending]);
         assert_eq!(filter.statuses().len(), 1);
     }
 
@@ -132,25 +130,25 @@ mod tests {
 
     #[test]
     fn is_empty_with_uids_only() {
-        let filter = Filter::new().with_uids([uid("abcdefghijkl")]);
+        let filter = Filter::default().with_uids([uid("abcdefghijkl")]);
         assert!(!filter.is_empty());
     }
 
     #[test]
     fn is_empty_with_indices_only() {
-        let filter = Filter::new().with_indices([Index::new(1).unwrap()]);
+        let filter = Filter::default().with_indices([Index::new(1).unwrap()]);
         assert!(!filter.is_empty());
     }
 
     #[test]
     fn is_empty_with_statuses_only() {
-        let filter = Filter::new().with_statuses([Status::Pending]);
+        let filter = Filter::default().with_statuses([Status::Pending]);
         assert!(!filter.is_empty());
     }
 
     #[test]
     fn is_empty_with_all() {
-        let filter = Filter::new()
+        let filter = Filter::default()
             .with_uids([uid("abcdefghijkl")])
             .with_statuses([Status::Pending])
             .with_indices([Index::new(1).unwrap()]);
@@ -161,7 +159,7 @@ mod tests {
 
     #[test]
     fn with_uids_last_call_wins() {
-        let filter = Filter::new()
+        let filter = Filter::default()
             .with_uids([uid("abcdefghijkl")])
             .with_uids([uid("mnopqrstuvwx")]);
         assert_eq!(filter.uids().len(), 1);
@@ -170,7 +168,7 @@ mod tests {
 
     #[test]
     fn with_indices_last_call_wins() {
-        let filter = Filter::new()
+        let filter = Filter::default()
             .with_indices([Index::new(1).unwrap()])
             .with_indices([Index::new(2).unwrap()]);
         assert_eq!(filter.indices().len(), 1);
@@ -179,7 +177,7 @@ mod tests {
 
     #[test]
     fn with_statuses_last_call_wins() {
-        let filter = Filter::new()
+        let filter = Filter::default()
             .with_statuses([Status::Pending])
             .with_statuses([Status::Completed]);
         assert_eq!(filter.statuses().len(), 1);
