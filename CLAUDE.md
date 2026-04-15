@@ -59,9 +59,9 @@ cargo fmt --check
 All detailed guidelines are in the `.claude/` directory:
 
 - **Architecture**: `skills/project-guidelines/`
-- **Coding Style**: `rules/common/coding-style.md`, `skills/coding-standards/`
-- **Rust Patterns**: `rules/rust.md`
+- **Coding Style**: `rules/common/coding-style.md`, `rules/rust/coding-style.md`, `skills/coding-standards/`
+- **Rust Patterns**: `skills/rust-patterns/`
 - **Development Principles**: `rules/development-principles.md`
-- **Testing**: `rules/common/testing.md`
-- **Security**: `rules/common/security.md`
+- **Testing**: `rules/common/testing.md`, `rules/rust/testing.md`, `skills/rust-testing/`
+- **Security**: `rules/common/security.md`, `rules/rust/security.md`
 - **Taskwarrior Reference**: `skills/taskwarrior/`

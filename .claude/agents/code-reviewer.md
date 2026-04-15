@@ -86,7 +86,7 @@ For more information about development principles and domain references:
 ### Best Practices (LOW)
 
 - **TODO/FIXME without tickets** — TODOs should reference issue numbers
-- **Missing rustdoc documentation for public APIs** — Exported functions without documentation
+- **Missing rustdoc for external API** — Only items re-exported from the crate root (`lib.rs`). `pub(crate)` and internal `pub` items are exempt — per CLAUDE.md, avoid docs whose content is already obvious from identifiers
 - **Poor naming** — Single-letter variables (x, tmp, data) in non-trivial contexts
 - **Magic numbers** — Unexplained numeric constants
 - **Inconsistent formatting** — Mixed semicolons, quote styles, indentation
