@@ -45,15 +45,15 @@ Project skills contain:
 
 ```txt
 project/
-├── Cargo.toml                    # Workspace root
+├── Cargo.toml                   # Workspace root
 ├── Cargo.lock
-├── lib/                          # Library crate (dawn-lib)
+├── lib/                         # Library crate (dawn-lib)
 │   ├── Cargo.toml
 │   └── src/
-│       ├── lib.rs                # Library root
-│       ├── domain/               # Domain Core
-│       └── outbound/             # Outbound Adapters (SQLite)
-├── cli/                          # CLI crate (dawn-cli)
+│       ├── lib.rs               # Library root
+│       ├── domain/              # Domain Core
+│       └── outbound/            # Outbound Adapters (SQLite)
+├── cli/                         # CLI crate (dawn-cli)
 │   ├── Cargo.toml
 │   ├── src/
 │   │   ├── main.rs              # Entry point
@@ -61,7 +61,7 @@ project/
 │   │   ├── arg.rs               # Argument types
 │   │   └── handler.rs           # Command handlers
 │   └── tests/                   # E2E tests
-└── docs/                         # Documentation
+└── docs/                        # Documentation
 ```
 
 Each inbound adapter is an independent workspace crate that depends on `dawn`.
