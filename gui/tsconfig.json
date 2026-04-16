@@ -1,0 +1,22 @@
+{
+  /*
+   * Inherited from @tsconfig/svelte:
+   *   strict, esModuleInterop, skipLibCheck, sourceMap,
+   *   verbatimModuleSyntax, moduleResolution: "bundler", module: "esnext"
+   */
+  "extends": "@tsconfig/svelte/tsconfig.json",
+  "compilerOptions": {
+    "target": "esnext",
+    "types": ["svelte", "vite/client", "node"],
+    "noEmit": true,
+    "allowJs": true,
+    "checkJs": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.svelte", "vite.config.ts"]
+}
