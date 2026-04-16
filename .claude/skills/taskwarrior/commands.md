@@ -1,5 +1,7 @@
 # Taskwarrior Commands
 
+> **How commands are resolved:** See [parsing-pipeline.md](parsing-pipeline.md) for the full argv → categorize → command flow. This document focuses on command taxonomy, capability flags, and default-command logic.
+
 ## Command Categories
 
 ### Metadata Commands
@@ -170,6 +172,44 @@ task shopping list
 ```
 
 Source: `~/Downloads/taskwarrior/src/CLI2.cpp` (`categorizeArgs()`, lines 978-1111)
+
+## Default Command Resolution
+
+When no explicit command keyword is present, Taskwarrior picks one based on whether the argument list contains an ID-like token.
+
+Source: `~/Downloads/taskwarrior/src/CLI2.cpp` `defaultCommand()` (1791-1850).
+
+### Decision Logic
+
+```txt
+found_command ← scan args for CMD tag
+found_sequence ← scan args for Lexer::Type::number OR Lexer::Type::uuid
+                 (NOTE: Lexer::Type::set is NOT included)
+
+if found_command:
+    use explicit command
+elif found_sequence:
+    inject "information"        → show task details
+else:
+    inject rc.default.command   → typically "next" (list view)
+```
+
+### The `set` vs `number` Trap
+
+Because `set` tokens (`1,2,3` / `5-10`) are NOT counted as `found_sequence`, their default command differs from space-separated numbers:
+
+| Input            | Tokens                   | found_sequence | Default command      |
+| ---------------- | ------------------------ | -------------- | -------------------- |
+| `task 1`         | `number(1)`              | true           | `information`        |
+| `task 1 2`       | `number(1)` `number(2)`  | true           | `information`        |
+| `task 1,2,3`     | `set(1,2,3)`             | false          | `rc.default.command` |
+| `task 5-10`      | `set(5,10)`              | false          | `rc.default.command` |
+| `task 1,2 3`     | `set(1,2)` `number(3)`   | true           | `information`        |
+| `task 3 1,2`     | `number(3)` `set(1,2)`   | true           | `information`        |
+| `task a1b2c3d4`  | `uuid(a1b2c3d4)`         | true           | `information`        |
+| `task project:a` | `pair(project:a)`        | false          | `rc.default.command` |
+
+**Rule of thumb:** If any token is a bare single ID/UUID, Taskwarrior assumes you want to inspect tasks → `information`. If only filters/sets are present, it runs the configured default report.
 
 ## Modification Syntax
 

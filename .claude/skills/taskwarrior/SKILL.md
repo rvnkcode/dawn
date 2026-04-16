@@ -32,8 +32,9 @@ When implementing Taskwarrior features in Dawn, refer to these resources and doc
 | Document                                       | Description                                    |
 | ---------------------------------------------- | ---------------------------------------------- |
 | [data-model.md](data-model.md)                 | Task entity, attributes, status, virtual tags  |
-| [filter-system.md](filter-system.md)           | Filter expressions, operators, parsing         |
-| [commands.md](commands.md)                     | Command categories and patterns                |
+| [parsing-pipeline.md](parsing-pipeline.md)     | Lexer → categorize → desugar → eval pipeline   |
+| [filter-system.md](filter-system.md)           | Filter expressions, operators, desugaring      |
+| [commands.md](commands.md)                     | Command categories, capability flags, defaults |
 | [columns-rendering.md](columns-rendering.md)   | Column types and rendering                     |
 | [recurrence.md](recurrence.md)                 | Recurring task mechanism                       |
 | [rust-patterns.md](rust-patterns.md)           | C++ to Rust conversion patterns                |
