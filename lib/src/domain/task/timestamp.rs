@@ -34,8 +34,8 @@ mod tests {
 
     #[test]
     fn timestamp_new_valid() {
-        let result = Timestamp::new(0);
-        assert!(result.is_ok());
+        let result = Timestamp::new(0).unwrap();
+        assert_eq!(result.to_string(), "0");
     }
 
     #[test]

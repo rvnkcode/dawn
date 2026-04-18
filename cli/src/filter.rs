@@ -88,6 +88,12 @@ mod tests {
         terms.iter().map(|s| s.to_string()).collect()
     }
 
+    #[test]
+    fn empty_input_yields_empty() {
+        let parsed = ParsedFilters::new(&[]);
+        assert!(parsed.is_empty());
+    }
+
     // ── Bare (no comma) ──
 
     #[test]
@@ -232,5 +238,20 @@ mod tests {
     fn duplicates_within_set_are_deduped() {
         let parsed = ParsedFilters::new(&raw(&["1,1,1"]));
         assert_eq!(parsed.set_indices.len(), 1);
+    }
+
+    // ── into_set() ──
+
+    #[test]
+    fn into_set_builds_filter_from_set_terms() {
+        let filter = ParsedFilters::new(&raw(&["1,2,abcdefghijkl"])).into_set();
+        assert_eq!(filter.indices().len(), 2);
+        assert_eq!(filter.uids().len(), 1);
+    }
+
+    #[test]
+    fn into_set_drops_bare_terms() {
+        let filter = ParsedFilters::new(&raw(&["1", "abcdefghijkl"])).into_set();
+        assert!(filter.is_empty());
     }
 }

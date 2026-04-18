@@ -65,4 +65,10 @@ mod tests {
         let desc = result.unwrap();
         assert_eq!(desc.to_string(), "hello world");
     }
+
+    #[test]
+    fn from_str_valid() {
+        let result = "Valid description".parse::<Description>();
+        assert!(result.is_ok());
+    }
 }
