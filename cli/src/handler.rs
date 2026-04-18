@@ -12,10 +12,10 @@ impl<TS: TaskService> Handler<TS> {
     }
 
     pub(crate) fn add(&self, filter: &[String], words: &[String]) -> anyhow::Result<()> {
-        let all: Vec<String> = filter
+        let all: Vec<&str> = filter
             .iter()
             .chain(words.iter())
-            .map(|s| s.trim().to_string())
+            .map(|s| s.trim())
             .filter(|s| !s.is_empty())
             .collect();
         let description = Description::new(&all.join(" "))?;
