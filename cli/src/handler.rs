@@ -1,6 +1,6 @@
 use crate::table::{BaseTable, NextRow};
 use colored::Colorize;
-use dawn::domain::task::{Filter, TaskCreation, port::TaskService};
+use dawn::domain::task::{Description, Filter, TaskCreation, port::TaskService};
 
 pub(crate) struct Handler<TS: TaskService> {
     task_service: TS,
@@ -11,8 +11,15 @@ impl<TS: TaskService> Handler<TS> {
         Self { task_service }
     }
 
-    pub(crate) fn add(&self, args: impl Into<TaskCreation>) -> anyhow::Result<()> {
-        self.task_service.add(&args.into())?;
+    pub(crate) fn add(&self, filter: &[String], words: &[String]) -> anyhow::Result<()> {
+        let all: Vec<String> = filter
+            .iter()
+            .chain(words.iter())
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        let description = Description::new(&all.join(" "))?;
+        self.task_service.add(&TaskCreation { description })?;
         let count = self.task_service.count_pending()?;
         println!("Created task {count}.");
         Ok(())

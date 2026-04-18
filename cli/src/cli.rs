@@ -26,8 +26,7 @@ impl Cli {
     pub fn handle_command(self, task_service: impl TaskService) -> anyhow::Result<()> {
         let handler = Handler::new(task_service);
         match self.command {
-            Some(Command::Add(creation)) => handler.add(creation),
-            None => handler.next(),
+            Some(Command::Add(creation)) => handler.add(&self.filter, &creation.description),
             None => {
                 let filter = ParsedFilters::new(&self.filter).into_set();
                 handler.next(&filter.with_statuses([Status::Pending]))
