@@ -15,7 +15,8 @@ When invoked:
 2. Run `git diff HEAD~1 -- '*.rs'` (or `git diff main...HEAD -- '*.rs'` for PR review) to see recent Rust file changes
 3. Focus on modified `.rs` files
 4. If the project has CI or merge requirements, note that review assumes a green CI and resolved merge conflicts where applicable; call out if the diff suggests otherwise.
-5. Begin review
+5. Before reporting any issue, **read the actual source code** (not just the diff) to verify your claim. Quote the relevant lines. Do not assert behavior from memory or inference alone — confirm it in the code.
+6. Begin review
 
 ## Review Priorities
 
