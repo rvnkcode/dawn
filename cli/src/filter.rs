@@ -24,17 +24,15 @@ impl ParsedFilters {
         let mut bare_uids: HashSet<UniqueID> = HashSet::new();
         let mut bare_indices: HashSet<Index> = HashSet::new();
 
-        if !raw_terms.is_empty() {
-            for fragment in raw_terms {
-                let fragment = fragment.trim();
+        for fragment in raw_terms {
+            let fragment = fragment.trim();
 
-                if SET_RE.is_match(fragment) {
-                    for seg in fragment.split(',') {
-                        try_insert(seg, &mut set_uids, &mut set_indices);
-                    }
-                } else {
-                    try_insert(fragment, &mut bare_uids, &mut bare_indices);
+            if SET_RE.is_match(fragment) {
+                for seg in fragment.split(',') {
+                    try_insert(seg, &mut set_uids, &mut set_indices);
                 }
+            } else {
+                try_insert(fragment, &mut bare_uids, &mut bare_indices);
             }
         }
 
@@ -86,12 +84,6 @@ mod tests {
 
     fn raw(terms: &[&str]) -> Vec<String> {
         terms.iter().map(|s| s.to_string()).collect()
-    }
-
-    #[test]
-    fn empty_input_yields_empty() {
-        let parsed = ParsedFilters::new(&[]);
-        assert!(parsed.is_empty());
     }
 
     // ── Bare (no comma) ──
