@@ -1,17 +1,24 @@
-use std::fmt::{self, Display, Formatter};
+use std::{
+    fmt::{self, Display, Formatter},
+    str::FromStr,
+};
 use thiserror::Error;
 
 #[derive(Debug, Eq, Hash, PartialEq)]
 pub struct Index(usize);
 
-#[derive(Debug, Error)]
-#[error("index must be >= 1, got {0}")]
-pub struct IndexError(usize);
+#[derive(Debug, Error, PartialEq)]
+pub enum IndexError {
+    #[error("index must be >= 1, got {0}")]
+    TooSmall(usize),
+    #[error("invalid index: '{0}'")]
+    InvalidFormat(String),
+}
 
 impl Index {
     pub fn new(raw: usize) -> Result<Self, IndexError> {
         if raw < 1 {
-            Err(IndexError(raw))
+            Err(IndexError::TooSmall(raw))
         } else {
             Ok(Self(raw))
         }
@@ -29,6 +36,18 @@ impl Display for Index {
     }
 }
 
+impl FromStr for Index {
+    type Err = IndexError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let raw: usize = s
+            .trim()
+            .parse()
+            .map_err(|_| IndexError::InvalidFormat(s.to_string()))?;
+        Self::new(raw)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -42,6 +61,44 @@ mod tests {
     #[test]
     fn index_new_zero() {
         let result = Index::new(0);
-        assert!(result.is_err());
+        assert_eq!(result, Err(IndexError::TooSmall(0)));
+    }
+
+    // FromStr
+
+    #[test]
+    fn from_str_valid() {
+        let index: Index = "42".parse().unwrap();
+        assert_eq!(index.to_string(), "42");
+    }
+
+    #[test]
+    fn from_str_zero() {
+        let result = "0".parse::<Index>();
+        assert_eq!(result, Err(IndexError::TooSmall(0)));
+    }
+
+    #[test]
+    fn from_str_non_numeric() {
+        let result = "abc".parse::<Index>();
+        assert_eq!(result, Err(IndexError::InvalidFormat("abc".to_string())));
+    }
+
+    #[test]
+    fn from_str_empty() {
+        let result = "".parse::<Index>();
+        assert_eq!(result, Err(IndexError::InvalidFormat(String::new())));
+    }
+
+    #[test]
+    fn from_str_whitespace() {
+        let result = "  5  ".parse::<Index>();
+        assert_eq!(result.unwrap().to_string(), "5");
+    }
+
+    #[test]
+    fn from_str_whitespace_only() {
+        let result = "   ".parse::<Index>();
+        assert_eq!(result, Err(IndexError::InvalidFormat("   ".to_string())));
     }
 }
