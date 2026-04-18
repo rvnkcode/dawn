@@ -4,9 +4,21 @@ title: Class Diagram
 
 ```mermaid
 direction BT
-  namespace Inbound {
+  namespace CLI {
     class Creation {
-      -Description description
+      -Vec~String~ description
+    }
+
+    class ParsedFilters {
+      -HashSet~UniqueID~ set_uids
+      -HashSet~Index~ set_indices
+      -HashSet~UniqueID~ bare_uids
+      -HashSet~Index~ bare_indices
+      ~new(&raw_terms) Self
+      ~into_set(self) Filter
+      ~is_empty(&self) bool
+      -set_is_empty(&self) bool
+      -bare_is_empty(&self) bool
     }
 
     class Command {
@@ -15,6 +27,7 @@ direction BT
     }
 
     class Cli {
+      -Vec~String~ filter
       -Option~Command~ command
       +new() Self
       +handle_command(self, task_service) Result~_~
@@ -23,8 +36,8 @@ direction BT
     class Handler~TS~ {
       -TS task_service
       ~new(task_service) Self
-      ~add(&self, args) Result~_~
-      ~next(&self) Result~_~
+      ~add(&self, &filter, &words) Result~_~
+      ~next(&self, &filter) Result~_~
     }
 
     class Age {
@@ -57,12 +70,11 @@ direction BT
   Handler~TS~ ..> TaskService : where TS is TaskService
 
   %% Create
-  Creation *-- Description
-  Creation ..> TaskCreation : into
   Command *-- Creation : has
   Cli ..> Creation : parses
   Cli o-- Command : executes
-  Handler~TS~ ..> TaskCreation : arg into
+  Handler~TS~ ..> Description : creates
+  Handler~TS~ ..> TaskCreation : creates
 
   %% Read
   Age ..> Timestamp : accepts
@@ -72,6 +84,10 @@ direction BT
   NextRow ..|> TableRow : implements
   BaseTable~R~ ..> TableRow : where R is TableRow and Tabled
   BaseTable~R~ ..> Task : accepts
+  ParsedFilters o-- UniqueID
+  ParsedFilters o-- Index
+  ParsedFilters ..> Filter : converts
+  Handler~TS~ ..> Filter : accepts
   Handler~TS~ ..> Task : fetches
   Handler~TS~ ..> BaseTable~R~ : displays
   Handler~TS~ ..> NextRow : displays
