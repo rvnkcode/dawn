@@ -237,6 +237,7 @@ dependencies = [
  "clap",
  "colored",
  "dawn",
+ "regex",
  "tabled",
  "tempfile",
  "thiserror",
