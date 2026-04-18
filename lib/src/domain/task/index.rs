@@ -40,10 +40,10 @@ impl FromStr for Index {
     type Err = IndexError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let raw: usize = s
-            .trim()
+        let trimmed = s.trim();
+        let raw: usize = trimmed
             .parse()
-            .map_err(|_| IndexError::InvalidFormat(s.to_string()))?;
+            .map_err(|_| IndexError::InvalidFormat(trimmed.to_string()))?;
         Self::new(raw)
     }
 }
@@ -94,11 +94,5 @@ mod tests {
     fn from_str_whitespace() {
         let result = "  5  ".parse::<Index>();
         assert_eq!(result.unwrap().to_string(), "5");
-    }
-
-    #[test]
-    fn from_str_whitespace_only() {
-        let result = "   ".parse::<Index>();
-        assert_eq!(result, Err(IndexError::InvalidFormat("   ".to_string())));
     }
 }

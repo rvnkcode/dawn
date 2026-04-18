@@ -36,11 +36,11 @@ impl FromStr for UniqueID {
     type Err = UniqueIDParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let trimmed = s.trim();
-        if !UID_RE.is_match(trimmed) {
-            return Err(UniqueIDParseError(s.to_string()));
+        let trimmed = s.trim().to_string();
+        if !UID_RE.is_match(&trimmed) {
+            return Err(UniqueIDParseError(trimmed));
         }
-        Ok(Self(trimmed.to_string()))
+        Ok(Self(trimmed))
     }
 }
 
