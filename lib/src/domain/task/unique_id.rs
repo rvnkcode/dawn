@@ -36,10 +36,11 @@ impl FromStr for UniqueID {
     type Err = UniqueIDParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if !UID_RE.is_match(s) {
+        let trimmed = s.trim();
+        if !UID_RE.is_match(trimmed) {
             return Err(UniqueIDParseError(s.to_string()));
         }
-        Ok(Self(s.to_string()))
+        Ok(Self(trimmed.to_string()))
     }
 }
 
@@ -81,6 +82,18 @@ mod tests {
     #[test]
     fn from_str_with_disallowed_character() {
         let result = "abcdefghijk!".parse::<UniqueID>();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn from_str_whitespace() {
+        let result = "  abcdefghijkl  ".parse::<UniqueID>();
+        assert_eq!(result.unwrap().to_string(), "abcdefghijkl");
+    }
+
+    #[test]
+    fn from_str_whitespace_only() {
+        let result = "   ".parse::<UniqueID>();
         assert!(result.is_err());
     }
 }
