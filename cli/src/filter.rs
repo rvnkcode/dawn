@@ -7,10 +7,14 @@ use std::sync::LazyLock;
 static SET_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[^,\s]+(,[^,\s]+)+$").unwrap());
 
 pub(crate) struct ParsedFilters {
-    set: Filter,
-    // TODO: info command
+    set_uids: HashSet<UniqueID>,
+    set_indices: HashSet<Index>,
+    // TODO: info command / next / all
     #[allow(dead_code)]
-    bare: Filter,
+    bare_uids: HashSet<UniqueID>,
+    // TODO: info command / next / all
+    #[allow(dead_code)]
+    bare_indices: HashSet<Index>,
 }
 
 impl ParsedFilters {
@@ -20,35 +24,47 @@ impl ParsedFilters {
         let mut bare_uids: HashSet<UniqueID> = HashSet::new();
         let mut bare_indices: HashSet<Index> = HashSet::new();
 
-        for fragment in raw_terms {
-            let fragment = fragment.trim();
+        if !raw_terms.is_empty() {
+            for fragment in raw_terms {
+                let fragment = fragment.trim();
 
-            if SET_RE.is_match(fragment) {
-                for seg in fragment.split(',') {
-                    try_insert(seg, &mut set_uids, &mut set_indices);
+                if SET_RE.is_match(fragment) {
+                    for seg in fragment.split(',') {
+                        try_insert(seg, &mut set_uids, &mut set_indices);
+                    }
+                } else {
+                    try_insert(fragment, &mut bare_uids, &mut bare_indices);
                 }
-            } else {
-                try_insert(fragment, &mut bare_uids, &mut bare_indices);
             }
         }
 
         Self {
-            set: Filter::default()
-                .with_uids(set_uids)
-                .with_indices(set_indices),
-            bare: Filter::default()
-                .with_uids(bare_uids)
-                .with_indices(bare_indices),
+            set_uids,
+            set_indices,
+            bare_uids,
+            bare_indices,
         }
+    }
+
+    pub(crate) fn into_set(self) -> Filter {
+        Filter::default()
+            .with_uids(self.set_uids)
+            .with_indices(self.set_indices)
     }
 
     #[cfg(test)]
     pub(crate) fn is_empty(&self) -> bool {
-        self.set.is_empty() && self.bare.is_empty()
+        self.set_is_empty() && self.bare_is_empty()
     }
 
-    pub(crate) fn into_set(self) -> Filter {
-        self.set
+    #[cfg(test)]
+    fn set_is_empty(&self) -> bool {
+        self.set_uids.is_empty() && self.set_indices.is_empty()
+    }
+
+    #[cfg(test)]
+    fn bare_is_empty(&self) -> bool {
+        self.bare_uids.is_empty() && self.bare_indices.is_empty()
     }
 }
 
@@ -77,24 +93,24 @@ mod tests {
     #[test]
     fn parses_single_uid_as_bare() {
         let parsed = ParsedFilters::new(&raw(&["abcdefghijkl"]));
-        assert_eq!(parsed.bare.uids().len(), 1);
-        assert!(parsed.bare.indices().is_empty());
-        assert!(parsed.set.is_empty());
+        assert_eq!(parsed.bare_uids.len(), 1);
+        assert!(parsed.bare_indices.is_empty());
+        assert!(parsed.set_is_empty());
     }
 
     #[test]
     fn parses_single_index_as_bare() {
         let parsed = ParsedFilters::new(&raw(&["42"]));
-        assert_eq!(parsed.bare.indices().len(), 1);
-        assert!(parsed.bare.uids().is_empty());
-        assert!(parsed.set.is_empty());
+        assert_eq!(parsed.bare_indices.len(), 1);
+        assert!(parsed.bare_uids.is_empty());
+        assert!(parsed.set_is_empty());
     }
 
     #[test]
     fn parses_12_digit_numeric_as_uid() {
         let parsed = ParsedFilters::new(&raw(&["123456789012"]));
-        assert_eq!(parsed.bare.uids().len(), 1);
-        assert!(parsed.bare.indices().is_empty());
+        assert_eq!(parsed.bare_uids.len(), 1);
+        assert!(parsed.bare_indices.is_empty());
     }
 
     // ── Set (comma-separated) ──
@@ -102,17 +118,17 @@ mod tests {
     #[test]
     fn parses_comma_separated_indices_as_set() {
         let parsed = ParsedFilters::new(&raw(&["1,2,3"]));
-        assert_eq!(parsed.set.indices().len(), 3);
-        assert!(parsed.set.uids().is_empty());
-        assert!(parsed.bare.is_empty());
+        assert_eq!(parsed.set_indices.len(), 3);
+        assert!(parsed.set_uids.is_empty());
+        assert!(parsed.bare_is_empty());
     }
 
     #[test]
     fn parses_mixed_index_and_uid_as_set() {
         let parsed = ParsedFilters::new(&raw(&["1,abcdefghijkl"]));
-        assert_eq!(parsed.set.indices().len(), 1);
-        assert_eq!(parsed.set.uids().len(), 1);
-        assert!(parsed.bare.is_empty());
+        assert_eq!(parsed.set_indices.len(), 1);
+        assert_eq!(parsed.set_uids.len(), 1);
+        assert!(parsed.bare_is_empty());
     }
 
     // ── Invalid segments silently dropped ──
@@ -132,8 +148,8 @@ mod tests {
     #[test]
     fn silently_drops_invalid_segment_in_set() {
         let parsed = ParsedFilters::new(&raw(&["1,invalid,2"]));
-        assert_eq!(parsed.set.indices().len(), 2);
-        assert!(parsed.bare.is_empty());
+        assert_eq!(parsed.set_indices.len(), 2);
+        assert!(parsed.bare_is_empty());
     }
 
     #[test]
@@ -177,7 +193,7 @@ mod tests {
     #[test]
     fn outer_whitespace_trimmed() {
         let parsed = ParsedFilters::new(&raw(&["  1,2  "]));
-        assert_eq!(parsed.set.indices().len(), 2);
+        assert_eq!(parsed.set_indices.len(), 2);
     }
 
     #[test]
@@ -191,23 +207,23 @@ mod tests {
     #[test]
     fn multiple_bare_args_merge_into_bare() {
         let parsed = ParsedFilters::new(&raw(&["1", "2"]));
-        assert_eq!(parsed.bare.indices().len(), 2);
-        assert!(parsed.set.is_empty());
+        assert_eq!(parsed.bare_indices.len(), 2);
+        assert!(parsed.set_is_empty());
     }
 
     #[test]
     fn multiple_set_args_merge_into_set() {
         let parsed = ParsedFilters::new(&raw(&["1,2", "2,3"]));
         // HashSet dedups overlapping "2"
-        assert_eq!(parsed.set.indices().len(), 3);
-        assert!(parsed.bare.is_empty());
+        assert_eq!(parsed.set_indices.len(), 3);
+        assert!(parsed.bare_is_empty());
     }
 
     #[test]
     fn bare_and_set_kept_separate() {
         let parsed = ParsedFilters::new(&raw(&["1", "2,3"]));
-        assert_eq!(parsed.bare.indices().len(), 1);
-        assert_eq!(parsed.set.indices().len(), 2);
+        assert_eq!(parsed.bare_indices.len(), 1);
+        assert_eq!(parsed.set_indices.len(), 2);
     }
 
     // ── Dedup ──
@@ -215,6 +231,6 @@ mod tests {
     #[test]
     fn duplicates_within_set_are_deduped() {
         let parsed = ParsedFilters::new(&raw(&["1,1,1"]));
-        assert_eq!(parsed.set.indices().len(), 1);
+        assert_eq!(parsed.set_indices.len(), 1);
     }
 }
