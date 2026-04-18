@@ -1,5 +1,6 @@
 use std::{
     fmt::{self, Display, Formatter},
+    num::IntErrorKind,
     str::FromStr,
 };
 use thiserror::Error;
@@ -11,6 +12,8 @@ pub struct Index(usize);
 pub enum IndexError {
     #[error("index must be >= 1, got {0}")]
     TooSmall(usize),
+    #[error("index too large: '{0}'")]
+    TooLarge(String),
     #[error("invalid index: '{0}'")]
     InvalidFormat(String),
 }
@@ -43,7 +46,10 @@ impl FromStr for Index {
         let trimmed = s.trim();
         let raw: usize = trimmed
             .parse()
-            .map_err(|_| IndexError::InvalidFormat(trimmed.to_string()))?;
+            .map_err(|e: std::num::ParseIntError| match e.kind() {
+                IntErrorKind::PosOverflow => IndexError::TooLarge(trimmed.to_string()),
+                _ => IndexError::InvalidFormat(trimmed.to_string()),
+            })?;
         Self::new(raw)
     }
 }
@@ -94,5 +100,12 @@ mod tests {
     fn from_str_whitespace() {
         let result = "  5  ".parse::<Index>();
         assert_eq!(result.unwrap().to_string(), "5");
+    }
+
+    #[test]
+    fn from_str_overflow() {
+        let raw = "99999999999999999999999999999";
+        let result = raw.parse::<Index>();
+        assert_eq!(result, Err(IndexError::TooLarge(raw.to_string())));
     }
 }
