@@ -1,6 +1,6 @@
 use crate::table::{BaseTable, NextRow};
 use colored::Colorize;
-use dawn::domain::task::{TaskCreation, port::TaskService};
+use dawn::domain::task::{Filter, TaskCreation, port::TaskService};
 
 pub(crate) struct Handler<TS: TaskService> {
     task_service: TS,
@@ -18,9 +18,8 @@ impl<TS: TaskService> Handler<TS> {
         Ok(())
     }
 
-    // TODO: filters
-    pub(crate) fn next(&self) -> anyhow::Result<()> {
-        let tasks = self.task_service.next()?;
+    pub(crate) fn next(&self, filter: &Filter) -> anyhow::Result<()> {
+        let tasks = self.task_service.list(filter)?;
         if tasks.is_empty() {
             println!("{}", "No matches.".yellow());
             return Ok(());

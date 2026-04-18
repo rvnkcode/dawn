@@ -1,10 +1,12 @@
-use crate::{arg::Creation, handler::Handler};
+use crate::{arg::Creation, filter::ParsedFilters, handler::Handler};
 use clap::{Parser, Subcommand};
-use dawn::domain::task::port::TaskService;
+use dawn::domain::task::{Status, port::TaskService};
 
 #[derive(Parser)]
 #[command(about = "A command line todo manager.", long_about = None, subcommand_precedence_over_arg = true, version)]
 pub struct Cli {
+    filter: Vec<String>,
+
     #[command(subcommand)]
     command: Option<Command>,
 }
@@ -26,6 +28,10 @@ impl Cli {
         match self.command {
             Some(Command::Add(creation)) => handler.add(creation),
             None => handler.next(),
+            None => {
+                let filter = ParsedFilters::new(&self.filter).into_set();
+                handler.next(&filter.with_statuses([Status::Pending]))
+            }
         }
     }
 }
