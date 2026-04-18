@@ -59,5 +59,6 @@ mod tests {
         assert!(output.contains("Age"));
         assert!(output.contains("Description"));
         assert!(output.contains("buy milk"));
+        assert_eq!(table.count(), 1);
     }
 }
