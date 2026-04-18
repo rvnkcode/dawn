@@ -1,12 +1,16 @@
 use nanoid::nanoid;
+use regex::Regex;
 use std::{
     fmt::{self, Display, Formatter},
     str::FromStr,
+    sync::LazyLock,
 };
 use thiserror::Error;
 
 // 1 ID per second for 309 years = 9B IDs
 const ID_LENGTH: usize = 12;
+
+static UID_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[A-Za-z0-9_-]{12}$").unwrap());
 
 #[derive(Debug, Eq, Hash, PartialEq)]
 pub struct UniqueID(String);
@@ -25,25 +29,15 @@ impl Display for UniqueID {
 }
 
 #[derive(Debug, PartialEq, Error)]
-pub enum UniqueIDParseError {
-    #[error("ID must be {ID_LENGTH} characters, got {0}")]
-    InvalidLength(usize),
-    #[error("ID contains invalid character: '{0}'")]
-    InvalidCharacter(char),
-}
+#[error("invalid unique ID: '{0}'")]
+pub struct UniqueIDParseError(String);
 
 impl FromStr for UniqueID {
     type Err = UniqueIDParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.len() != ID_LENGTH {
-            return Err(UniqueIDParseError::InvalidLength(s.len()));
-        }
-        if let Some(c) = s
-            .chars()
-            .find(|&c| !c.is_ascii_alphanumeric() && c != '_' && c != '-')
-        {
-            return Err(UniqueIDParseError::InvalidCharacter(c));
+        if !UID_RE.is_match(s) {
+            return Err(UniqueIDParseError(s.to_string()));
         }
         Ok(Self(s.to_string()))
     }
@@ -69,24 +63,24 @@ mod tests {
     #[test]
     fn from_str_short() {
         let result = "abcdefghijk".parse::<UniqueID>(); // 11 chars
-        assert_eq!(result, Err(UniqueIDParseError::InvalidLength(11)));
+        assert!(result.is_err());
     }
 
     #[test]
     fn from_str_long() {
         let result = "abcdefghijklm".parse::<UniqueID>(); // 13 chars
-        assert_eq!(result, Err(UniqueIDParseError::InvalidLength(13)));
+        assert!(result.is_err());
     }
 
     #[test]
     fn from_str_with_space() {
         let result = "abcdef ghijl".parse::<UniqueID>();
-        assert_eq!(result, Err(UniqueIDParseError::InvalidCharacter(' ')));
+        assert!(result.is_err());
     }
 
     #[test]
     fn from_str_with_disallowed_character() {
         let result = "abcdefghijk!".parse::<UniqueID>();
-        assert_eq!(result, Err(UniqueIDParseError::InvalidCharacter('!')));
+        assert!(result.is_err());
     }
 }
