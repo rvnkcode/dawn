@@ -17,7 +17,7 @@ testing = ["dep:mockall"]
 [dependencies]
 anyhow.workspace = true
 dirs = "6.0.0"
-nanoid = "0.4.0"
+nanoid = "0.5.0"
 mockall = { workspace = true, optional = true }
 rusqlite = { version = "0.39.0", features = ["bundled"] }
 thiserror.workspace = true
