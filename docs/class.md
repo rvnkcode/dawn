@@ -148,7 +148,7 @@ direction BT
       <<interface>>
       +add(&self, &req)* Result~_~
       +count_pending(&self)* Result~usize~
-      +next(&self)* Result~Vec~Task~~
+      +list(&self, &filter)* Result~Vec~Task~~
       +modify(&self, &modification, &targets)* Result~_~
       +purge(&self, &targets)* Result~_~
     }

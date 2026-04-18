@@ -1,5 +1,5 @@
 use crate::domain::task::{
-    Filter, Status, Task, TaskCreation, TaskModification, UniqueID,
+    Filter, Task, TaskCreation, TaskModification, UniqueID,
     port::{TaskRepository, TaskService},
 };
 
@@ -27,9 +27,8 @@ where
         self.repo.count_pending()
     }
 
-    fn next(&self) -> anyhow::Result<Vec<Task>> {
-        self.repo
-            .list_tasks(&Filter::default().with_statuses([Status::Pending]))
+    fn list(&self, filter: &Filter) -> anyhow::Result<Vec<Task>> {
+        self.repo.list_tasks(filter)
     }
 
     fn modify(&self, modification: &TaskModification, targets: &[UniqueID]) -> anyhow::Result<()> {

@@ -6,6 +6,7 @@
 
 mod arg;
 mod cli;
+mod filter;
 mod handler;
 mod table;
 #[cfg(test)]
