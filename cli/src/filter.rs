@@ -44,7 +44,7 @@ impl ParsedFilters {
         }
     }
 
-    pub(crate) fn into_set(self) -> Filter {
+    pub(crate) fn into_set_filter(self) -> Filter {
         Filter::default()
             .with_uids(self.set_uids)
             .with_indices(self.set_indices)
@@ -232,18 +232,18 @@ mod tests {
         assert_eq!(parsed.set_indices.len(), 1);
     }
 
-    // ── into_set() ──
+    // ── into_set_filter() ──
 
     #[test]
-    fn into_set_builds_filter_from_set_terms() {
-        let filter = ParsedFilters::new(&raw(&["1,2,abcdefghijkl"])).into_set();
+    fn into_set_filter_builds_filter_from_set_terms() {
+        let filter = ParsedFilters::new(&raw(&["1,2,abcdefghijkl"])).into_set_filter();
         assert_eq!(filter.indices().len(), 2);
         assert_eq!(filter.uids().len(), 1);
     }
 
     #[test]
-    fn into_set_drops_bare_terms() {
-        let filter = ParsedFilters::new(&raw(&["1", "abcdefghijkl"])).into_set();
+    fn into_set_filter_drops_bare_terms() {
+        let filter = ParsedFilters::new(&raw(&["1", "abcdefghijkl"])).into_set_filter();
         assert!(filter.is_empty());
     }
 }

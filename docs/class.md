@@ -15,7 +15,7 @@ direction BT
       -HashSet~UniqueID~ bare_uids
       -HashSet~Index~ bare_indices
       ~new(&raw_terms) Self
-      ~into_set(self) Filter
+      ~into_set_filter(self) Filter
       ~is_empty(&self) bool
       -set_is_empty(&self) bool
       -bare_is_empty(&self) bool
