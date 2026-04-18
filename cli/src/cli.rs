@@ -28,7 +28,7 @@ impl Cli {
         match self.command {
             Some(Command::Add(creation)) => handler.add(&self.filter, &creation.description),
             None => {
-                let filter = ParsedFilters::new(&self.filter).into_set();
+                let filter = ParsedFilters::new(&self.filter).into_set_filter();
                 handler.next(&filter.with_statuses([Status::Pending]))
             }
         }
