@@ -21,6 +21,7 @@ nanoid = "0.5.0"
 mockall = { workspace = true, optional = true }
 rusqlite = { version = "0.39.0", features = ["bundled"] }
 thiserror.workspace = true
+regex = "1.12.3"
 
 [dev-dependencies]
 mockall.workspace = true
