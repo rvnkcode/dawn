@@ -113,7 +113,10 @@ fn next_filter_multiple_set_args() {
 fn next_filter_nonexistent_index_prints_no_matches() {
     let dir = TempDir::new().expect("tempdir");
     let db = dir.path().join("dawn.db");
-    setup_three_tasks(&db);
+    common::dawn_cmd(&db)
+        .args(["add", "one"])
+        .assert()
+        .success();
     common::dawn_cmd(&db)
         .arg("99,100")
         .assert()
@@ -127,7 +130,10 @@ fn next_filter_nonexistent_index_prints_no_matches() {
 fn next_filter_set_with_invalid_silently_drops() {
     let dir = TempDir::new().expect("tempdir");
     let db = dir.path().join("dawn.db");
-    setup_three_tasks(&db);
+    common::dawn_cmd(&db)
+        .args(["add", "one"])
+        .assert()
+        .success();
     let out = common::dawn_cmd(&db)
         .arg("1,invalid")
         .output()
@@ -143,7 +149,10 @@ fn next_filter_set_with_invalid_silently_drops() {
 fn next_filter_set_with_zero_silently_drops() {
     let dir = TempDir::new().expect("tempdir");
     let db = dir.path().join("dawn.db");
-    setup_three_tasks(&db);
+    common::dawn_cmd(&db)
+        .args(["add", "one"])
+        .assert()
+        .success();
     let out = common::dawn_cmd(&db).arg("1,0").output().expect("run");
     assert!(out.status.success());
     let stdout = String::from_utf8(out.stdout).expect("utf8");
@@ -152,7 +161,7 @@ fn next_filter_set_with_zero_silently_drops() {
     assert!(stderr.is_empty(), "unexpected stderr: {stderr}");
 }
 
-// ── All-invalid → "No matches." exit 0 ──
+// ── All-invalid → "No matches." exit 1 ──
 
 #[test]
 fn all_invalid_single_prints_no_matches() {
