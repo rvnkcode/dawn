@@ -33,14 +33,14 @@ fn add_two_tasks_counter_increments() {
 fn add_empty_description_rejected() {
     let dir = TempDir::new().expect("tempdir");
     let db = dir.path().join("dawn.db");
-    common::dawn_cmd(&db).args(["add", ""]).assert().code(1);
+    common::dawn_cmd(&db).args(["add", ""]).assert().code(2);
 }
 
 #[test]
 fn add_whitespace_only_description_rejected() {
     let dir = TempDir::new().expect("tempdir");
     let db = dir.path().join("dawn.db");
-    common::dawn_cmd(&db).args(["add", "   "]).assert().code(1);
+    common::dawn_cmd(&db).args(["add", "   "]).assert().code(2);
 }
 
 #[test]
@@ -91,5 +91,5 @@ fn add_with_preceding_filter_joins_filter_and_words() {
 fn add_missing_description_rejected() {
     let dir = TempDir::new().expect("tempdir");
     let db = dir.path().join("dawn.db");
-    common::dawn_cmd(&db).args(["add"]).assert().code(1);
+    common::dawn_cmd(&db).args(["add"]).assert().code(2);
 }

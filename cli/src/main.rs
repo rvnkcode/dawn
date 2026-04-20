@@ -1,11 +1,21 @@
 use dawn::{domain::task::service::Service, outbound::SQLite};
-use dawn_cli::Cli;
+use dawn_cli::{Cli, CliError};
+use std::process::ExitCode;
 
-fn main() -> anyhow::Result<()> {
+fn main() -> ExitCode {
     let cli = Cli::new();
-    let mut db = SQLite::new()?;
-    db.initialize()?;
+    match run(cli) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            e.write_stderr();
+            e.exit_code()
+        }
+    }
+}
+
+fn run(cli: Cli) -> Result<(), CliError> {
+    let mut db = SQLite::new().map_err(anyhow::Error::from)?;
+    db.initialize().map_err(anyhow::Error::from)?;
     let task_service = Service::new(db);
-    cli.handle_command(task_service)?;
-    Ok(())
+    cli.handle_command(task_service)
 }

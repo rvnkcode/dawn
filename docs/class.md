@@ -30,14 +30,14 @@ direction BT
       -Vec~String~ filter
       -Option~Command~ command
       +new() Self
-      +handle_command(self, task_service) Result~_~
+      +handle_command(self, task_service) Result~_, CliError~
     }
 
     class Handler~TS~ {
       -TS task_service
       ~new(task_service) Self
-      ~add(&self, &filter, &words) Result~_~
-      ~next(&self, &filter) Result~_~
+      ~add(&self, &filter, &words) Result~_, CliError~
+      ~next(&self, &filter) Result~_, CliError~
     }
 
     class Age {
