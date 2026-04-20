@@ -9,7 +9,7 @@ fn next_with_no_tasks_prints_no_matches() {
     common::dawn_cmd(&db)
         .assert()
         .code(1)
-        .stdout("No matches.\n");
+        .stderr("No matches.\n");
 }
 
 #[test]
@@ -118,7 +118,7 @@ fn next_filter_nonexistent_index_prints_no_matches() {
         .arg("99,100")
         .assert()
         .code(1)
-        .stdout("No matches.\n");
+        .stderr("No matches.\n");
 }
 
 // ── Silent invalid (set with partial invalid) ──
@@ -162,7 +162,7 @@ fn all_invalid_single_prints_no_matches() {
         .arg("invalid")
         .assert()
         .code(1)
-        .stdout("No matches.\n");
+        .stderr("No matches.\n");
 }
 
 #[test]
@@ -173,7 +173,7 @@ fn all_invalid_set_prints_no_matches() {
         .arg("invalid,xyz")
         .assert()
         .code(1)
-        .stdout("No matches.\n");
+        .stderr("No matches.\n");
 }
 
 #[test]
@@ -184,5 +184,5 @@ fn zero_bare_prints_no_matches() {
         .arg("0")
         .assert()
         .code(1)
-        .stdout("No matches.\n");
+        .stderr("No matches.\n");
 }

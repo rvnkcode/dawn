@@ -1,6 +1,5 @@
 use crate::error::CliError;
 use crate::table::{BaseTable, NextRow};
-use colored::Colorize;
 use dawn::domain::task::{Description, Filter, TaskCreation, port::TaskService};
 
 pub(crate) struct Handler<TS: TaskService> {
@@ -29,7 +28,6 @@ impl<TS: TaskService> Handler<TS> {
     pub(crate) fn next(&self, filter: &Filter) -> Result<(), CliError> {
         let tasks = self.task_service.list(filter)?;
         if tasks.is_empty() {
-            println!("{}", "No matches.".yellow());
             return Err(CliError::NoMatch);
         }
         let table = BaseTable::<NextRow>::new(tasks.into_iter())?;

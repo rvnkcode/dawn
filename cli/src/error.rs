@@ -23,11 +23,13 @@ impl CliError {
         }
     }
 
-    /// Mirror Taskwarrior: usage errors render white-on-red on stderr;
-    /// runtime/no-match stay silent (NoMatch already printed its own line to stdout).
+    /// Mirror Taskwarrior: usage/filter errors render white-on-red on stderr;
+    /// runtime errors and "No matches." render yellow (footnote color) on stderr.
     pub fn write_stderr(&self) {
-        if let Self::Usage(e) = self {
-            eprintln!("{}", format!("{e:#}").white().on_red());
+        match self {
+            Self::Usage(e) => eprintln!("{}", format!("{e:#}").white().on_red()),
+            Self::Runtime(e) => eprintln!("{}", format!("{e:#}").yellow()),
+            Self::NoMatch => eprintln!("{}", "No matches.".yellow()),
         }
     }
 }
