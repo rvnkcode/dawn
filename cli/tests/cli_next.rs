@@ -8,7 +8,7 @@ fn next_with_no_tasks_prints_no_matches() {
     let db = dir.path().join("dawn.db");
     common::dawn_cmd(&db)
         .assert()
-        .success()
+        .code(1)
         .stdout("No matches.\n");
 }
 
@@ -117,7 +117,7 @@ fn next_filter_nonexistent_index_prints_no_matches() {
     common::dawn_cmd(&db)
         .arg("99,100")
         .assert()
-        .success()
+        .code(1)
         .stdout("No matches.\n");
 }
 
@@ -161,7 +161,7 @@ fn all_invalid_single_prints_no_matches() {
     common::dawn_cmd(&db)
         .arg("invalid")
         .assert()
-        .success()
+        .code(1)
         .stdout("No matches.\n");
 }
 
@@ -172,7 +172,7 @@ fn all_invalid_set_prints_no_matches() {
     common::dawn_cmd(&db)
         .arg("invalid,xyz")
         .assert()
-        .success()
+        .code(1)
         .stdout("No matches.\n");
 }
 
@@ -183,6 +183,6 @@ fn zero_bare_prints_no_matches() {
     common::dawn_cmd(&db)
         .arg("0")
         .assert()
-        .success()
+        .code(1)
         .stdout("No matches.\n");
 }

@@ -6,6 +6,7 @@
 
 mod arg;
 mod cli;
+mod error;
 mod filter;
 mod handler;
 mod table;
@@ -13,3 +14,4 @@ mod table;
 mod test_helper;
 
 pub use cli::Cli;
+pub use error::CliError;
