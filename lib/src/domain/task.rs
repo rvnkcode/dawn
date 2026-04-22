@@ -53,7 +53,8 @@ impl Task {
     }
 }
 
-#[derive(Eq, PartialEq, Hash)]
+// TODO: Separate Status into its own module
+#[derive(Debug, Eq, PartialEq, Hash)]
 pub enum Status {
     Pending,
     Completed,
@@ -74,6 +75,45 @@ impl Display for Status {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn task_with(completed: Option<Timestamp>, deleted: Option<Timestamp>) -> Task {
+        Task {
+            uid: UniqueID::new(),
+            index: None,
+            description: Description::new("test").unwrap(),
+            entry: Timestamp::new(1700000000).unwrap(),
+            completed,
+            deleted,
+            modified: Timestamp::new(1700000000).unwrap(),
+        }
+    }
+
+    #[test]
+    fn status_is_pending_when_not_completed_or_deleted() {
+        let task = task_with(None, None);
+        assert_eq!(task.status(), Status::Pending);
+    }
+
+    #[test]
+    fn status_is_completed_when_completed_is_some() {
+        let task = task_with(Some(Timestamp::new(1700000001).unwrap()), None);
+        assert_eq!(task.status(), Status::Completed);
+    }
+
+    #[test]
+    fn status_is_deleted_when_deleted_is_some() {
+        let task = task_with(None, Some(Timestamp::new(1700000001).unwrap()));
+        assert_eq!(task.status(), Status::Deleted);
+    }
+
+    #[test]
+    fn status_is_deleted_when_both_completed_and_deleted() {
+        let task = task_with(
+            Some(Timestamp::new(1700000001).unwrap()),
+            Some(Timestamp::new(1700000002).unwrap()),
+        );
+        assert_eq!(task.status(), Status::Deleted);
+    }
 
     #[test]
     fn task_modification_is_empty_when_all_none() {
