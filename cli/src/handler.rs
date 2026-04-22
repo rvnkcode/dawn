@@ -42,7 +42,7 @@ impl<TS: TaskService> Handler<TS> {
         }
     }
 
-    pub(crate) fn next(&self, filter: Filter) -> Result<(), CliError> {
+    fn next(&self, filter: Filter) -> Result<(), CliError> {
         let filter = filter.with_statuses([Status::Pending]);
         let tasks = self.task_service.list(&filter)?;
         if tasks.is_empty() {
@@ -60,7 +60,7 @@ impl<TS: TaskService> Handler<TS> {
         Ok(())
     }
 
-    pub(crate) fn info(&self, filter: &Filter) -> Result<(), CliError> {
+    fn info(&self, filter: &Filter) -> Result<(), CliError> {
         let tasks = self.task_service.list(filter)?;
         if tasks.is_empty() {
             return Err(CliError::NoMatch);
