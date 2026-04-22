@@ -11,6 +11,8 @@ pub use timestamp::Timestamp;
 pub mod unique_id;
 pub use unique_id::UniqueID;
 
+use std::fmt::{self, Display, Formatter};
+
 pub struct TaskCreation {
     pub description: Description,
 }
@@ -57,6 +59,16 @@ pub enum Status {
     Completed,
     Deleted,
     // TODO: Cancelled
+}
+
+impl Display for Status {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Status::Pending => write!(f, "Pending"),
+            Status::Completed => write!(f, "Completed"),
+            Status::Deleted => write!(f, "Deleted"),
+        }
+    }
 }
 
 #[cfg(test)]
