@@ -64,9 +64,9 @@ title: Test Cases
 | `is_empty_with_indices_only` | Index 만 있어도 필터는 비어있지 않다. |
 | `is_empty_with_statuses_only` | Status 만 있어도 필터는 비어있지 않다. |
 | `is_empty_with_all` | 모든 항목이 있는 필터는 비어있지 않다. |
-| `with_uids_last_call_wins` | `with_uids` 를 여러 번 호출하면 마지막 값이 적용된다. |
-| `with_indices_last_call_wins` | `with_indices` 를 여러 번 호출하면 마지막 값이 적용된다. |
-| `with_statuses_last_call_wins` | `with_statuses` 를 여러 번 호출하면 마지막 값이 적용된다. |
+| `with_uids_extends` | `with_uids` 를 두 번 호출하면 두 UID 가 모두 누적되어 길이 2 의 set 이 된다. |
+| `with_indices_extends` | `with_indices` 를 두 번 호출하면 두 Index 가 모두 누적되어 길이 2 의 set 이 된다. |
+| `with_statuses_extends` | `with_statuses` 를 두 번 호출하면 두 Status 가 모두 누적되어 길이 2 의 set 이 된다. |
 
 ### `task.rs` (TaskModification)
 
