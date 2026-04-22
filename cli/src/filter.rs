@@ -9,11 +9,7 @@ static SET_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[^,\s]+(,[^,\s]+
 pub(crate) struct ParsedFilters {
     set_uids: HashSet<UniqueID>,
     set_indices: HashSet<Index>,
-    // TODO: info command / next / all
-    #[allow(dead_code)]
     bare_uids: HashSet<UniqueID>,
-    // TODO: info command / next / all
-    #[allow(dead_code)]
     bare_indices: HashSet<Index>,
 }
 
@@ -44,14 +40,25 @@ impl ParsedFilters {
         }
     }
 
-    pub(crate) fn into_set_filter(self) -> Filter {
-        Filter::default()
-            .with_uids(self.set_uids)
-            .with_indices(self.set_indices)
+    pub(crate) fn into_filters(self) -> (Filter, Filter) {
+        let Self {
+            set_uids,
+            set_indices,
+            bare_uids,
+            bare_indices,
+        } = self;
+        (
+            Filter::default()
+                .with_uids(set_uids)
+                .with_indices(set_indices),
+            Filter::default()
+                .with_uids(bare_uids)
+                .with_indices(bare_indices),
+        )
     }
 
     #[cfg(test)]
-    pub(crate) fn is_empty(&self) -> bool {
+    fn is_empty(&self) -> bool {
         self.set_is_empty() && self.bare_is_empty()
     }
 

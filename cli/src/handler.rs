@@ -1,5 +1,7 @@
 use crate::error::CliError;
-use crate::table::{BaseTable, NextRow};
+use crate::filter::ParsedFilters;
+use crate::table::{BaseTable, InfoTable, NextRow};
+use chrono::Utc;
 use dawn::domain::task::{Description, Filter, Status, TaskCreation, port::TaskService};
 
 pub(crate) struct Handler<TS: TaskService> {
@@ -25,6 +27,21 @@ impl<TS: TaskService> Handler<TS> {
         Ok(())
     }
 
+    pub(crate) fn default(&self, raw_filter: &[String]) -> Result<(), CliError> {
+        let (set_filter, bare_filter) = ParsedFilters::new(raw_filter).into_filters();
+
+        match (set_filter.is_empty(), bare_filter.is_empty()) {
+            (true, true) => self.next(Filter::default()),
+            (false, true) => self.next(set_filter),
+            (true, false) => self.info(&bare_filter),
+            (false, false) => {
+                self.next(set_filter)?;
+                println!();
+                self.info(&bare_filter)
+            }
+        }
+    }
+
     pub(crate) fn next(&self, filter: Filter) -> Result<(), CliError> {
         let filter = filter.with_statuses([Status::Pending]);
         let tasks = self.task_service.list(&filter)?;
@@ -39,6 +56,20 @@ impl<TS: TaskService> Handler<TS> {
             println!("{} task", count);
         } else {
             println!("{} tasks", count);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn info(&self, filter: &Filter) -> Result<(), CliError> {
+        let tasks = self.task_service.list(filter)?;
+        if tasks.is_empty() {
+            return Err(CliError::NoMatch);
+        }
+        let now = Utc::now().timestamp();
+        for task in tasks {
+            let table = InfoTable::new(&task, now)?;
+            println!("{}", table.render());
+            println!();
         }
         Ok(())
     }
