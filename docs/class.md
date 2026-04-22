@@ -16,9 +16,6 @@ direction BT
       -HashSet~Index~ bare_indices
       ~new(&raw_terms) Self
       ~into_set_filter(self) Filter
-      ~is_empty(&self) bool
-      -set_is_empty(&self) bool
-      -bare_is_empty(&self) bool
     }
 
     class Command {
@@ -37,7 +34,7 @@ direction BT
       -TS task_service
       ~new(task_service) Self
       ~add(&self, &filter, &words) Result~_, CliError~
-      ~next(&self, &filter) Result~_, CliError~
+      ~next(&self, filter) Result~_, CliError~
     }
 
     class Age {
@@ -88,6 +85,7 @@ direction BT
   ParsedFilters o-- Index
   ParsedFilters ..> Filter : converts
   Handler~TS~ ..> Filter : accepts
+  Handler~TS~ ..> Status : targets
   Handler~TS~ ..> Task : fetches
   Handler~TS~ ..> BaseTable~R~ : displays
   Handler~TS~ ..> NextRow : displays
@@ -135,9 +133,9 @@ direction BT
       -HashSet~UniqueID~ uids
       -HashSet~Index~ indices
       -HashSet~Status~ statuses
-      +with_uids(self, uids) Self
-      +with_indices(self, indices) Self
-      +with_statuses(self, statuses) Self
+      +with_uids(mut self, uids) Self
+      +with_indices(mut self, indices) Self
+      +with_statuses(mut self, statuses) Self
       +uids(&self) &HashSet~UniqueID~
       +indices(&self) &HashSet~Index~
       +statuses(&self) &HashSet~Status~
@@ -199,8 +197,6 @@ direction BT
   Filter o-- UniqueID
   Filter o-- Index
   Filter o-- Status
-  Service~R~ ..> Filter : determines
-  Service~R~ ..> Status : targets
   TaskService ..> Task : returns
   TaskRepository ..> Filter : accepts
   TaskRepository ..> Task : returns

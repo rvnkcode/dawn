@@ -1,6 +1,6 @@
 use crate::error::CliError;
 use crate::table::{BaseTable, NextRow};
-use dawn::domain::task::{Description, Filter, TaskCreation, port::TaskService};
+use dawn::domain::task::{Description, Filter, Status, TaskCreation, port::TaskService};
 
 pub(crate) struct Handler<TS: TaskService> {
     task_service: TS,
@@ -25,8 +25,9 @@ impl<TS: TaskService> Handler<TS> {
         Ok(())
     }
 
-    pub(crate) fn next(&self, filter: &Filter) -> Result<(), CliError> {
-        let tasks = self.task_service.list(filter)?;
+    pub(crate) fn next(&self, filter: Filter) -> Result<(), CliError> {
+        let filter = filter.with_statuses([Status::Pending]);
+        let tasks = self.task_service.list(&filter)?;
         if tasks.is_empty() {
             return Err(CliError::NoMatch);
         }

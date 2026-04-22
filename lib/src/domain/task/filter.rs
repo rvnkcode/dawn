@@ -9,25 +9,19 @@ pub struct Filter {
 }
 
 impl Filter {
-    pub fn with_uids(self, uids: impl IntoIterator<Item = UniqueID>) -> Self {
-        Self {
-            uids: uids.into_iter().collect(),
-            ..self
-        }
+    pub fn with_uids(mut self, uids: impl IntoIterator<Item = UniqueID>) -> Self {
+        self.uids.extend(uids);
+        self
     }
 
-    pub fn with_indices(self, indices: impl IntoIterator<Item = Index>) -> Self {
-        Self {
-            indices: indices.into_iter().collect(),
-            ..self
-        }
+    pub fn with_indices(mut self, indices: impl IntoIterator<Item = Index>) -> Self {
+        self.indices.extend(indices);
+        self
     }
 
-    pub fn with_statuses(self, statuses: impl IntoIterator<Item = Status>) -> Self {
-        Self {
-            statuses: statuses.into_iter().collect(),
-            ..self
-        }
+    pub fn with_statuses(mut self, statuses: impl IntoIterator<Item = Status>) -> Self {
+        self.statuses.extend(statuses);
+        self
     }
 
     pub fn uids(&self) -> &HashSet<UniqueID> {
@@ -158,29 +152,32 @@ mod tests {
     // with_*()
 
     #[test]
-    fn with_uids_last_call_wins() {
+    fn with_uids_extends() {
         let filter = Filter::default()
             .with_uids([uid("abcdefghijkl")])
             .with_uids([uid("mnopqrstuvwx")]);
-        assert_eq!(filter.uids().len(), 1);
+        assert_eq!(filter.uids().len(), 2);
+        assert!(filter.uids().contains(&uid("abcdefghijkl")));
         assert!(filter.uids().contains(&uid("mnopqrstuvwx")));
     }
 
     #[test]
-    fn with_indices_last_call_wins() {
+    fn with_indices_extends() {
         let filter = Filter::default()
             .with_indices([Index::new(1).unwrap()])
             .with_indices([Index::new(2).unwrap()]);
-        assert_eq!(filter.indices().len(), 1);
+        assert_eq!(filter.indices().len(), 2);
+        assert!(filter.indices().contains(&Index::new(1).unwrap()));
         assert!(filter.indices().contains(&Index::new(2).unwrap()));
     }
 
     #[test]
-    fn with_statuses_last_call_wins() {
+    fn with_statuses_extends() {
         let filter = Filter::default()
             .with_statuses([Status::Pending])
             .with_statuses([Status::Completed]);
-        assert_eq!(filter.statuses().len(), 1);
+        assert_eq!(filter.statuses().len(), 2);
+        assert!(filter.statuses().contains(&Status::Pending));
         assert!(filter.statuses().contains(&Status::Completed));
     }
 }
