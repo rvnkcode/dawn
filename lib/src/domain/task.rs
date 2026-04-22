@@ -92,18 +92,21 @@ mod tests {
     fn status_is_pending_when_not_completed_or_deleted() {
         let task = task_with(None, None);
         assert_eq!(task.status(), Status::Pending);
+        assert_eq!(task.status().to_string(), "Pending");
     }
 
     #[test]
     fn status_is_completed_when_completed_is_some() {
         let task = task_with(Some(Timestamp::new(1700000001).unwrap()), None);
         assert_eq!(task.status(), Status::Completed);
+        assert_eq!(task.status().to_string(), "Completed");
     }
 
     #[test]
     fn status_is_deleted_when_deleted_is_some() {
         let task = task_with(None, Some(Timestamp::new(1700000001).unwrap()));
         assert_eq!(task.status(), Status::Deleted);
+        assert_eq!(task.status().to_string(), "Deleted");
     }
 
     #[test]
