@@ -127,6 +127,7 @@ direction BT
       +Timestamp entry
       +Option~Timestamp~ completed
       +Option~Timestamp~ deleted
+      +status(&self) Status
     }
 
     class Filter {
@@ -194,6 +195,7 @@ direction BT
   Task *-- Description
   Task *-- Timestamp : entry
   Task o-- Timestamp : completed, deleted
+  Task ..> Status : computes
   Filter o-- UniqueID
   Filter o-- Index
   Filter o-- Status
