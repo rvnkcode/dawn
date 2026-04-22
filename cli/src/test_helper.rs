@@ -8,5 +8,6 @@ pub(crate) fn task(index: Option<Index>, description: &str, entry_secs: i64) -> 
         entry: Timestamp::new(entry_secs).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(entry_secs).unwrap(),
     }
 }

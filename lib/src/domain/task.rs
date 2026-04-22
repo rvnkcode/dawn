@@ -36,6 +36,7 @@ pub struct Task {
     pub entry: Timestamp,
     pub completed: Option<Timestamp>,
     pub deleted: Option<Timestamp>,
+    pub modified: Timestamp,
 }
 
 #[derive(Eq, PartialEq, Hash)]

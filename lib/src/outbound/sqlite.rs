@@ -124,7 +124,7 @@ impl TaskRepository for SQLite {
     }
 
     fn list_tasks(&self, filter: &Filter) -> anyhow::Result<Vec<Task>> {
-        let select_clause = "SELECT t.id, tpr.row_id, t.description, t.entry, t.completed, t.deleted \
+        let select_clause = "SELECT t.id, tpr.row_id, t.description, t.entry, t.completed, t.deleted, t.modified \
             FROM task AS t \
                 LEFT JOIN vw_task_pending_row_id AS tpr ON tpr.id = t.id";
         let order_clause = "ORDER BY t.entry, t.id";
@@ -144,10 +144,20 @@ impl TaskRepository for SQLite {
                 let entry: i64 = row.get(3)?;
                 let completed: Option<i64> = row.get(4)?;
                 let deleted: Option<i64> = row.get(5)?;
-                Ok((id_str, row_id, description_str, entry, completed, deleted))
+                let modified: i64 = row.get(6)?;
+                Ok((
+                    id_str,
+                    row_id,
+                    description_str,
+                    entry,
+                    completed,
+                    deleted,
+                    modified,
+                ))
             })?
             .map(|result| {
-                let (id_str, row_id, description_str, entry, completed, deleted) = result?;
+                let (id_str, row_id, description_str, entry, completed, deleted, modified) =
+                    result?;
                 Ok(Task {
                     uid: id_str.parse::<UniqueID>()?,
                     index: match row_id {
@@ -158,6 +168,7 @@ impl TaskRepository for SQLite {
                     entry: Timestamp::new(entry)?,
                     completed: completed.map(Timestamp::new).transpose()?,
                     deleted: deleted.map(Timestamp::new).transpose()?,
+                    modified: Timestamp::new(modified)?,
                 })
             })
             .collect::<anyhow::Result<Vec<Task>>>()?;

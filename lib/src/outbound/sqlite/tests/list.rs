@@ -7,13 +7,15 @@ use crate::outbound::sqlite::SQLite;
 fn insert_task_from(db: &SQLite, task: &Task) {
     db.conn
         .execute(
-            "INSERT INTO task (id, description, entry, completed, deleted) VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT INTO task (id, description, entry, completed, deleted, modified) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             rusqlite::params![
                 task.uid.to_string(),
                 task.description.to_string(),
                 task.entry.as_seconds(),
                 task.completed.as_ref().map(Timestamp::as_seconds),
                 task.deleted.as_ref().map(Timestamp::as_seconds),
+                task.modified.as_seconds(),
             ],
         )
         .expect("insert_task_from: failed to insert test fixture");
@@ -41,6 +43,7 @@ fn list_tasks_orders_by_entry_then_id() {
         entry: Timestamp::new(500).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(500).unwrap(),
     };
     let first_by_id = Task {
         uid: "test_llllll1".parse().unwrap(),
@@ -49,6 +52,7 @@ fn list_tasks_orders_by_entry_then_id() {
         entry: Timestamp::new(1000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
     };
     let second_by_id = Task {
         uid: "test_llllll2".parse().unwrap(),
@@ -57,6 +61,7 @@ fn list_tasks_orders_by_entry_then_id() {
         entry: Timestamp::new(1000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
     };
     insert_task_from(&db, &earlier);
     insert_task_from(&db, &first_by_id);
@@ -78,6 +83,7 @@ fn list_tasks_filter_pending_only() {
         entry: Timestamp::new(1000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
     };
     let completed = Task {
         uid: "test_mmmmmm2".parse().unwrap(),
@@ -86,6 +92,7 @@ fn list_tasks_filter_pending_only() {
         entry: Timestamp::new(2000).unwrap(),
         completed: Some(Timestamp::new(3000).unwrap()),
         deleted: None,
+        modified: Timestamp::new(2000).unwrap(),
     };
     let deleted = Task {
         uid: "test_mmmmmm3".parse().unwrap(),
@@ -94,6 +101,7 @@ fn list_tasks_filter_pending_only() {
         entry: Timestamp::new(3000).unwrap(),
         completed: None,
         deleted: Some(Timestamp::new(4000).unwrap()),
+        modified: Timestamp::new(3000).unwrap(),
     };
     insert_task_from(&db, &pending);
     insert_task_from(&db, &completed);
@@ -115,6 +123,7 @@ fn list_tasks_filter_completed_only() {
         entry: Timestamp::new(1000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
     };
     let completed = Task {
         uid: "test_nnnnnn2".parse().unwrap(),
@@ -123,6 +132,7 @@ fn list_tasks_filter_completed_only() {
         entry: Timestamp::new(2000).unwrap(),
         completed: Some(Timestamp::new(3000).unwrap()),
         deleted: None,
+        modified: Timestamp::new(2000).unwrap(),
     };
     let deleted = Task {
         uid: "test_nnnnnn3".parse().unwrap(),
@@ -131,6 +141,7 @@ fn list_tasks_filter_completed_only() {
         entry: Timestamp::new(3000).unwrap(),
         completed: None,
         deleted: Some(Timestamp::new(4000).unwrap()),
+        modified: Timestamp::new(3000).unwrap(),
     };
     insert_task_from(&db, &pending);
     insert_task_from(&db, &completed);
@@ -152,6 +163,7 @@ fn list_tasks_filter_deleted_only() {
         entry: Timestamp::new(1000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
     };
     let completed = Task {
         uid: "test_oooooo2".parse().unwrap(),
@@ -160,6 +172,7 @@ fn list_tasks_filter_deleted_only() {
         entry: Timestamp::new(2000).unwrap(),
         completed: Some(Timestamp::new(3000).unwrap()),
         deleted: None,
+        modified: Timestamp::new(2000).unwrap(),
     };
     let deleted = Task {
         uid: "test_oooooo3".parse().unwrap(),
@@ -168,6 +181,7 @@ fn list_tasks_filter_deleted_only() {
         entry: Timestamp::new(3000).unwrap(),
         completed: None,
         deleted: Some(Timestamp::new(4000).unwrap()),
+        modified: Timestamp::new(3000).unwrap(),
     };
     insert_task_from(&db, &pending);
     insert_task_from(&db, &completed);
@@ -189,6 +203,7 @@ fn list_tasks_no_filter_returns_all() {
         entry: Timestamp::new(1000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
     };
     let completed = Task {
         uid: "test_pppppp2".parse().unwrap(),
@@ -197,6 +212,7 @@ fn list_tasks_no_filter_returns_all() {
         entry: Timestamp::new(2000).unwrap(),
         completed: Some(Timestamp::new(3000).unwrap()),
         deleted: None,
+        modified: Timestamp::new(2000).unwrap(),
     };
     let deleted = Task {
         uid: "test_pppppp3".parse().unwrap(),
@@ -205,6 +221,7 @@ fn list_tasks_no_filter_returns_all() {
         entry: Timestamp::new(3000).unwrap(),
         completed: None,
         deleted: Some(Timestamp::new(4000).unwrap()),
+        modified: Timestamp::new(3000).unwrap(),
     };
     insert_task_from(&db, &pending);
     insert_task_from(&db, &completed);
@@ -226,6 +243,7 @@ fn list_tasks_filter_two_statuses() {
         entry: Timestamp::new(1000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
     };
     let completed = Task {
         uid: "test_qqqqqq2".parse().unwrap(),
@@ -234,6 +252,7 @@ fn list_tasks_filter_two_statuses() {
         entry: Timestamp::new(2000).unwrap(),
         completed: Some(Timestamp::new(3000).unwrap()),
         deleted: None,
+        modified: Timestamp::new(2000).unwrap(),
     };
     let deleted = Task {
         uid: "test_qqqqqq3".parse().unwrap(),
@@ -242,6 +261,7 @@ fn list_tasks_filter_two_statuses() {
         entry: Timestamp::new(3000).unwrap(),
         completed: None,
         deleted: Some(Timestamp::new(4000).unwrap()),
+        modified: Timestamp::new(3000).unwrap(),
     };
     insert_task_from(&db, &pending);
     insert_task_from(&db, &completed);
@@ -263,6 +283,7 @@ fn list_tasks_filter_all_statuses() {
         entry: Timestamp::new(1000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
     };
     let completed = Task {
         uid: "test_rrrrrr2".parse().unwrap(),
@@ -271,6 +292,7 @@ fn list_tasks_filter_all_statuses() {
         entry: Timestamp::new(2000).unwrap(),
         completed: Some(Timestamp::new(3000).unwrap()),
         deleted: None,
+        modified: Timestamp::new(2000).unwrap(),
     };
     let deleted = Task {
         uid: "test_rrrrrr3".parse().unwrap(),
@@ -279,6 +301,7 @@ fn list_tasks_filter_all_statuses() {
         entry: Timestamp::new(3000).unwrap(),
         completed: None,
         deleted: Some(Timestamp::new(4000).unwrap()),
+        modified: Timestamp::new(3000).unwrap(),
     };
     insert_task_from(&db, &pending);
     insert_task_from(&db, &completed);
@@ -303,6 +326,7 @@ fn list_tasks_filter_single_uid() {
         entry: Timestamp::new(1000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
     };
     let other1 = Task {
         uid: "test_sssss02".parse().unwrap(),
@@ -311,6 +335,7 @@ fn list_tasks_filter_single_uid() {
         entry: Timestamp::new(2000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(2000).unwrap(),
     };
     let other2 = Task {
         uid: "test_sssss03".parse().unwrap(),
@@ -319,6 +344,7 @@ fn list_tasks_filter_single_uid() {
         entry: Timestamp::new(3000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(3000).unwrap(),
     };
     insert_task_from(&db, &target);
     insert_task_from(&db, &other1);
@@ -340,6 +366,7 @@ fn list_tasks_filter_multiple_uids() {
         entry: Timestamp::new(1000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
     };
     let second = Task {
         uid: "test_ttttt02".parse().unwrap(),
@@ -348,6 +375,7 @@ fn list_tasks_filter_multiple_uids() {
         entry: Timestamp::new(2000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(2000).unwrap(),
     };
     let excluded = Task {
         uid: "test_ttttt03".parse().unwrap(),
@@ -356,6 +384,7 @@ fn list_tasks_filter_multiple_uids() {
         entry: Timestamp::new(3000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(3000).unwrap(),
     };
     insert_task_from(&db, &first);
     insert_task_from(&db, &second);
@@ -380,6 +409,7 @@ fn list_tasks_filter_nonexistent_uid() {
         entry: Timestamp::new(1000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
     };
     insert_task_from(&db, &task);
     let nonexistent: UniqueID = "test_vvvvv99".parse().unwrap();
@@ -400,6 +430,7 @@ fn list_tasks_filter_uid_with_status() {
         entry: Timestamp::new(1000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
     };
     let completed = Task {
         uid: "test_uuuuu02".parse().unwrap(),
@@ -408,6 +439,7 @@ fn list_tasks_filter_uid_with_status() {
         entry: Timestamp::new(2000).unwrap(),
         completed: Some(Timestamp::new(3000).unwrap()),
         deleted: None,
+        modified: Timestamp::new(2000).unwrap(),
     };
     let other = Task {
         uid: "test_uuuuu03".parse().unwrap(),
@@ -416,6 +448,7 @@ fn list_tasks_filter_uid_with_status() {
         entry: Timestamp::new(4000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(4000).unwrap(),
     };
     insert_task_from(&db, &pending);
     insert_task_from(&db, &completed);
@@ -444,6 +477,7 @@ fn list_tasks_filter_single_index() {
         entry: Timestamp::new(1000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
     };
     let other = Task {
         uid: "test_wwwww02".parse().unwrap(),
@@ -452,6 +486,7 @@ fn list_tasks_filter_single_index() {
         entry: Timestamp::new(2000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(2000).unwrap(),
     };
     insert_task_from(&db, &target);
     insert_task_from(&db, &other);
@@ -472,6 +507,7 @@ fn list_tasks_filter_multiple_indices() {
         entry: Timestamp::new(1000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
     };
     let second = Task {
         uid: "test_xxxxx02".parse().unwrap(),
@@ -480,6 +516,7 @@ fn list_tasks_filter_multiple_indices() {
         entry: Timestamp::new(2000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(2000).unwrap(),
     };
     let excluded = Task {
         uid: "test_xxxxx03".parse().unwrap(),
@@ -488,6 +525,7 @@ fn list_tasks_filter_multiple_indices() {
         entry: Timestamp::new(3000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(3000).unwrap(),
     };
     insert_task_from(&db, &first);
     insert_task_from(&db, &second);
@@ -511,6 +549,7 @@ fn list_tasks_filter_index_with_completed_returns_empty() {
             entry: Timestamp::new(1000).unwrap(),
             completed: Some(Timestamp::new(2000).unwrap()),
             deleted: None,
+            modified: Timestamp::new(1000).unwrap(),
         },
     );
     insert_task_from(
@@ -522,6 +561,7 @@ fn list_tasks_filter_index_with_completed_returns_empty() {
             entry: Timestamp::new(3000).unwrap(),
             completed: None,
             deleted: None,
+            modified: Timestamp::new(3000).unwrap(),
         },
     );
     let filter = Filter::default()
@@ -545,6 +585,7 @@ fn list_tasks_filter_index_with_deleted_returns_empty() {
             entry: Timestamp::new(1000).unwrap(),
             completed: None,
             deleted: Some(Timestamp::new(2000).unwrap()),
+            modified: Timestamp::new(1000).unwrap(),
         },
     );
     insert_task_from(
@@ -556,6 +597,7 @@ fn list_tasks_filter_index_with_deleted_returns_empty() {
             entry: Timestamp::new(3000).unwrap(),
             completed: None,
             deleted: None,
+            modified: Timestamp::new(3000).unwrap(),
         },
     );
     let filter = Filter::default()
@@ -577,6 +619,7 @@ fn list_tasks_filter_nonexistent_index() {
         entry: Timestamp::new(1000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
     };
     insert_task_from(&db, &task);
     let filter = Filter::default().with_indices([Index::new(99).unwrap()]);
@@ -598,6 +641,7 @@ fn list_tasks_filter_uid_and_index() {
         entry: Timestamp::new(1000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
     };
     let by_index = Task {
         uid: "test_aaaab02".parse().unwrap(),
@@ -606,6 +650,7 @@ fn list_tasks_filter_uid_and_index() {
         entry: Timestamp::new(2000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(2000).unwrap(),
     };
     let excluded = Task {
         uid: "test_aaaab03".parse().unwrap(),
@@ -614,6 +659,7 @@ fn list_tasks_filter_uid_and_index() {
         entry: Timestamp::new(3000).unwrap(),
         completed: None,
         deleted: None,
+        modified: Timestamp::new(3000).unwrap(),
     };
     insert_task_from(&db, &by_uid);
     insert_task_from(&db, &by_index);
