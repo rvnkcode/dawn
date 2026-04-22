@@ -1,4 +1,4 @@
-use crate::{arg::Creation, error::CliError, filter::ParsedFilters, handler::Handler};
+use crate::{arg::Creation, error::CliError, handler::Handler};
 use clap::{Parser, Subcommand};
 use dawn::domain::task::port::TaskService;
 
@@ -23,14 +23,11 @@ impl Cli {
         Self::parse()
     }
 
-    pub fn handle_command(self, task_service: impl TaskService) -> Result<(), CliError> {
+    pub fn handle_command(&self, task_service: impl TaskService) -> Result<(), CliError> {
         let handler = Handler::new(task_service);
-        match self.command {
+        match &self.command {
             Some(Command::Add(creation)) => handler.add(&self.filter, &creation.description),
-            None => {
-                let filter = ParsedFilters::new(&self.filter).into_set_filter();
-                handler.next(filter)
-            }
+            None => handler.default(&self.filter),
         }
     }
 }

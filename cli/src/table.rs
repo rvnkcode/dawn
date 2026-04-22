@@ -6,4 +6,5 @@ pub(crate) mod next_row;
 
 pub(crate) use age::Age;
 pub(crate) use base_table::BaseTable;
+pub(crate) use info_table::InfoTable;
 pub(crate) use next_row::NextRow;
