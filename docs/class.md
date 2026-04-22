@@ -15,7 +15,7 @@ direction BT
       -HashSet~UniqueID~ bare_uids
       -HashSet~Index~ bare_indices
       ~new(&raw_terms) Self
-      ~into_set_filter(self) Filter
+      ~into_filters(self) Filter, Filter
     }
 
     class Command {
@@ -34,7 +34,9 @@ direction BT
       -TS task_service
       ~new(task_service) Self
       ~add(&self, &filter, &words) Result~_, CliError~
-      ~next(&self, filter) Result~_, CliError~
+      ~default(&self, &raw_filter) Result~_, CliError~
+      -next(&self, filter) Result~_, CliError~
+      -info(&self, &filter) Result~_, CliError~
     }
 
     class Age {
@@ -60,6 +62,17 @@ direction BT
       ~count(&self) usize
       ~render(&self) Table
     }
+
+    class InfoRow {
+      -String name
+      -String value
+    }
+
+    class InfoTable {
+      -Vec~InfoRow~ rows
+      ~new(&task, now) Result~Self~
+      ~render(&self) Table
+    }
   }
 
   Cli ..> TaskService : accepts
@@ -81,14 +94,18 @@ direction BT
   NextRow ..|> TableRow : implements
   BaseTable~R~ ..> TableRow : where R is TableRow and Tabled
   BaseTable~R~ ..> Task : accepts
+  InfoTable *-- InfoRow
+  InfoTable ..> Task : accepts
   ParsedFilters o-- UniqueID
   ParsedFilters o-- Index
   ParsedFilters ..> Filter : converts
-  Handler~TS~ ..> Filter : accepts
+  Handler~TS~ ..> ParsedFilters : parses
+  Handler~TS~ ..> Filter : parses
   Handler~TS~ ..> Status : targets
   Handler~TS~ ..> Task : fetches
   Handler~TS~ ..> BaseTable~R~ : displays
   Handler~TS~ ..> NextRow : displays
+  Handler~TS~ ..> InfoTable : displays
 
   namespace Domain {
     class UniqueID {
@@ -127,6 +144,7 @@ direction BT
       +Timestamp entry
       +Option~Timestamp~ completed
       +Option~Timestamp~ deleted
+      +Timestamp modified
       +status(&self) Status
     }
 
