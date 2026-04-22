@@ -39,6 +39,18 @@ pub struct Task {
     pub modified: Timestamp,
 }
 
+impl Task {
+    pub fn status(&self) -> Status {
+        if self.deleted.is_some() {
+            return Status::Deleted;
+        }
+        if self.completed.is_some() {
+            return Status::Completed;
+        }
+        Status::Pending
+    }
+}
+
 #[derive(Eq, PartialEq, Hash)]
 pub enum Status {
     Pending,
