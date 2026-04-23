@@ -53,8 +53,10 @@ mod tests {
     #[test]
     fn render_includes_headers_and_row_data() {
         let tasks = [task(Some(Index::new(1).unwrap()), "buy milk", 0)];
+
         let table = BaseTable::<NextRow>::new(tasks.into_iter()).unwrap();
         let output = table.render().to_string();
+
         assert!(output.contains("ID"));
         assert!(output.contains("Age"));
         assert!(output.contains("Description"));
