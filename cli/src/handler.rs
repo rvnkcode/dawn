@@ -1,5 +1,5 @@
 use crate::error::CliError;
-use crate::filter::ParsedFilters;
+use crate::filter::{self, DefaultCommand};
 use crate::table::{BaseTable, InfoTable, NextRow};
 use chrono::Utc;
 use dawn::domain::task::{Description, Filter, Status, TaskCreation, port::TaskService};
@@ -28,17 +28,9 @@ impl<TS: TaskService> Handler<TS> {
     }
 
     pub(crate) fn default(&self, raw_filter: &[String]) -> Result<(), CliError> {
-        let (set_filter, bare_filter) = ParsedFilters::new(raw_filter).into_filters();
-
-        match (set_filter.is_empty(), bare_filter.is_empty()) {
-            (true, true) => self.next(Filter::default()),
-            (false, true) => self.next(set_filter),
-            (true, false) => self.info(&bare_filter),
-            (false, false) => {
-                self.next(set_filter)?;
-                println!();
-                self.info(&bare_filter)
-            }
+        match filter::parse(raw_filter) {
+            DefaultCommand::Next(filter) => self.next(filter),
+            DefaultCommand::Info(filter) => self.info(&filter),
         }
     }
 

@@ -52,36 +52,6 @@ fn info_omits_end_and_deleted_rows_for_pending() {
 }
 
 #[test]
-fn info_renders_uid_row_with_valid_uid() {
-    let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
-        .args(["add", "buy milk"])
-        .assert()
-        .success();
-    let first_out = common::dawn_cmd(&db).arg("1").output().expect("run");
-    let first_stdout = String::from_utf8(first_out.stdout).expect("utf8 stdout");
-    let uid = first_stdout
-        .lines()
-        .find(|line| line.trim_start().starts_with("UID"))
-        .and_then(|line| line.split_whitespace().nth(1))
-        .expect("UID value in info table")
-        .to_string();
-    assert_eq!(uid.len(), 12, "UID must be 12 chars: {uid}");
-
-    let second_out = common::dawn_cmd(&db).arg(&uid).output().expect("run");
-    assert!(second_out.status.success());
-    let second_stdout = String::from_utf8(second_out.stdout).expect("utf8 stdout");
-    assert!(
-        second_stdout.contains(&uid),
-        "info by UID missing UID row: {second_stdout}"
-    );
-    assert!(
-        second_stdout.contains("buy milk"),
-        "info by UID missing description: {second_stdout}"
-    );
-}
-
-#[test]
 fn info_multiple_bare_args_renders_each_task() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two"]);
@@ -133,8 +103,10 @@ fn info_empty_db_with_index_prints_no_matches() {
         .stderr("No matches.\n");
 }
 
+// ── Taskwarrior-style dispatch: any bare id/uuid → info with merged filter ──
+
 #[test]
-fn next_and_info_render_together_when_set_and_bare_given() {
+fn mixed_set_and_bare_resolves_to_info_with_merged_ids() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two", "three"]);
     let out = common::dawn_cmd(&db)
@@ -144,14 +116,63 @@ fn next_and_info_render_together_when_set_and_bare_given() {
     assert!(out.status.success());
     let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
 
-    let next_footer = stdout.find("2 tasks").expect("next footer missing");
-    let info_marker = stdout.find("Last modified").expect("info table missing");
-    assert!(
-        next_footer < info_marker,
-        "next must render before info: {stdout}"
+    // Taskwarrior rule: presence of bare "3" dispatches to info.
+    // All three ids are merged via UNION, so every task renders as an info table.
+    assert!(stdout.contains("one"), "missing 'one': {stdout}");
+    assert!(stdout.contains("two"), "missing 'two': {stdout}");
+    assert!(stdout.contains("three"), "missing 'three': {stdout}");
+
+    // Info renders each task's "Last modified" row; three tasks → three occurrences.
+    let last_modified_count = stdout.matches("Last modified").count();
+    assert_eq!(
+        last_modified_count, 3,
+        "expected 3 info tables, got {last_modified_count}: {stdout}"
     );
 
-    assert!(stdout.contains("one"), "next missing 'one': {stdout}");
-    assert!(stdout.contains("two"), "next missing 'two': {stdout}");
-    assert!(stdout.contains("three"), "info missing 'three': {stdout}");
+    // No next footer should appear — info path is status-agnostic and does not
+    // print the "N tasks" summary.
+    assert!(
+        !stdout.contains("3 tasks") && !stdout.contains("2 tasks"),
+        "unexpected next footer: {stdout}"
+    );
+}
+
+#[test]
+fn invalid_bare_does_not_trigger_info() {
+    let (_dir, db) = common::test_db();
+    common::dawn_cmd(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+
+    // "invalid" fails to parse as either Index or UniqueID, so has_bare_id stays
+    // false and the command resolves to `next` (not `info`). The seeded pending
+    // task must render via the next table, not "No matches.".
+    let out = common::dawn_cmd(&db).arg("invalid").output().expect("run");
+    assert!(out.status.success(), "expected next path to succeed");
+    let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
+    assert!(
+        stdout.contains("buy milk"),
+        "next table missing task: {stdout}"
+    );
+    assert!(stdout.contains("1 task"), "missing next footer: {stdout}");
+}
+
+#[test]
+fn bare_with_nonexistent_id_and_set_filter_exits_cleanly() {
+    // Regression: previously, `dawn 1,2 99` triggered both next (1,2) and info (99),
+    // producing a partial-failure state (stdout had next output + stderr had
+    // "No matches." + exit 1). After the refactor, this resolves to a single info
+    // call with merged filter {1, 2, 99}. Tasks 1 and 2 exist, so info succeeds.
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["one", "two"]);
+    let out = common::dawn_cmd(&db)
+        .args(["1,2", "99"])
+        .output()
+        .expect("run");
+    assert!(out.status.success(), "expected success via merged info");
+    let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
+    assert!(stdout.contains("one"), "missing 'one': {stdout}");
+    assert!(stdout.contains("two"), "missing 'two': {stdout}");
+    assert_eq!(stdout.matches("Last modified").count(), 2);
 }

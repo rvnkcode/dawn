@@ -6,82 +6,42 @@ use std::sync::LazyLock;
 
 static SET_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[^,\s]+(,[^,\s]+)+$").unwrap());
 
-pub(crate) struct ParsedFilters {
-    set_uids: HashSet<UniqueID>,
-    set_indices: HashSet<Index>,
-    bare_uids: HashSet<UniqueID>,
-    bare_indices: HashSet<Index>,
+#[derive(Debug, PartialEq)]
+pub(crate) enum DefaultCommand {
+    Next(Filter),
+    Info(Filter),
 }
 
-impl ParsedFilters {
-    pub(crate) fn new(raw_terms: &[String]) -> Self {
-        let mut set_uids: HashSet<UniqueID> = HashSet::new();
-        let mut set_indices: HashSet<Index> = HashSet::new();
-        let mut bare_uids: HashSet<UniqueID> = HashSet::new();
-        let mut bare_indices: HashSet<Index> = HashSet::new();
+pub(crate) fn parse(raw_terms: &[String]) -> DefaultCommand {
+    let mut uids = HashSet::new();
+    let mut indices = HashSet::new();
+    let mut has_bare_id = false;
 
-        for fragment in raw_terms {
-            let fragment = fragment.trim();
+    for raw in raw_terms {
+        let fragment = raw.trim();
 
-            if SET_RE.is_match(fragment) {
-                for seg in fragment.split(',') {
-                    try_insert(seg, &mut set_uids, &mut set_indices);
+        if SET_RE.is_match(fragment) {
+            for seg in fragment.split(',') {
+                if let Ok(u) = UniqueID::from_str(seg) {
+                    uids.insert(u);
+                } else if let Ok(i) = Index::from_str(seg) {
+                    indices.insert(i);
                 }
-            } else {
-                try_insert(fragment, &mut bare_uids, &mut bare_indices);
             }
+        } else if let Ok(u) = UniqueID::from_str(fragment) {
+            uids.insert(u);
+            has_bare_id = true;
+        } else if let Ok(i) = Index::from_str(fragment) {
+            indices.insert(i);
+            has_bare_id = true;
         }
-
-        Self {
-            set_uids,
-            set_indices,
-            bare_uids,
-            bare_indices,
-        }
     }
 
-    pub(crate) fn into_filters(self) -> (Filter, Filter) {
-        let Self {
-            set_uids,
-            set_indices,
-            bare_uids,
-            bare_indices,
-        } = self;
-        (
-            Filter::default()
-                .with_uids(set_uids)
-                .with_indices(set_indices),
-            Filter::default()
-                .with_uids(bare_uids)
-                .with_indices(bare_indices),
-        )
-    }
-
-    #[cfg(test)]
-    fn is_empty(&self) -> bool {
-        self.set_is_empty() && self.bare_is_empty()
-    }
-
-    #[cfg(test)]
-    fn set_is_empty(&self) -> bool {
-        self.set_uids.is_empty() && self.set_indices.is_empty()
-    }
-
-    #[cfg(test)]
-    fn bare_is_empty(&self) -> bool {
-        self.bare_uids.is_empty() && self.bare_indices.is_empty()
-    }
-}
-
-fn try_insert(seg: &str, uids: &mut HashSet<UniqueID>, indices: &mut HashSet<Index>) {
-    let seg = seg.trim();
-    if seg.is_empty() {
-        return;
-    }
-    if let Ok(uid) = UniqueID::from_str(seg) {
-        uids.insert(uid);
-    } else if let Ok(idx) = Index::from_str(seg) {
-        indices.insert(idx);
+    let filter = Filter::default().with_uids(uids).with_indices(indices);
+    if has_bare_id {
+        DefaultCommand::Info(filter)
+    } else {
+        DefaultCommand::Next(filter)
     }
 }
 
@@ -93,194 +53,210 @@ mod tests {
         terms.iter().map(|s| s.to_string()).collect()
     }
 
-    // ── Bare (no comma) ──
+    fn uid(s: &str) -> UniqueID {
+        s.parse().unwrap()
+    }
+
+    fn idx(n: usize) -> Index {
+        Index::new(n).unwrap()
+    }
+
+    // ── Bare (single token, no comma) → Info ──
 
     #[test]
-    fn parses_single_uid_as_bare() {
-        let parsed = ParsedFilters::new(&raw(&["abcdefghijkl"]));
-        assert_eq!(parsed.bare_uids.len(), 1);
-        assert!(parsed.bare_indices.is_empty());
-        assert!(parsed.set_is_empty());
+    fn single_uid_bare_yields_info() {
+        assert_eq!(
+            parse(&raw(&["abcdefghijkl"])),
+            DefaultCommand::Info(Filter::default().with_uids([uid("abcdefghijkl")])),
+        );
     }
 
     #[test]
-    fn parses_single_index_as_bare() {
-        let parsed = ParsedFilters::new(&raw(&["42"]));
-        assert_eq!(parsed.bare_indices.len(), 1);
-        assert!(parsed.bare_uids.is_empty());
-        assert!(parsed.set_is_empty());
+    fn single_index_bare_yields_info() {
+        assert_eq!(
+            parse(&raw(&["42"])),
+            DefaultCommand::Info(Filter::default().with_indices([idx(42)])),
+        );
     }
 
     #[test]
-    fn parses_12_digit_numeric_as_uid() {
-        let parsed = ParsedFilters::new(&raw(&["123456789012"]));
-        assert_eq!(parsed.bare_uids.len(), 1);
-        assert!(parsed.bare_indices.is_empty());
-    }
-
-    // ── Set (comma-separated) ──
-
-    #[test]
-    fn parses_comma_separated_indices_as_set() {
-        let parsed = ParsedFilters::new(&raw(&["1,2,3"]));
-        assert_eq!(parsed.set_indices.len(), 3);
-        assert!(parsed.set_uids.is_empty());
-        assert!(parsed.bare_is_empty());
+    fn twelve_digit_numeric_parses_as_uid() {
+        assert_eq!(
+            parse(&raw(&["123456789012"])),
+            DefaultCommand::Info(Filter::default().with_uids([uid("123456789012")])),
+        );
     }
 
     #[test]
-    fn parses_mixed_index_and_uid_as_set() {
-        let parsed = ParsedFilters::new(&raw(&["1,abcdefghijkl"]));
-        assert_eq!(parsed.set_indices.len(), 1);
-        assert_eq!(parsed.set_uids.len(), 1);
-        assert!(parsed.bare_is_empty());
+    fn multiple_bare_args_merge_and_yield_info() {
+        assert_eq!(
+            parse(&raw(&["1", "2"])),
+            DefaultCommand::Info(Filter::default().with_indices([idx(1), idx(2)])),
+        );
     }
 
-    // ── Invalid segments silently dropped ──
+    // ── Set (comma-separated) → Next ──
 
     #[test]
-    fn silently_drops_single_invalid_bare() {
-        let parsed = ParsedFilters::new(&raw(&["invalid"]));
-        assert!(parsed.is_empty());
-    }
-
-    #[test]
-    fn silently_drops_zero_bare() {
-        let parsed = ParsedFilters::new(&raw(&["0"]));
-        assert!(parsed.is_empty());
+    fn comma_separated_indices_yield_next() {
+        assert_eq!(
+            parse(&raw(&["1,2,3"])),
+            DefaultCommand::Next(Filter::default().with_indices([idx(1), idx(2), idx(3)])),
+        );
     }
 
     #[test]
-    fn silently_drops_invalid_segment_in_set() {
-        let parsed = ParsedFilters::new(&raw(&["1,invalid,2"]));
-        assert_eq!(parsed.set_indices.len(), 2);
-        assert!(parsed.bare_is_empty());
+    fn set_with_index_and_uid_yields_next() {
+        assert_eq!(
+            parse(&raw(&["1,abcdefghijkl"])),
+            DefaultCommand::Next(
+                Filter::default()
+                    .with_indices([idx(1)])
+                    .with_uids([uid("abcdefghijkl")]),
+            ),
+        );
     }
 
     #[test]
-    fn silently_drops_all_invalid_set() {
-        let parsed = ParsedFilters::new(&raw(&["invalid,xyz"]));
-        assert!(parsed.is_empty());
+    fn multiple_set_args_merge_and_dedup() {
+        // Overlapping "2" is deduped by HashSet.
+        assert_eq!(
+            parse(&raw(&["1,2", "2,3"])),
+            DefaultCommand::Next(Filter::default().with_indices([idx(1), idx(2), idx(3)])),
+        );
     }
 
     #[test]
-    fn silently_drops_non_ascii() {
-        let parsed = ParsedFilters::new(&raw(&["한국어"]));
-        assert!(parsed.is_empty());
+    fn duplicates_within_set_are_deduped() {
+        assert_eq!(
+            parse(&raw(&["1,1,1"])),
+            DefaultCommand::Next(Filter::default().with_indices([idx(1)])),
+        );
     }
 
-    // ── Edge cases ──
+    // ── Mixed bare + set → Info (UNION merge) ──
 
     #[test]
-    fn empty_string_yields_empty() {
-        let parsed = ParsedFilters::new(&raw(&[""]));
-        assert!(parsed.is_empty());
+    fn bare_plus_set_yields_info_with_union() {
+        assert_eq!(
+            parse(&raw(&["1", "2,3"])),
+            DefaultCommand::Info(Filter::default().with_indices([idx(1), idx(2), idx(3)])),
+        );
+    }
+
+    #[test]
+    fn set_and_bare_with_overlapping_ids_dedup() {
+        // Bare "2" overlaps with set "2" — deduped to {1, 2}.
+        assert_eq!(
+            parse(&raw(&["1,2", "2"])),
+            DefaultCommand::Info(Filter::default().with_indices([idx(1), idx(2)])),
+        );
+    }
+
+    // ── Invalid bare → dropped, does not flip to Info ──
+
+    #[test]
+    fn invalid_bare_drops_silently_and_stays_next() {
+        assert_eq!(
+            parse(&raw(&["invalid"])),
+            DefaultCommand::Next(Filter::default()),
+        );
+    }
+
+    #[test]
+    fn zero_bare_drops_silently_and_stays_next() {
+        assert_eq!(parse(&raw(&["0"])), DefaultCommand::Next(Filter::default()),);
+    }
+
+    #[test]
+    fn non_ascii_bare_drops_silently_and_stays_next() {
+        assert_eq!(
+            parse(&raw(&["한국어"])),
+            DefaultCommand::Next(Filter::default()),
+        );
+    }
+
+    #[test]
+    fn invalid_bare_mixed_with_set_stays_next() {
+        assert_eq!(
+            parse(&raw(&["invalid", "1,2"])),
+            DefaultCommand::Next(Filter::default().with_indices([idx(1), idx(2)])),
+        );
+    }
+
+    // ── Invalid segment inside a set → dropped, set stays Next ──
+
+    #[test]
+    fn invalid_segment_in_set_drops_but_keeps_valid() {
+        assert_eq!(
+            parse(&raw(&["1,invalid,2"])),
+            DefaultCommand::Next(Filter::default().with_indices([idx(1), idx(2)])),
+        );
+    }
+
+    #[test]
+    fn all_invalid_set_yields_next_with_empty_filter() {
+        assert_eq!(
+            parse(&raw(&["invalid,xyz"])),
+            DefaultCommand::Next(Filter::default()),
+        );
+    }
+
+    // ── Malformed tokens (comma shapes not matching SET_RE) ──
+    //
+    // These fall through to the bare branch; UniqueID/Index parsing then fails
+    // on the literal string (which contains commas), so they drop without
+    // flipping has_bare_id.
+
+    #[test]
+    fn empty_string_yields_next_with_empty_filter() {
+        assert_eq!(parse(&raw(&[""])), DefaultCommand::Next(Filter::default()),);
     }
 
     #[test]
     fn double_comma_rejected_as_malformed() {
-        let parsed = ParsedFilters::new(&raw(&["1,,2"]));
-        assert!(parsed.is_empty());
+        assert_eq!(
+            parse(&raw(&["1,,2"])),
+            DefaultCommand::Next(Filter::default()),
+        );
     }
 
     #[test]
     fn trailing_comma_rejected_as_malformed() {
-        let parsed = ParsedFilters::new(&raw(&["1,"]));
-        assert!(parsed.is_empty());
+        assert_eq!(
+            parse(&raw(&["1,"])),
+            DefaultCommand::Next(Filter::default()),
+        );
     }
 
     #[test]
     fn leading_comma_rejected_as_malformed() {
-        let parsed = ParsedFilters::new(&raw(&[",1"]));
-        assert!(parsed.is_empty());
-    }
-
-    #[test]
-    fn outer_whitespace_trimmed() {
-        let parsed = ParsedFilters::new(&raw(&["  1,2  "]));
-        assert_eq!(parsed.set_indices.len(), 2);
+        assert_eq!(
+            parse(&raw(&[",1"])),
+            DefaultCommand::Next(Filter::default()),
+        );
     }
 
     #[test]
     fn whitespace_around_comma_rejected() {
-        let parsed = ParsedFilters::new(&raw(&["1 , 2"]));
-        assert!(parsed.is_empty());
-    }
-
-    // ── Multiple args ──
-
-    #[test]
-    fn multiple_bare_args_merge_into_bare() {
-        let parsed = ParsedFilters::new(&raw(&["1", "2"]));
-        assert_eq!(parsed.bare_indices.len(), 2);
-        assert!(parsed.set_is_empty());
+        assert_eq!(
+            parse(&raw(&["1 , 2"])),
+            DefaultCommand::Next(Filter::default()),
+        );
     }
 
     #[test]
-    fn multiple_set_args_merge_into_set() {
-        let parsed = ParsedFilters::new(&raw(&["1,2", "2,3"]));
-        // HashSet dedups overlapping "2"
-        assert_eq!(parsed.set_indices.len(), 3);
-        assert!(parsed.bare_is_empty());
+    fn outer_whitespace_trimmed_then_parsed_as_set() {
+        assert_eq!(
+            parse(&raw(&["  1,2  "])),
+            DefaultCommand::Next(Filter::default().with_indices([idx(1), idx(2)])),
+        );
     }
 
-    #[test]
-    fn bare_and_set_kept_separate() {
-        let parsed = ParsedFilters::new(&raw(&["1", "2,3"]));
-        assert_eq!(parsed.bare_indices.len(), 1);
-        assert_eq!(parsed.set_indices.len(), 2);
-    }
-
-    // ── Dedup ──
+    // ── Empty input ──
 
     #[test]
-    fn duplicates_within_set_are_deduped() {
-        let parsed = ParsedFilters::new(&raw(&["1,1,1"]));
-        assert_eq!(parsed.set_indices.len(), 1);
-    }
-
-    // ── into_filters() ──
-
-    #[test]
-    fn into_filters_builds_set_filter_from_set_terms() {
-        let (set_filter, bare_filter) =
-            ParsedFilters::new(&raw(&["1,2,abcdefghijkl"])).into_filters();
-        assert_eq!(set_filter.indices().len(), 2);
-        assert_eq!(set_filter.uids().len(), 1);
-        assert!(bare_filter.is_empty());
-    }
-
-    #[test]
-    fn into_filters_builds_bare_filter_from_bare_terms() {
-        let (set_filter, bare_filter) =
-            ParsedFilters::new(&raw(&["1", "abcdefghijkl"])).into_filters();
-        assert!(set_filter.is_empty());
-        assert_eq!(bare_filter.indices().len(), 1);
-        assert_eq!(bare_filter.uids().len(), 1);
-    }
-
-    #[test]
-    fn into_filters_splits_set_and_bare_terms_independently() {
-        let (set_filter, bare_filter) =
-            ParsedFilters::new(&raw(&["1,2", "abcdefghijkl"])).into_filters();
-        assert_eq!(set_filter.indices().len(), 2);
-        assert!(set_filter.uids().is_empty());
-        assert!(bare_filter.indices().is_empty());
-        assert_eq!(bare_filter.uids().len(), 1);
-    }
-
-    #[test]
-    fn into_filters_yields_two_empty_filters_for_no_valid_terms() {
-        let (set_filter, bare_filter) = ParsedFilters::new(&raw(&[])).into_filters();
-        assert!(set_filter.is_empty());
-        assert!(bare_filter.is_empty());
-    }
-
-    #[test]
-    fn into_filters_yields_two_empty_filters_for_all_invalid_terms() {
-        let (set_filter, bare_filter) =
-            ParsedFilters::new(&raw(&["invalid", "1,,2"])).into_filters();
-        assert!(set_filter.is_empty());
-        assert!(bare_filter.is_empty());
+    fn empty_input_yields_next_with_empty_filter() {
+        assert_eq!(parse(&raw(&[])), DefaultCommand::Next(Filter::default()));
     }
 }

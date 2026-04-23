@@ -9,13 +9,10 @@ direction BT
       -Vec~String~ description
     }
 
-    class ParsedFilters {
-      -HashSet~UniqueID~ set_uids
-      -HashSet~Index~ set_indices
-      -HashSet~UniqueID~ bare_uids
-      -HashSet~Index~ bare_indices
-      ~new(&raw_terms) Self
-      ~into_filters(self) Filter, Filter
+    class DefaultCommand {
+      <<enumeration>>
+      ~Next(Filter)
+      ~Info(Filter)
     }
 
     class Command {
@@ -96,11 +93,9 @@ direction BT
   BaseTable~R~ ..> Task : accepts
   InfoTable o-- InfoRow
   InfoTable ..> Task : accepts
-  ParsedFilters o-- UniqueID
-  ParsedFilters o-- Index
-  ParsedFilters ..> Filter : converts
-  Handler~TS~ ..> ParsedFilters : parses
-  Handler~TS~ ..> Filter : accepts
+  DefaultCommand o-- Filter : carries
+  Handler~TS~ ..> DefaultCommand : dispatches
+  Handler~TS~ ..> Filter : parses and accepts
   Handler~TS~ ..> Status : targets
   Handler~TS~ ..> Task : fetches
   Handler~TS~ ..> BaseTable~R~ : displays

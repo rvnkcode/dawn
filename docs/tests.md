@@ -28,7 +28,7 @@ title: Test Cases
 | `from_str_non_numeric` | 숫자가 아닌 문자열은 파싱에 실패한다. |
 | `from_str_empty` | 빈 문자열은 파싱에 실패한다. |
 | `from_str_whitespace` | 앞뒤 공백이 있는 문자열은 트림되어 정상 파싱된다. |
-| `from_str_overflow` | u32 범위를 초과하는 값은 오버플로 에러를 반환한다. |
+| `from_str_overflow` | `usize` 범위를 초과하는 값은 `IndexError::TooLarge` 를 반환한다. |
 
 ### `task/description.rs`
 
@@ -101,10 +101,10 @@ title: Test Cases
 | `build_where_clause_with_multiple_uids` | 여러 UID 로 필터링하는 WHERE 절을 생성한다. |
 | `build_where_clause_with_single_index` | 단일 Index 로 필터링하는 WHERE 절을 생성한다. |
 | `build_where_clause_with_multiple_indices` | 여러 Index 로 필터링하는 WHERE 절을 생성한다. |
-| `build_where_clause_with_uid_and_index` | UID 와 Index 를 함께 사용하는 WHERE 절을 생성한다. |
+| `build_where_clause_with_uid_and_index` | UID 와 Index 를 함께 사용하면 두 조건이 OR 로 묶인 `WHERE (t.id IN (?) OR tpr.row_id IN (?))` 절을 생성한다. |
 | `build_where_clause_with_uid_and_status` | UID 와 Status 를 함께 사용하는 WHERE 절을 생성한다. |
 | `build_where_clause_with_index_and_status` | Index 와 Status 를 함께 사용하는 WHERE 절을 생성한다. |
-| `build_where_clause_with_uid_and_index_and_status` | UID, Index, Status 모두 사용하는 WHERE 절을 생성한다. |
+| `build_where_clause_with_uid_and_index_and_status` | UID 와 Index 는 OR 로 묶이고 그 결과가 Status 조건과 AND 로 결합된 WHERE 절을 생성한다. |
 | `build_update_clause_with_empty_modification` | 비어있는 수정 내역에 대해 에러를 반환한다. |
 | `build_update_clause_with_empty_targets` | 대상이 없으면 에러를 반환한다. |
 | `build_update_clause_with_description` | description 만 변경하는 UPDATE 절을 생성한다. |
@@ -187,31 +187,29 @@ title: Test Cases
 
 | Test | 설명 |
 | --- | --- |
-| `parses_single_uid_as_bare` | 단일 UID 인자를 bare 로 파싱한다. |
-| `parses_single_index_as_bare` | 단일 Index 인자를 bare 로 파싱한다. |
-| `parses_12_digit_numeric_as_uid` | 12자리 숫자 문자열은 UID 로 인식한다. |
-| `parses_comma_separated_indices_as_set` | 콤마로 연결된 Index 들은 set 으로 파싱한다. |
-| `parses_mixed_index_and_uid_as_set` | Index 와 UID 가 혼합된 set 을 정상 파싱한다. |
-| `silently_drops_single_invalid_bare` | bare 자리의 유효하지 않은 인자는 조용히 버린다. |
-| `silently_drops_zero_bare` | bare 자리에 있는 "0" 은 조용히 버린다. |
-| `silently_drops_invalid_segment_in_set` | set 내의 잘못된 세그먼트는 조용히 버린다. |
-| `silently_drops_all_invalid_set` | set 전체가 잘못되어 있으면 모두 버린다. |
-| `silently_drops_non_ascii` | 비 ASCII 문자열은 조용히 버린다. |
-| `empty_string_yields_empty` | 빈 문자열은 빈 필터를 반환한다. |
-| `double_comma_rejected_as_malformed` | 연속된 콤마("1,,2")는 잘못된 형식으로 처리한다. |
-| `trailing_comma_rejected_as_malformed` | 끝에 콤마("1,")가 있으면 잘못된 형식으로 처리한다. |
-| `leading_comma_rejected_as_malformed` | 앞에 콤마(",1")가 있으면 잘못된 형식으로 처리한다. |
-| `outer_whitespace_trimmed` | 양 끝 공백은 트림하여 파싱한다. |
-| `whitespace_around_comma_rejected` | 콤마 주변 공백은 잘못된 형식으로 처리한다. |
-| `multiple_bare_args_merge_into_bare` | 여러 bare 인자는 bare 로 병합된다. |
-| `multiple_set_args_merge_into_set` | 여러 set 인자는 set 으로 병합된다. |
-| `bare_and_set_kept_separate` | bare 와 set 은 서로 다른 버킷으로 구분된다. |
-| `duplicates_within_set_are_deduped` | set 내 중복 값은 제거된다. |
-| `into_filters_builds_set_filter_from_set_terms` | set 항목은 첫 번째 Filter 에, bare 는 비어있는 두 번째 Filter 로 분리되어 반환된다. |
-| `into_filters_builds_bare_filter_from_bare_terms` | bare 항목은 두 번째 Filter 에, set 은 비어있는 첫 번째 Filter 로 분리되어 반환된다. |
-| `into_filters_splits_set_and_bare_terms_independently` | set 과 bare 가 혼합되어 있으면 각각 독립된 Filter 로 반환된다. |
-| `into_filters_yields_two_empty_filters_for_no_valid_terms` | 입력이 비어있으면 두 Filter 모두 빈 상태로 반환된다. |
-| `into_filters_yields_two_empty_filters_for_all_invalid_terms` | 입력이 전부 잘못된 항목이면 두 Filter 모두 빈 상태로 반환된다. |
+| `single_uid_bare_yields_info` | 단일 UID bare 인자는 `DefaultCommand::Info` 로 해석되고 Filter 에 UID 1개만 담긴다. |
+| `single_index_bare_yields_info` | 단일 Index bare 인자("42") 는 `DefaultCommand::Info` 로 해석되고 Filter 에 Index 1개만 담긴다. |
+| `twelve_digit_numeric_parses_as_uid` | 12자리 숫자 문자열은 UID 로 인식되어 `DefaultCommand::Info` 로 해석된다. |
+| `multiple_bare_args_merge_and_yield_info` | 여러 bare 인자("1" "2") 는 병합되어 `DefaultCommand::Info` 로 해석된다. |
+| `comma_separated_indices_yield_next` | 콤마로 연결된 Index 들("1,2,3") 은 `DefaultCommand::Next` 로 해석된다. |
+| `set_with_index_and_uid_yields_next` | set 안에 Index 와 UID 가 혼합되어도 `DefaultCommand::Next` 로 해석된다. |
+| `multiple_set_args_merge_and_dedup` | 여러 set 인자("1,2" "2,3") 는 병합되고 중복된 "2" 는 HashSet 으로 제거된다. |
+| `duplicates_within_set_are_deduped` | 단일 set 인자 내 중복 값("1,1,1") 은 제거된다. |
+| `bare_plus_set_yields_info_with_union` | bare("1") 과 set("2,3") 이 섞이면 bare 존재로 `DefaultCommand::Info` 로 해석되고 두 쪽의 Index 들이 합집합으로 merge 된다. |
+| `set_and_bare_with_overlapping_ids_dedup` | set("1,2") 과 bare("2") 가 겹치면 Filter 에 {1,2} 두 개만 남는다 (dedup). |
+| `invalid_bare_drops_silently_and_stays_next` | 유효하지 않은 bare 인자("invalid") 는 조용히 버려지고 `has_bare_id` 가 올라가지 않아 `DefaultCommand::Next` 로 해석된다. |
+| `zero_bare_drops_silently_and_stays_next` | bare 자리의 "0" 은 Index 로 파싱 실패해 조용히 버려진다. |
+| `non_ascii_bare_drops_silently_and_stays_next` | 비 ASCII 문자열은 조용히 버려진다. |
+| `invalid_bare_mixed_with_set_stays_next` | 유효하지 않은 bare 와 유효한 set 이 섞여도 bare 가 드롭되므로 `DefaultCommand::Next` 로 해석된다. |
+| `invalid_segment_in_set_drops_but_keeps_valid` | set 내 일부 세그먼트("1,invalid,2") 가 잘못되면 해당 세그먼트만 버리고 나머지만 Filter 에 담는다. |
+| `all_invalid_set_yields_next_with_empty_filter` | set 전체가 잘못되면 빈 Filter 와 `DefaultCommand::Next` 를 반환한다. |
+| `empty_string_yields_next_with_empty_filter` | 빈 문자열은 빈 Filter 와 `DefaultCommand::Next` 를 반환한다. |
+| `double_comma_rejected_as_malformed` | 연속된 콤마("1,,2") 는 SET_RE 에 맞지 않아 malformed 로 처리되어 버려진다. |
+| `trailing_comma_rejected_as_malformed` | 끝에 콤마("1,") 가 있으면 malformed 로 처리된다. |
+| `leading_comma_rejected_as_malformed` | 앞에 콤마(",1") 가 있으면 malformed 로 처리된다. |
+| `whitespace_around_comma_rejected` | 콤마 주변 공백("1 , 2") 은 malformed 로 처리된다. |
+| `outer_whitespace_trimmed_then_parsed_as_set` | 양 끝 공백은 트림 후 set 으로 파싱된다. |
+| `empty_input_yields_next_with_empty_filter` | 입력이 비어있으면 빈 Filter 와 `DefaultCommand::Next` 를 반환한다. |
 
 ### `table/base_table.rs`
 
@@ -251,9 +249,7 @@ title: Test Cases
 
 | Test | 설명 |
 | --- | --- |
-| `format_absolute_in_renders_local_date` | UTC 자정 타임스탬프를 KST 로 변환하여 `"2024-01-15 09:00:00"` 을 반환한다. |
-| `format_absolute_in_crosses_date_boundary` | UTC 23:30 타임스탬프를 KST 로 변환하면 날짜 경계를 넘어 `"2024-01-15 08:30:00"` 을 반환한다. |
-| `format_with_age_appends_parenthesized_age` | 절대 시각 뒤에 `" (30s)"` 형식의 경과 시간이 괄호로 덧붙는다. |
+| `format_with_age_appends_parenthesized_age` | `now - 30` 타임스탬프로 호출하면 결과 문자열이 `" (30s)"` 으로 끝난다. |
 
 ### `table/info_table.rs`
 
@@ -301,9 +297,10 @@ title: Test Cases
 | --- | --- |
 | `info_single_index_renders_all_base_rows` | 단일 Index 인자로 info 를 실행하면 ID / Description / Status / Entered / Last modified / UID 행과 description("buy milk"), "Pending" 상태가 stdout 에 포함되고 stderr 은 비어 있다. |
 | `info_omits_end_and_deleted_rows_for_pending` | pending 태스크의 info 렌더링에는 "End" 와 "Deleted" 행이 포함되지 않는다. |
-| `info_renders_uid_row_with_valid_uid` | info 의 UID 행이 12자리 UID 를 담고 있으며, 해당 UID 로 재조회해도 동일한 태스크의 UID 와 description("buy milk") 이 렌더링된다. |
 | `info_multiple_bare_args_renders_each_task` | 여러 bare Index 인자("1" "2") 로 조회하면 각 태스크의 description("one", "two") 이 모두 stdout 에 렌더링된다. |
 | `info_nonexistent_index_prints_no_matches` | 존재하지 않는 Index("99") 로 조회하면 종료 코드 1 과 stderr 에 "No matches.\n" 을 출력한다. |
 | `info_nonexistent_uid_prints_no_matches` | 존재하지 않는 UID("aaaaaaaaaaaa") 로 조회하면 종료 코드 1 과 stderr 에 "No matches.\n" 을 출력한다. |
 | `info_empty_db_with_index_prints_no_matches` | 빈 DB 에서 Index("1") 로 조회하면 종료 코드 1 과 stderr 에 "No matches.\n" 을 출력한다. |
-| `next_and_info_render_together_when_set_and_bare_given` | set("1,2") 과 bare("3") 가 함께 주어지면 "2 tasks" footer 를 가진 next 테이블이 먼저 렌더링되고 그 뒤에 info 테이블("Last modified") 이 이어서 렌더링되며 "one", "two", "three" 가 모두 stdout 에 포함된다. |
+| `mixed_set_and_bare_resolves_to_info_with_merged_ids` | set("1,2") 과 bare("3") 가 함께 주어지면 Taskwarrior 규칙에 따라 단일 info 커맨드로 해석되어 세 개의 info 테이블("Last modified" 3회) 이 렌더링되고, "N tasks" 형태의 next footer 는 출력되지 않는다. |
+| `invalid_bare_does_not_trigger_info` | 유효하지 않은 bare 인자("invalid") 는 `has_bare_id` 를 올리지 않으므로 pending 태스크가 있는 DB 에서 "No matches." 가 아니라 next 테이블("1 task") 이 렌더링된다. |
+| `bare_with_nonexistent_id_and_set_filter_exits_cleanly` | set("1,2") 과 존재하지 않는 bare("99") 가 섞여도 merged filter 로 단일 info 를 실행하여 존재하는 두 태스크만 info 테이블 2개로 렌더링하고 종료 코드 0 을 반환한다 (이전의 partial-failure 회귀 방지). |
