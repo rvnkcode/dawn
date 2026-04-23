@@ -76,3 +76,84 @@ impl InfoTable {
         table
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_helper::task;
+    use dawn::domain::task::{Index, Timestamp};
+
+    #[test]
+    fn render_includes_base_rows_for_pending_task() {
+        let now = 1_000_000;
+        let t = task(Some(Index::new(1).unwrap()), "buy milk", now - 30);
+        let uid = t.uid.to_string();
+
+        let table = InfoTable::new(&t, now).unwrap();
+        let output = table.render().to_string();
+
+        assert!(output.contains("ID"));
+        assert!(output.contains("Description"));
+        assert!(output.contains("Status"));
+        assert!(output.contains("Entered"));
+        assert!(output.contains("Last modified"));
+        assert!(output.contains("UID"));
+        assert!(output.contains("buy milk"));
+        assert!(output.contains("Pending"));
+        assert!(output.contains(&uid));
+        assert!(!output.contains("End"));
+        assert!(!output.contains("Deleted"));
+    }
+
+    #[test]
+    fn render_uses_dash_for_id_when_index_is_none() {
+        let now = 1_000_000;
+        let t = task(None, "buy milk", now);
+
+        let table = InfoTable::new(&t, now).unwrap();
+        let output = table.render().to_string();
+
+        assert!(output.contains("ID"));
+        assert!(output.contains("-"));
+    }
+
+    #[test]
+    fn render_includes_end_row_when_completed_is_set() {
+        let now = 1_000_000;
+        let mut t = task(Some(Index::new(1).unwrap()), "buy milk", now - 60);
+        t.completed = Some(Timestamp::new(now - 10).unwrap());
+
+        let table = InfoTable::new(&t, now).unwrap();
+        let output = table.render().to_string();
+
+        assert!(output.contains("End"));
+        assert!(!output.contains("Deleted"));
+    }
+
+    #[test]
+    fn render_includes_deleted_row_when_deleted_is_set() {
+        let now = 1_000_000;
+        let mut t = task(Some(Index::new(1).unwrap()), "buy milk", now - 60);
+        t.deleted = Some(Timestamp::new(now - 10).unwrap());
+
+        let table = InfoTable::new(&t, now).unwrap();
+        let output = table.render().to_string();
+
+        assert!(output.contains("Deleted"));
+        assert!(!output.contains("End"));
+    }
+
+    #[test]
+    fn render_includes_both_end_and_deleted_rows_when_set() {
+        let now = 1_000_000;
+        let mut t = task(Some(Index::new(1).unwrap()), "buy milk", now - 60);
+        t.completed = Some(Timestamp::new(now - 20).unwrap());
+        t.deleted = Some(Timestamp::new(now - 10).unwrap());
+
+        let table = InfoTable::new(&t, now).unwrap();
+        let output = table.render().to_string();
+
+        assert!(output.contains("End"));
+        assert!(output.contains("Deleted"));
+    }
+}
