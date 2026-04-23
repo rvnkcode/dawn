@@ -1,7 +1,7 @@
 use crate::domain::task::{Index, Status, UniqueID};
 use std::collections::HashSet;
 
-#[derive(Default)]
+#[derive(Debug, Default, PartialEq)]
 pub struct Filter {
     uids: HashSet<UniqueID>,
     indices: HashSet<Index>,
