@@ -20,14 +20,14 @@ direction BT
 
     class Command {
       <<enumeration>>
-      +Add(Creation)
+      -Add(Creation)
     }
 
     class Cli {
       -Vec~String~ filter
       -Option~Command~ command
       +new() Self
-      +handle_command(self, task_service) Result~_, CliError~
+      +handle_command(&self, task_service) Result~_, CliError~
     }
 
     class Handler~TS~ {
@@ -94,13 +94,13 @@ direction BT
   NextRow ..|> TableRow : implements
   BaseTable~R~ ..> TableRow : where R is TableRow and Tabled
   BaseTable~R~ ..> Task : accepts
-  InfoTable *-- InfoRow
+  InfoTable o-- InfoRow
   InfoTable ..> Task : accepts
   ParsedFilters o-- UniqueID
   ParsedFilters o-- Index
   ParsedFilters ..> Filter : converts
   Handler~TS~ ..> ParsedFilters : parses
-  Handler~TS~ ..> Filter : parses
+  Handler~TS~ ..> Filter : accepts
   Handler~TS~ ..> Status : targets
   Handler~TS~ ..> Task : fetches
   Handler~TS~ ..> BaseTable~R~ : displays
@@ -211,7 +211,7 @@ direction BT
   Task *-- UniqueID
   Task o-- Index
   Task *-- Description
-  Task *-- Timestamp : entry
+  Task *-- Timestamp : entry, modified
   Task o-- Timestamp : completed, deleted
   Task ..> Status : computes
   Filter o-- UniqueID
