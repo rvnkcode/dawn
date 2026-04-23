@@ -239,18 +239,48 @@ mod tests {
         assert_eq!(parsed.set_indices.len(), 1);
     }
 
-    // ── into_set_filter() ──
+    // ── into_filters() ──
 
     #[test]
-    fn into_set_filter_builds_filter_from_set_terms() {
-        let filter = ParsedFilters::new(&raw(&["1,2,abcdefghijkl"])).into_set_filter();
-        assert_eq!(filter.indices().len(), 2);
-        assert_eq!(filter.uids().len(), 1);
+    fn into_filters_builds_set_filter_from_set_terms() {
+        let (set_filter, bare_filter) =
+            ParsedFilters::new(&raw(&["1,2,abcdefghijkl"])).into_filters();
+        assert_eq!(set_filter.indices().len(), 2);
+        assert_eq!(set_filter.uids().len(), 1);
+        assert!(bare_filter.is_empty());
     }
 
     #[test]
-    fn into_set_filter_drops_bare_terms() {
-        let filter = ParsedFilters::new(&raw(&["1", "abcdefghijkl"])).into_set_filter();
-        assert!(filter.is_empty());
+    fn into_filters_builds_bare_filter_from_bare_terms() {
+        let (set_filter, bare_filter) =
+            ParsedFilters::new(&raw(&["1", "abcdefghijkl"])).into_filters();
+        assert!(set_filter.is_empty());
+        assert_eq!(bare_filter.indices().len(), 1);
+        assert_eq!(bare_filter.uids().len(), 1);
+    }
+
+    #[test]
+    fn into_filters_splits_set_and_bare_terms_independently() {
+        let (set_filter, bare_filter) =
+            ParsedFilters::new(&raw(&["1,2", "abcdefghijkl"])).into_filters();
+        assert_eq!(set_filter.indices().len(), 2);
+        assert!(set_filter.uids().is_empty());
+        assert!(bare_filter.indices().is_empty());
+        assert_eq!(bare_filter.uids().len(), 1);
+    }
+
+    #[test]
+    fn into_filters_yields_two_empty_filters_for_no_valid_terms() {
+        let (set_filter, bare_filter) = ParsedFilters::new(&raw(&[])).into_filters();
+        assert!(set_filter.is_empty());
+        assert!(bare_filter.is_empty());
+    }
+
+    #[test]
+    fn into_filters_yields_two_empty_filters_for_all_invalid_terms() {
+        let (set_filter, bare_filter) =
+            ParsedFilters::new(&raw(&["invalid", "1,,2"])).into_filters();
+        assert!(set_filter.is_empty());
+        assert!(bare_filter.is_empty());
     }
 }
