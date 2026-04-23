@@ -66,10 +66,12 @@ impl<TS: TaskService> Handler<TS> {
             return Err(CliError::NoMatch);
         }
         let now = Utc::now().timestamp();
-        for task in tasks {
-            let table = InfoTable::new(&task, now)?;
+        for (i, task) in tasks.iter().enumerate() {
+            if i > 0 {
+                println!();
+            }
+            let table = InfoTable::new(task, now)?;
             println!("{}", table.render());
-            println!();
         }
         Ok(())
     }
