@@ -68,10 +68,14 @@ title: Test Cases
 | `with_indices_extends` | `with_indices` 를 두 번 호출하면 두 Index 가 모두 누적되어 길이 2 의 set 이 된다. |
 | `with_statuses_extends` | `with_statuses` 를 두 번 호출하면 두 Status 가 모두 누적되어 길이 2 의 set 이 된다. |
 
-### `task.rs` (TaskModification)
+### `task.rs`
 
 | Test | 설명 |
 | --- | --- |
+| `status_is_pending_when_not_completed_or_deleted` | completed 와 deleted 가 모두 None 이면 status() 는 Status::Pending 을 반환하고 문자열 표기는 "Pending" 이다. |
+| `status_is_completed_when_completed_is_some` | completed 만 설정되면 status() 는 Status::Completed 를 반환하고 문자열 표기는 "Completed" 이다. |
+| `status_is_deleted_when_deleted_is_some` | deleted 만 설정되면 status() 는 Status::Deleted 를 반환하고 문자열 표기는 "Deleted" 이다. |
+| `status_is_deleted_when_both_completed_and_deleted` | completed 와 deleted 가 모두 설정되면 deleted 가 우선되어 status() 는 Status::Deleted 를 반환한다. |
 | `task_modification_is_empty_when_all_none` | 모든 필드가 None 이면 수정 내역이 비어있다고 판정한다. |
 | `task_modification_is_not_empty_with_description` | description 변경이 있으면 수정 내역이 존재한다. |
 | `task_modification_is_not_empty_with_completed` | completed 설정이 있으면 수정 내역이 존재한다. |
@@ -203,8 +207,11 @@ title: Test Cases
 | `multiple_set_args_merge_into_set` | 여러 set 인자는 set 으로 병합된다. |
 | `bare_and_set_kept_separate` | bare 와 set 은 서로 다른 버킷으로 구분된다. |
 | `duplicates_within_set_are_deduped` | set 내 중복 값은 제거된다. |
-| `into_set_filter_builds_filter_from_set_terms` | set 항목으로 Filter 를 생성한다. |
-| `into_set_filter_drops_bare_terms` | into_set_filter 에서 bare 항목은 제외된다. |
+| `into_filters_builds_set_filter_from_set_terms` | set 항목은 첫 번째 Filter 에, bare 는 비어있는 두 번째 Filter 로 분리되어 반환된다. |
+| `into_filters_builds_bare_filter_from_bare_terms` | bare 항목은 두 번째 Filter 에, set 은 비어있는 첫 번째 Filter 로 분리되어 반환된다. |
+| `into_filters_splits_set_and_bare_terms_independently` | set 과 bare 가 혼합되어 있으면 각각 독립된 Filter 로 반환된다. |
+| `into_filters_yields_two_empty_filters_for_no_valid_terms` | 입력이 비어있으면 두 Filter 모두 빈 상태로 반환된다. |
+| `into_filters_yields_two_empty_filters_for_all_invalid_terms` | 입력이 전부 잘못된 항목이면 두 Filter 모두 빈 상태로 반환된다. |
 
 ### `table/base_table.rs`
 
@@ -237,8 +244,26 @@ title: Test Cases
 
 | Test | 설명 |
 | --- | --- |
-| `new_succeeds_with_valid_task` | 유효한 Task 로 NextRow 를 생성한다. |
-| `new_returns_missing_index_when_index_is_none` | Task 의 Index 가 None 이면 MissingIndex 에러를 반환한다. |
+| `new_succeeds_with_valid_task` | 유효한 Task 로 생성한 NextRow 의 필드가 `["1", "30s", "buy milk"]` 로 렌더링된다. |
+| `new_returns_missing_index_when_index_is_none` | Task 의 Index 가 None 이면 `NextRowError::MissingIndex` 를 반환한다. |
+
+### `table/date_format.rs`
+
+| Test | 설명 |
+| --- | --- |
+| `format_absolute_in_renders_local_date` | UTC 자정 타임스탬프를 KST 로 변환하여 `"2024-01-15 09:00:00"` 을 반환한다. |
+| `format_absolute_in_crosses_date_boundary` | UTC 23:30 타임스탬프를 KST 로 변환하면 날짜 경계를 넘어 `"2024-01-15 08:30:00"` 을 반환한다. |
+| `format_with_age_appends_parenthesized_age` | 절대 시각 뒤에 `" (30s)"` 형식의 경과 시간이 괄호로 덧붙는다. |
+
+### `table/info_table.rs`
+
+| Test | 설명 |
+| --- | --- |
+| `render_includes_base_rows_for_pending_task` | pending Task 의 렌더링에 ID/Description/Status/Entered/Last modified/UID 행과 "Pending" 상태, description, UID 가 포함되고 End/Deleted 는 포함되지 않는다. |
+| `render_uses_dash_for_id_when_index_is_none` | Task 의 Index 가 None 이면 ID 행의 값이 `"-"` 로 렌더링된다. |
+| `render_includes_end_row_when_completed_is_set` | completed 가 설정되어 있으면 렌더링에 "End" 행이 추가되고 "Deleted" 는 포함되지 않는다. |
+| `render_includes_deleted_row_when_deleted_is_set` | deleted 가 설정되어 있으면 렌더링에 "Deleted" 행이 추가되고 "End" 는 포함되지 않는다. |
+| `render_includes_both_end_and_deleted_rows_when_set` | completed 와 deleted 가 모두 설정되어 있으면 렌더링에 "End" 와 "Deleted" 행이 모두 포함된다. |
 
 ## E2E Tests (`cli/tests`)
 
@@ -269,3 +294,16 @@ title: Test Cases
 | `all_invalid_single_prints_no_matches` | 단일 잘못된 인자는 "No matches" 를 출력한다. |
 | `all_invalid_set_prints_no_matches` | 전체가 잘못된 set 은 "No matches" 를 출력한다. |
 | `zero_bare_prints_no_matches` | bare "0" 인자는 "No matches" 를 출력한다. |
+
+### `cli_info.rs`
+
+| Test | 설명 |
+| --- | --- |
+| `info_single_index_renders_all_base_rows` | 단일 Index 인자로 info 를 실행하면 ID / Description / Status / Entered / Last modified / UID 행과 description("buy milk"), "Pending" 상태가 stdout 에 포함되고 stderr 은 비어 있다. |
+| `info_omits_end_and_deleted_rows_for_pending` | pending 태스크의 info 렌더링에는 "End" 와 "Deleted" 행이 포함되지 않는다. |
+| `info_renders_uid_row_with_valid_uid` | info 의 UID 행이 12자리 UID 를 담고 있으며, 해당 UID 로 재조회해도 동일한 태스크의 UID 와 description("buy milk") 이 렌더링된다. |
+| `info_multiple_bare_args_renders_each_task` | 여러 bare Index 인자("1" "2") 로 조회하면 각 태스크의 description("one", "two") 이 모두 stdout 에 렌더링된다. |
+| `info_nonexistent_index_prints_no_matches` | 존재하지 않는 Index("99") 로 조회하면 종료 코드 1 과 stderr 에 "No matches.\n" 을 출력한다. |
+| `info_nonexistent_uid_prints_no_matches` | 존재하지 않는 UID("aaaaaaaaaaaa") 로 조회하면 종료 코드 1 과 stderr 에 "No matches.\n" 을 출력한다. |
+| `info_empty_db_with_index_prints_no_matches` | 빈 DB 에서 Index("1") 로 조회하면 종료 코드 1 과 stderr 에 "No matches.\n" 을 출력한다. |
+| `next_and_info_render_together_when_set_and_bare_given` | set("1,2") 과 bare("3") 가 함께 주어지면 "2 tasks" footer 를 가진 next 테이블이 먼저 렌더링되고 그 뒤에 info 테이블("Last modified") 이 이어서 렌더링되며 "one", "two", "three" 가 모두 stdout 에 포함된다. |

@@ -1,11 +1,8 @@
 mod common;
 
-use tempfile::TempDir;
-
 #[test]
 fn add_single_task_prints_counter_1() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
+    let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "buy milk"])
         .assert()
@@ -15,8 +12,7 @@ fn add_single_task_prints_counter_1() {
 
 #[test]
 fn add_two_tasks_counter_increments() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
+    let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "first"])
         .assert()
@@ -31,22 +27,19 @@ fn add_two_tasks_counter_increments() {
 
 #[test]
 fn add_empty_description_rejected() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
+    let (_dir, db) = common::test_db();
     common::dawn_cmd(&db).args(["add", ""]).assert().code(2);
 }
 
 #[test]
 fn add_whitespace_only_description_rejected() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
+    let (_dir, db) = common::test_db();
     common::dawn_cmd(&db).args(["add", "   "]).assert().code(2);
 }
 
 #[test]
 fn add_unquoted_multiword_joins_words() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
+    let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "buy", "milk"])
         .assert()
@@ -67,8 +60,7 @@ fn add_unquoted_multiword_joins_words() {
 
 #[test]
 fn add_with_preceding_filter_joins_filter_and_words() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
+    let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["1", "add", "buy", "milk"])
         .assert()
@@ -89,7 +81,6 @@ fn add_with_preceding_filter_joins_filter_and_words() {
 
 #[test]
 fn add_missing_description_rejected() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
+    let (_dir, db) = common::test_db();
     common::dawn_cmd(&db).args(["add"]).assert().code(2);
 }

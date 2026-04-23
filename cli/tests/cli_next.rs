@@ -1,11 +1,8 @@
 mod common;
 
-use tempfile::TempDir;
-
 #[test]
 fn next_with_no_tasks_prints_no_matches() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
+    let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .assert()
         .code(1)
@@ -14,8 +11,7 @@ fn next_with_no_tasks_prints_no_matches() {
 
 #[test]
 fn next_with_one_task_prints_singular_footer() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
+    let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "buy milk"])
         .assert()
@@ -43,8 +39,7 @@ fn next_with_one_task_prints_singular_footer() {
 
 #[test]
 fn next_with_multiple_tasks_prints_plural_footer() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
+    let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "one"])
         .assert()
@@ -70,21 +65,10 @@ fn next_with_multiple_tasks_prints_plural_footer() {
 
 // ── Filter: set (comma-separated) → next table ──
 
-fn setup_three_tasks(db: &std::path::Path) {
-    let descs = ["one", "two", "three"];
-    for (i, desc) in descs.iter().enumerate() {
-        if i > 0 {
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
-        common::dawn_cmd(db).args(["add", desc]).assert().success();
-    }
-}
-
 #[test]
 fn next_filter_set_two_indices() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
-    setup_three_tasks(&db);
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["one", "two", "three"]);
     let out = common::dawn_cmd(&db).arg("1,2").output().expect("run");
     let stdout = String::from_utf8(out.stdout).expect("utf8");
     assert!(out.status.success());
@@ -95,9 +79,8 @@ fn next_filter_set_two_indices() {
 
 #[test]
 fn next_filter_multiple_set_args() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
-    setup_three_tasks(&db);
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["one", "two", "three"]);
     let out = common::dawn_cmd(&db)
         .args(["1,2", "2,3"])
         .output()
@@ -111,8 +94,7 @@ fn next_filter_multiple_set_args() {
 
 #[test]
 fn next_filter_nonexistent_index_prints_no_matches() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
+    let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "one"])
         .assert()
@@ -128,8 +110,7 @@ fn next_filter_nonexistent_index_prints_no_matches() {
 
 #[test]
 fn next_filter_set_with_invalid_silently_drops() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
+    let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "one"])
         .assert()
@@ -147,8 +128,7 @@ fn next_filter_set_with_invalid_silently_drops() {
 
 #[test]
 fn next_filter_set_with_zero_silently_drops() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
+    let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "one"])
         .assert()
@@ -165,8 +145,7 @@ fn next_filter_set_with_zero_silently_drops() {
 
 #[test]
 fn all_invalid_single_prints_no_matches() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
+    let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .arg("invalid")
         .assert()
@@ -176,8 +155,7 @@ fn all_invalid_single_prints_no_matches() {
 
 #[test]
 fn all_invalid_set_prints_no_matches() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
+    let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .arg("invalid,xyz")
         .assert()
@@ -187,8 +165,7 @@ fn all_invalid_set_prints_no_matches() {
 
 #[test]
 fn zero_bare_prints_no_matches() {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
+    let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .arg("0")
         .assert()
