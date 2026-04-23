@@ -111,10 +111,13 @@ mod tests {
         let t = task(None, "buy milk", now);
 
         let table = InfoTable::new(&t, now).unwrap();
-        let output = table.render().to_string();
 
-        assert!(output.contains("ID"));
-        assert!(output.contains("-"));
+        let id_row = table
+            .rows
+            .iter()
+            .find(|r| r.name == "ID")
+            .expect("ID row should exist");
+        assert_eq!(id_row.value, "-");
     }
 
     #[test]
