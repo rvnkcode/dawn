@@ -93,7 +93,7 @@ direction BT
   BaseTable~R~ ..> Task : accepts
   InfoTable o-- InfoRow
   InfoTable ..> Task : accepts
-  DefaultCommand o-- Filter : carries
+  DefaultCommand *-- Filter : carries
   Handler~TS~ ..> DefaultCommand : dispatches
   Handler~TS~ ..> Filter : parses and accepts
   Handler~TS~ ..> Status : targets
