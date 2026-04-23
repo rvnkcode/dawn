@@ -1,18 +1,17 @@
 use crate::table::age::{Age, AgeError};
-use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, Local, Utc, format::DelayedFormat, format::StrftimeItems};
 use dawn::domain::task::Timestamp;
 
 pub(crate) fn format_with_age(ts: &Timestamp, now: i64) -> Result<String, AgeError> {
     Ok(format!("{} ({})", format_absolute(ts)?, Age::new(ts, now)?))
 }
 
-pub(crate) fn format_absolute(ts: &Timestamp) -> Result<String, AgeError> {
+pub(crate) fn format_absolute(
+    ts: &Timestamp,
+) -> Result<DelayedFormat<StrftimeItems<'static>>, AgeError> {
     let secs = ts.as_seconds();
     let utc = DateTime::<Utc>::from_timestamp(secs, 0).ok_or(AgeError::OutOfRange(secs))?;
-    Ok(utc
-        .with_timezone(&Local)
-        .format("%Y-%m-%d %H:%M:%S")
-        .to_string())
+    Ok(utc.with_timezone(&Local).format("%Y-%m-%d %H:%M:%S"))
 }
 
 #[cfg(test)]

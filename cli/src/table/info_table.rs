@@ -43,13 +43,13 @@ impl InfoTable {
         if let Some(completed) = &task.completed {
             rows.push(InfoRow {
                 name: "End".to_string(),
-                value: format_absolute(completed)?,
+                value: format_absolute(completed)?.to_string(),
             });
         }
         if let Some(deleted) = &task.deleted {
             rows.push(InfoRow {
                 name: "Deleted".to_string(),
-                value: format_absolute(deleted)?,
+                value: format_absolute(deleted)?.to_string(),
             });
         }
         rows.push(InfoRow {
