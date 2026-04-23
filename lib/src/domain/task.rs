@@ -53,8 +53,7 @@ impl Task {
     }
 }
 
-// TODO: Separate Status into its own module
-#[derive(Debug, Eq, PartialEq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Status {
     Pending,
     Completed,
