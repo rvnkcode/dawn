@@ -222,6 +222,227 @@ fn build_where_clause_with_uid_and_index_and_status() {
     assert_eq!(to_value(params[1].as_ref()), Value::Integer(1));
 }
 
+// filter.words
+
+#[test]
+fn build_where_clause_with_single_long_word() {
+    let filter = Filter::default().with_words(["hello".to_string()]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(
+        clause,
+        "WHERE t.id IN (SELECT id FROM task_fts WHERE task_fts MATCH ?)"
+    );
+    assert_eq!(params.len(), 1);
+    assert_eq!(
+        to_value(params[0].as_ref()),
+        Value::Text("\"hello\"".into())
+    );
+}
+
+#[test]
+fn build_where_clause_with_multiple_long_words() {
+    let filter = Filter::default().with_words(["hello".to_string(), "world".to_string()]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(
+        clause,
+        "WHERE t.id IN (SELECT id FROM task_fts WHERE task_fts MATCH ?)"
+    );
+    assert_eq!(params.len(), 1);
+    assert_eq!(
+        to_value(params[0].as_ref()),
+        Value::Text("\"hello\" AND \"world\"".into())
+    );
+}
+
+#[test]
+fn build_where_clause_with_single_short_word() {
+    let filter = Filter::default().with_words(["hi".to_string()]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(clause, r"WHERE t.description LIKE ? ESCAPE '\'");
+    assert_eq!(params.len(), 1);
+    assert_eq!(to_value(params[0].as_ref()), Value::Text("%hi%".into()));
+}
+
+#[test]
+fn build_where_clause_with_multiple_short_words() {
+    let filter = Filter::default().with_words(["a".to_string(), "bb".to_string()]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(
+        clause,
+        r"WHERE (t.description LIKE ? ESCAPE '\' AND t.description LIKE ? ESCAPE '\')"
+    );
+    assert_eq!(params.len(), 2);
+    assert_eq!(to_value(params[0].as_ref()), Value::Text("%a%".into()));
+    assert_eq!(to_value(params[1].as_ref()), Value::Text("%bb%".into()));
+}
+
+#[test]
+fn build_where_clause_with_mixed_word_lengths() {
+    let filter = Filter::default().with_words(["hi".to_string(), "hello".to_string()]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(
+        clause,
+        r"WHERE (t.id IN (SELECT id FROM task_fts WHERE task_fts MATCH ?) AND t.description LIKE ? ESCAPE '\')"
+    );
+    assert_eq!(params.len(), 2);
+    assert_eq!(
+        to_value(params[0].as_ref()),
+        Value::Text("\"hello\"".into())
+    );
+    assert_eq!(to_value(params[1].as_ref()), Value::Text("%hi%".into()));
+}
+
+#[test]
+fn build_where_clause_escapes_fts_quotes() {
+    let filter = Filter::default().with_words(["a\"b".to_string()]);
+
+    let (_, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(params.len(), 1);
+    assert_eq!(
+        to_value(params[0].as_ref()),
+        Value::Text("\"a\"\"b\"".into())
+    );
+}
+
+#[test]
+fn build_where_clause_escapes_like_percent() {
+    let filter = Filter::default().with_words(["a%".to_string()]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(clause, r"WHERE t.description LIKE ? ESCAPE '\'");
+    assert_eq!(params.len(), 1);
+    assert_eq!(to_value(params[0].as_ref()), Value::Text(r"%a\%%".into()));
+}
+
+#[test]
+fn build_where_clause_escapes_like_underscore_and_backslash() {
+    let filter = Filter::default().with_words(["_\\".to_string()]);
+
+    let (_, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(params.len(), 1);
+    assert_eq!(to_value(params[0].as_ref()), Value::Text(r"%\_\\%".into()));
+}
+
+#[test]
+fn build_where_clause_counts_chars_not_bytes_for_korean_short() {
+    let filter = Filter::default().with_words(["한".to_string()]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(clause, r"WHERE t.description LIKE ? ESCAPE '\'");
+    assert_eq!(params.len(), 1);
+    assert_eq!(to_value(params[0].as_ref()), Value::Text("%한%".into()));
+}
+
+#[test]
+fn build_where_clause_counts_chars_not_bytes_for_korean_long() {
+    let filter = Filter::default().with_words(["한글로".to_string()]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(
+        clause,
+        "WHERE t.id IN (SELECT id FROM task_fts WHERE task_fts MATCH ?)"
+    );
+    assert_eq!(params.len(), 1);
+    assert_eq!(
+        to_value(params[0].as_ref()),
+        Value::Text("\"한글로\"".into())
+    );
+}
+
+#[test]
+fn build_where_clause_with_words_and_status() {
+    let filter = Filter::default()
+        .with_words(["hello".to_string()])
+        .with_statuses([Status::Pending]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert!(clause.starts_with("WHERE "));
+    assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
+    assert!(clause.contains("t.id IN (SELECT id FROM task_fts WHERE task_fts MATCH ?)"));
+    assert!(clause.contains(" AND "));
+    assert_eq!(params.len(), 1);
+    assert_eq!(
+        to_value(params[0].as_ref()),
+        Value::Text("\"hello\"".into())
+    );
+}
+
+#[test]
+fn build_where_clause_with_words_and_uid() {
+    use crate::domain::task::UniqueID;
+
+    let uid = UniqueID::new();
+    let uid_str = uid.to_string();
+    let filter = Filter::default()
+        .with_uids([uid])
+        .with_words(["hi".to_string()]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(
+        clause,
+        r"WHERE t.id IN (?) AND t.description LIKE ? ESCAPE '\'"
+    );
+    assert_eq!(params.len(), 2);
+    assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
+    assert_eq!(to_value(params[1].as_ref()), Value::Text("%hi%".into()));
+}
+
+#[test]
+fn build_where_clause_with_words_and_index() {
+    use crate::domain::task::Index;
+
+    let filter = Filter::default()
+        .with_indices([Index::new(1).unwrap()])
+        .with_words(["hi".to_string()]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(
+        clause,
+        r"WHERE tpr.row_id IN (?) AND t.description LIKE ? ESCAPE '\'"
+    );
+    assert_eq!(params.len(), 2);
+    assert_eq!(to_value(params[0].as_ref()), Value::Integer(1));
+    assert_eq!(to_value(params[1].as_ref()), Value::Text("%hi%".into()));
+}
+
+// escape_fts5_term
+
+#[test]
+fn escape_fts5_term_wraps_plain_string_in_quotes() {
+    assert_eq!(escape_fts5_term(""), "\"\"");
+    assert_eq!(escape_fts5_term("hello"), "\"hello\"");
+    assert_eq!(escape_fts5_term("한글"), "\"한글\"");
+}
+
+#[test]
+fn escape_fts5_term_doubles_internal_quotes() {
+    assert_eq!(escape_fts5_term("a\"b"), "\"a\"\"b\"");
+    assert_eq!(escape_fts5_term("\""), "\"\"\"\"");
+    assert_eq!(escape_fts5_term("a\"b\"c"), "\"a\"\"b\"\"c\"");
+}
+
+// escape_like
+
+#[test]
+fn escape_like_passthrough_when_no_metachars() {
+    assert_eq!(escape_like(""), "");
+    assert_eq!(escape_like("abc"), "abc");
+    assert_eq!(escape_like("한글"), "한글");
+}
+
+#[test]
+fn escape_like_escapes_percent_underscore_and_backslash() {
+    assert_eq!(escape_like("%"), r"\%");
+    assert_eq!(escape_like("_"), r"\_");
+    assert_eq!(escape_like("\\"), r"\\");
+    assert_eq!(escape_like("a%b_c\\d"), r"a\%b\_c\\d");
+}
+
 // build_update_clause
 
 #[test]

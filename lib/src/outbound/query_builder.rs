@@ -19,6 +19,10 @@ pub(crate) fn build_where_clause(filter: &Filter) -> anyhow::Result<Option<Claus
     if let Some(status_clause) = build_status_clause(filter) {
         clauses.push(status_clause);
     }
+    if let Some((words_clause, words_params)) = build_words_clause(filter) {
+        clauses.push(words_clause);
+        params.extend(words_params);
+    }
     if clauses.is_empty() {
         Ok(None)
     } else {
@@ -78,6 +82,72 @@ fn build_status_clause(filter: &Filter) -> Option<String> {
     } else {
         Some(joined)
     }
+}
+
+// Trigram tokenizer requires ≥ 3 characters
+const FTS_MIN_CHARS: usize = 3;
+
+/*
+* Escapes a term for FTS5 query by wrapping in double quotes
+* and escaping internal double quotes
+*/
+fn escape_fts5_term(term: &str) -> String {
+    let escaped = term.replace('"', "\"\"");
+    format!("\"{escaped}\"")
+}
+
+/*
+* Escapes `%`, `_`, and `\` in a SQLite LIKE pattern.
+* Use with `LIKE ? ESCAPE '\'`.
+*/
+fn escape_like(term: &str) -> String {
+    let mut out = String::with_capacity(term.len());
+    for c in term.chars() {
+        if matches!(c, '\\' | '%' | '_') {
+            out.push('\\');
+        }
+        out.push(c);
+    }
+    out
+}
+
+fn build_words_clause(filter: &Filter) -> Option<Clause> {
+    let words = filter.words();
+    if words.is_empty() {
+        return None;
+    }
+
+    let (long, short): (Vec<&String>, Vec<&String>) = words
+        .iter()
+        .partition(|w| w.chars().count() >= FTS_MIN_CHARS);
+
+    let mut clauses: Vec<String> = Vec::new();
+    let mut params: Vec<Box<dyn ToSql>> = Vec::new();
+
+    // FTS5 MATCH
+    if !long.is_empty() {
+        let match_query = long
+            .iter()
+            .map(|w| escape_fts5_term(w))
+            .collect::<Vec<_>>()
+            .join(" AND ");
+        clauses.push("t.id IN (SELECT id FROM task_fts WHERE task_fts MATCH ?)".to_string());
+        params.push(Box::new(match_query) as Box<dyn ToSql>);
+    }
+
+    // LIKE (under 2 chars)
+    for w in &short {
+        clauses.push(r"t.description LIKE ? ESCAPE '\'".to_string());
+        params.push(Box::new(format!("%{}%", escape_like(w))) as Box<dyn ToSql>);
+    }
+
+    let joined = if clauses.len() == 1 {
+        // move single clause out of clauses vector to avoid unnecessary parentheses
+        clauses.remove(0)
+    } else {
+        format!("({})", clauses.join(" AND "))
+    };
+    Some((joined, params))
 }
 
 pub(crate) fn build_update_clause(
