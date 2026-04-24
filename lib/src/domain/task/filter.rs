@@ -26,7 +26,10 @@ impl Filter {
     }
 
     pub fn with_words(mut self, words: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        self.words.extend(words.into_iter().map(Into::into));
+        self.words.extend(words.into_iter().filter_map(|word| {
+            let trimmed = word.into().trim().to_string();
+            (!trimmed.is_empty()).then_some(trimmed)
+        }));
         self
     }
 
@@ -209,5 +212,19 @@ mod tests {
         assert_eq!(filter.words().len(), 2);
         assert!(filter.words().contains(&"example".to_string()));
         assert!(filter.words().contains(&"test".to_string()));
+    }
+
+    #[test]
+    fn with_words_trims_whitespace() {
+        let filter = Filter::default().with_words(["  hello  ", "\tworld\n"]);
+
+        assert_eq!(filter.words(), &["hello".to_string(), "world".to_string()]);
+    }
+
+    #[test]
+    fn with_words_skips_empty_and_whitespace_only() {
+        let filter = Filter::default().with_words(["", "   ", "\t\n", "valid"]);
+
+        assert_eq!(filter.words(), &["valid".to_string()]);
     }
 }
