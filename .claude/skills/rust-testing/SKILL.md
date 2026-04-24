@@ -443,6 +443,7 @@ cargo llvm-cov --workspace --fail-under-lines 80  # Fail if below threshold
 
 ```bash
 cargo test --workspace                        # Run all tests
+cargo test --workspace -- --list              # List all tests
 cargo test --workspace -- --nocapture         # Show println output
 cargo test --workspace test_name              # Run tests matching pattern
 cargo test --workspace --lib                  # Unit tests only
