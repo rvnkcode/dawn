@@ -378,9 +378,7 @@ fn build_where_clause_with_words_and_uid() {
 
     let uid = UniqueID::new();
     let uid_str = uid.to_string();
-    let filter = Filter::default()
-        .with_uids([uid])
-        .with_words(["hi"]);
+    let filter = Filter::default().with_uids([uid]).with_words(["hi"]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(
