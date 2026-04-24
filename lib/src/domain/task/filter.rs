@@ -25,8 +25,8 @@ impl Filter {
         self
     }
 
-    pub fn with_words(mut self, words: impl IntoIterator<Item = String>) -> Self {
-        self.words.extend(words);
+    pub fn with_words(mut self, words: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        self.words.extend(words.into_iter().map(Into::into));
         self
     }
 
@@ -155,7 +155,7 @@ mod tests {
 
     #[test]
     fn is_empty_with_words_only() {
-        let filter = Filter::default().with_words(["example".to_string()]);
+        let filter = Filter::default().with_words(["example"]);
         assert!(!filter.is_empty());
     }
 
@@ -203,8 +203,8 @@ mod tests {
     #[test]
     fn with_words_extends() {
         let filter = Filter::default()
-            .with_words(["example".to_string()])
-            .with_words(["test".to_string()]);
+            .with_words(["example"])
+            .with_words(["test"]);
 
         assert_eq!(filter.words().len(), 2);
         assert!(filter.words().contains(&"example".to_string()));
