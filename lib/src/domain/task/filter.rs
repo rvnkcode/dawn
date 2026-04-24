@@ -42,7 +42,7 @@ impl Filter {
         &self.statuses
     }
 
-    pub fn words(&self) -> &Vec<String> {
+    pub fn words(&self) -> &[String] {
         &self.words
     }
 
