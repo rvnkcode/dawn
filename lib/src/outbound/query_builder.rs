@@ -135,7 +135,7 @@ fn build_words_clause(filter: &Filter) -> Option<Clause> {
         params.push(Box::new(match_query) as Box<dyn ToSql>);
     }
 
-    // LIKE (under 2 chars)
+    // LIKE (under 3 chars)
     for w in &short {
         clauses.push(r"t.description LIKE ? ESCAPE '\'".to_string());
         params.push(Box::new(format!("%{}%", escape_like(w))) as Box<dyn ToSql>);
