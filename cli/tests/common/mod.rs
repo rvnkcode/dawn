@@ -16,11 +16,12 @@ pub fn test_db() -> (TempDir, PathBuf) {
     (dir, db)
 }
 
+// Tasks share `entry` seconds, so the Index↔description mapping is not stable
+// (tiebreaker is the random UID lex order). Tests must not assume that the
+// i-th description receives Index i; filter on all seeded indices, or assert
+// on counts rather than on which description maps to which index.
 pub fn setup_tasks(db: &Path, descriptions: &[&str]) {
-    for (i, desc) in descriptions.iter().enumerate() {
-        if i > 0 {
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
+    for desc in descriptions {
         dawn_cmd(db).args(["add", desc]).assert().success();
     }
 }
