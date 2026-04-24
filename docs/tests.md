@@ -250,6 +250,8 @@ title: Test Cases
 | Test | 설명 |
 | --- | --- |
 | `format_with_age_appends_parenthesized_age` | `now - 30` 타임스탬프로 호출하면 결과 문자열이 `" (30s)"` 으로 끝난다. |
+| `format_absolute_renders_in_provided_timezone` | 전달된 TimeZone 으로 절대 시각을 포맷한다. |
+| `format_absolute_crosses_day_boundary_forward` | 타임존 변환으로 날짜가 다음날로 넘어가는 경우를 정상 처리한다. |
 
 ### `table/info_table.rs`
 
