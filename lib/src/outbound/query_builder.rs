@@ -101,7 +101,7 @@ fn escape_fts5_term(term: &str) -> String {
 * Use with `LIKE ? ESCAPE '\'`.
 */
 fn escape_like(term: &str) -> String {
-    let mut out = String::with_capacity(term.len());
+    let mut out = String::new();
     for c in term.chars() {
         if matches!(c, '\\' | '%' | '_') {
             out.push('\\');
