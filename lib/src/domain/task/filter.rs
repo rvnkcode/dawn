@@ -6,6 +6,7 @@ pub struct Filter {
     uids: HashSet<UniqueID>,
     indices: HashSet<Index>,
     statuses: HashSet<Status>,
+    words: Vec<String>,
 }
 
 impl Filter {
@@ -24,6 +25,11 @@ impl Filter {
         self
     }
 
+    pub fn with_words(mut self, words: impl IntoIterator<Item = String>) -> Self {
+        self.words.extend(words);
+        self
+    }
+
     pub fn uids(&self) -> &HashSet<UniqueID> {
         &self.uids
     }
@@ -36,8 +42,15 @@ impl Filter {
         &self.statuses
     }
 
+    pub fn words(&self) -> &Vec<String> {
+        &self.words
+    }
+
     pub fn is_empty(&self) -> bool {
-        self.uids.is_empty() && self.indices.is_empty() && self.statuses.is_empty()
+        self.uids.is_empty()
+            && self.indices.is_empty()
+            && self.statuses.is_empty()
+            && self.words.is_empty()
     }
 }
 
@@ -141,6 +154,12 @@ mod tests {
     }
 
     #[test]
+    fn is_empty_with_words_only() {
+        let filter = Filter::default().with_words(["example".to_string()]);
+        assert!(!filter.is_empty());
+    }
+
+    #[test]
     fn is_empty_with_all() {
         let filter = Filter::default()
             .with_uids([uid("abcdefghijkl")])
@@ -179,5 +198,16 @@ mod tests {
         assert_eq!(filter.statuses().len(), 2);
         assert!(filter.statuses().contains(&Status::Pending));
         assert!(filter.statuses().contains(&Status::Completed));
+    }
+
+    #[test]
+    fn with_words_extends() {
+        let filter = Filter::default()
+            .with_words(["example".to_string()])
+            .with_words(["test".to_string()]);
+
+        assert_eq!(filter.words().len(), 2);
+        assert!(filter.words().contains(&"example".to_string()));
+        assert!(filter.words().contains(&"test".to_string()));
     }
 }

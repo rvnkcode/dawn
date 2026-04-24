@@ -147,12 +147,15 @@ direction BT
       -HashSet~UniqueID~ uids
       -HashSet~Index~ indices
       -HashSet~Status~ statuses
+      -Vec~String~ words
       +with_uids(mut self, uids) Self
       +with_indices(mut self, indices) Self
       +with_statuses(mut self, statuses) Self
+      +with_words(mut self, words) Self
       +uids(&self) &HashSet~UniqueID~
       +indices(&self) &HashSet~Index~
       +statuses(&self) &HashSet~Status~
+      +words(&self) &Vec~String~
       +is_empty(&self) bool
     }
 
