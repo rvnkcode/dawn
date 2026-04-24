@@ -9,6 +9,14 @@ const ID_SEGMENT: &str = r"(?:[A-Za-z0-9_-]{12}|0*[1-9]\d*)";
 static SET_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(&format!(r"^{ID_SEGMENT}(?:,{ID_SEGMENT})+$")).unwrap());
 
+// Word like heuristic: nanoid collision with this shape occurs at 5ppm (5 in a million)
+fn looks_like_word(s: &str) -> bool {
+    let bytes = s.as_bytes();
+    bytes.len() == 12
+        && bytes[0].is_ascii_alphabetic()
+        && bytes[1..].iter().all(|b| b.is_ascii_lowercase())
+}
+
 #[derive(Debug, PartialEq)]
 pub(crate) enum DefaultCommand {
     Next(Filter),
@@ -35,6 +43,8 @@ pub(crate) fn parse(raw_terms: &[String]) -> DefaultCommand {
                     indices.insert(i);
                 }
             }
+        } else if looks_like_word(fragment) {
+            words.push(fragment.to_string());
         } else if let Ok(u) = UniqueID::from_str(fragment) {
             uids.insert(u);
             has_bare_id = true;
@@ -78,8 +88,8 @@ mod tests {
     #[test]
     fn single_uid_bare_yields_info() {
         assert_eq!(
-            parse(&raw(&["abcdefghijkl"])),
-            DefaultCommand::Info(Filter::default().with_uids([uid("abcdefghijkl")])),
+            parse(&raw(&["abcdefghi-_0"])),
+            DefaultCommand::Info(Filter::default().with_uids([uid("abcdefghi-_0")])),
         );
     }
 
@@ -120,11 +130,11 @@ mod tests {
     #[test]
     fn set_with_index_and_uid_yields_next() {
         assert_eq!(
-            parse(&raw(&["1,abcdefghijkl"])),
+            parse(&raw(&["1,abcdefghi-_0"])),
             DefaultCommand::Next(
                 Filter::default()
                     .with_indices([idx(1)])
-                    .with_uids([uid("abcdefghijkl")]),
+                    .with_uids([uid("abcdefghi-_0")]),
             ),
         );
     }
@@ -333,6 +343,56 @@ mod tests {
         assert_eq!(
             parse(&raw(&["1,0,2"])),
             DefaultCommand::Next(Filter::default().with_words(["1,0,2"])),
+        );
+    }
+
+    // ── 12-letter heuristic: word-shaped fragments are demoted to words ──
+
+    #[test]
+    fn twelve_letter_lowercase_collected_as_word() {
+        assert_eq!(
+            parse(&raw(&["breakthrough"])),
+            DefaultCommand::Next(Filter::default().with_words(["breakthrough"])),
+        );
+    }
+
+    #[test]
+    fn twelve_letter_title_case_collected_as_word() {
+        assert_eq!(
+            parse(&raw(&["Acknowledged"])),
+            DefaultCommand::Next(Filter::default().with_words(["Acknowledged"])),
+        );
+    }
+
+    #[test]
+    fn twelve_letter_all_uppercase_unaffected_by_heuristic() {
+        // ALL CAPS is intentionally outside the heuristic — treated as UID.
+        assert_eq!(
+            parse(&raw(&["BREAKTHROUGH"])),
+            DefaultCommand::Info(Filter::default().with_uids([uid("BREAKTHROUGH")])),
+        );
+    }
+
+    #[test]
+    fn uid_with_digit_unaffected_by_heuristic() {
+        assert_eq!(
+            parse(&raw(&["abc1efghijkl"])),
+            DefaultCommand::Info(Filter::default().with_uids([uid("abc1efghijkl")])),
+        );
+    }
+
+    #[test]
+    fn set_with_word_shaped_segment_treated_as_uid() {
+        // Comma form is an explicit "this is an ID list" signal, so the word
+        // heuristic is intentionally skipped inside sets. "breakthrough" is
+        // parsed as a UID alongside index 1.
+        assert_eq!(
+            parse(&raw(&["breakthrough,1"])),
+            DefaultCommand::Next(
+                Filter::default()
+                    .with_indices([idx(1)])
+                    .with_uids([uid("breakthrough")]),
+            ),
         );
     }
 

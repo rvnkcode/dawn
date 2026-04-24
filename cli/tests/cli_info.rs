@@ -87,7 +87,7 @@ fn info_nonexistent_uid_prints_no_matches() {
         .assert()
         .success();
     common::dawn_cmd(&db)
-        .arg("aaaaaaaaaaaa")
+        .arg("abc1efghijkl")
         .assert()
         .code(1)
         .stderr("No matches.\n");
