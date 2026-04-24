@@ -138,22 +138,33 @@ fn mixed_set_and_bare_resolves_to_info_with_merged_ids() {
 }
 
 #[test]
-fn invalid_bare_does_not_trigger_info() {
+fn non_id_bare_routes_to_next_with_word_filter() {
     let (_dir, db) = common::test_db();
+    common::dawn_cmd(&db)
+        .args(["add", "investigate flaky build"])
+        .assert()
+        .success();
     common::dawn_cmd(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    // "invalid" fails to parse as either Index or UniqueID, so has_bare_id stays
-    // false and the command resolves to `next` (not `info`). The seeded pending
-    // task must render via the next table, not "No matches.".
-    let out = common::dawn_cmd(&db).arg("invalid").output().expect("run");
+    // "investigate" parses as neither Index nor UniqueID, so has_bare_id stays
+    // false and the command resolves to `next` with a words filter rather than
+    // `info`. Only the matching task renders.
+    let out = common::dawn_cmd(&db)
+        .arg("investigate")
+        .output()
+        .expect("run");
     assert!(out.status.success(), "expected next path to succeed");
     let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
     assert!(
-        stdout.contains("buy milk"),
-        "next table missing task: {stdout}"
+        stdout.contains("investigate flaky build"),
+        "next table missing matching task: {stdout}"
+    );
+    assert!(
+        !stdout.contains("buy milk"),
+        "next table should not include non-matching task: {stdout}"
     );
     assert!(stdout.contains("1 task"), "missing next footer: {stdout}");
 }

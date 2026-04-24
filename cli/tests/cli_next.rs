@@ -106,39 +106,38 @@ fn next_filter_nonexistent_index_prints_no_matches() {
         .stderr("No matches.\n");
 }
 
-// ── Silent invalid (set with partial invalid) ──
+// ── Malformed sets demote whole token to a word ──
 
 #[test]
-fn next_filter_set_with_invalid_silently_drops() {
+fn next_filter_set_with_invalid_segment_demotes_to_word() {
     let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "one"])
         .assert()
         .success();
-    let out = common::dawn_cmd(&db)
+    // "1,invalid" fails the strict set syntax, falls through, and is searched
+    // for verbatim in descriptions. No task contains that string.
+    common::dawn_cmd(&db)
         .arg("1,invalid")
-        .output()
-        .expect("run");
-    assert!(out.status.success());
-    let stdout = String::from_utf8(out.stdout).expect("utf8");
-    let stderr = String::from_utf8(out.stderr).expect("utf8");
-    assert!(stdout.contains("one"), "missing 'one': {stdout}");
-    assert!(stderr.is_empty(), "unexpected stderr: {stderr}");
+        .assert()
+        .code(1)
+        .stderr("No matches.\n");
 }
 
 #[test]
-fn next_filter_set_with_zero_silently_drops() {
+fn next_filter_set_with_zero_segment_demotes_to_word() {
     let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "one"])
         .assert()
         .success();
-    let out = common::dawn_cmd(&db).arg("1,0").output().expect("run");
-    assert!(out.status.success());
-    let stdout = String::from_utf8(out.stdout).expect("utf8");
-    let stderr = String::from_utf8(out.stderr).expect("utf8");
-    assert!(stdout.contains("one"), "missing 'one': {stdout}");
-    assert!(stderr.is_empty(), "unexpected stderr: {stderr}");
+    // "0" is rejected by the index segment alternation, so "1,0" is treated as
+    // a single word, not a partial index set.
+    common::dawn_cmd(&db)
+        .arg("1,0")
+        .assert()
+        .code(1)
+        .stderr("No matches.\n");
 }
 
 // ── All-invalid → "No matches." exit 1 ──
