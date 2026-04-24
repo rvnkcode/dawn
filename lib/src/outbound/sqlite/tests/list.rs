@@ -708,7 +708,7 @@ fn list_tasks_filter_word_long_match() {
     insert_task_from(&db, &milk);
     insert_task_from(&db, &eggs);
     insert_task_from(&db, &mom);
-    let filter = Filter::default().with_words(["milk".to_string()]);
+    let filter = Filter::default().with_words(["milk"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -728,7 +728,7 @@ fn list_tasks_filter_word_long_case_insensitive() {
         modified: Timestamp::new(1000).unwrap(),
     };
     insert_task_from(&db, &task);
-    let filter = Filter::default().with_words(["milk".to_string()]);
+    let filter = Filter::default().with_words(["milk"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -748,7 +748,7 @@ fn list_tasks_filter_word_substring_match() {
         modified: Timestamp::new(1000).unwrap(),
     };
     insert_task_from(&db, &task);
-    let filter = Filter::default().with_words(["factor".to_string()]);
+    let filter = Filter::default().with_words(["factor"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -770,7 +770,7 @@ fn list_tasks_filter_word_no_match_returns_empty() {
             modified: Timestamp::new(1000).unwrap(),
         },
     );
-    let filter = Filter::default().with_words(["xyz".to_string()]);
+    let filter = Filter::default().with_words(["xyz"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -800,7 +800,7 @@ fn list_tasks_filter_word_short_match() {
     };
     insert_task_from(&db, &target);
     insert_task_from(&db, &other);
-    let filter = Filter::default().with_words(["hi".to_string()]);
+    let filter = Filter::default().with_words(["hi"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -820,7 +820,7 @@ fn list_tasks_filter_word_short_case_insensitive() {
         modified: Timestamp::new(1000).unwrap(),
     };
     insert_task_from(&db, &task);
-    let filter = Filter::default().with_words(["hi".to_string()]);
+    let filter = Filter::default().with_words(["hi"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -850,7 +850,7 @@ fn list_tasks_filter_multiple_words_all_match() {
     };
     insert_task_from(&db, &both);
     insert_task_from(&db, &bread);
-    let filter = Filter::default().with_words(["milk".to_string(), "eggs".to_string()]);
+    let filter = Filter::default().with_words(["milk", "eggs"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -872,7 +872,7 @@ fn list_tasks_filter_multiple_words_partial_match_returns_empty() {
             modified: Timestamp::new(1000).unwrap(),
         },
     );
-    let filter = Filter::default().with_words(["milk".to_string(), "eggs".to_string()]);
+    let filter = Filter::default().with_words(["milk", "eggs"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -912,7 +912,7 @@ fn list_tasks_filter_mixed_long_and_short_words() {
     insert_task_from(&db, &both);
     insert_task_from(&db, &only_short);
     insert_task_from(&db, &only_long);
-    let filter = Filter::default().with_words(["hi".to_string(), "world".to_string()]);
+    let filter = Filter::default().with_words(["hi", "world"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -942,7 +942,7 @@ fn list_tasks_filter_word_korean_long() {
     };
     insert_task_from(&db, &korean);
     insert_task_from(&db, &english);
-    let filter = Filter::default().with_words(["한글로".to_string()]);
+    let filter = Filter::default().with_words(["한글로"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -972,7 +972,7 @@ fn list_tasks_filter_word_korean_short() {
     };
     insert_task_from(&db, &korean);
     insert_task_from(&db, &english);
-    let filter = Filter::default().with_words(["한".to_string()]);
+    let filter = Filter::default().with_words(["한"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -1002,7 +1002,7 @@ fn list_tasks_filter_word_japanese_long() {
     };
     insert_task_from(&db, &japanese);
     insert_task_from(&db, &english);
-    let filter = Filter::default().with_words(["買い物".to_string()]);
+    let filter = Filter::default().with_words(["買い物"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -1032,7 +1032,7 @@ fn list_tasks_filter_word_japanese_short() {
     };
     insert_task_from(&db, &japanese);
     insert_task_from(&db, &english);
-    let filter = Filter::default().with_words(["買".to_string()]);
+    let filter = Filter::default().with_words(["買"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -1062,7 +1062,7 @@ fn list_tasks_filter_word_japanese_hiragana_katakana() {
     };
     insert_task_from(&db, &hiragana);
     insert_task_from(&db, &katakana_only);
-    let filter = Filter::default().with_words(["テスト".to_string()]);
+    let filter = Filter::default().with_words(["テスト"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -1092,7 +1092,7 @@ fn list_tasks_filter_word_with_like_metacharacter() {
     };
     insert_task_from(&db, &percent);
     insert_task_from(&db, &plain);
-    let filter = Filter::default().with_words(["%".to_string()]);
+    let filter = Filter::default().with_words(["%"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -1123,7 +1123,7 @@ fn list_tasks_filter_word_with_status() {
     insert_task_from(&db, &pending);
     insert_task_from(&db, &completed);
     let filter = Filter::default()
-        .with_words(["milk".to_string()])
+        .with_words(["milk"])
         .with_statuses([Status::Pending]);
 
     let tasks = db.list_tasks(&filter).unwrap();
@@ -1156,7 +1156,7 @@ fn list_tasks_filter_word_with_uid() {
     insert_task_from(&db, &other);
     let filter = Filter::default()
         .with_uids(["test_wuid001".parse::<UniqueID>().unwrap()])
-        .with_words(["milk".to_string()]);
+        .with_words(["milk"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -1198,7 +1198,7 @@ fn list_tasks_filter_word_with_index() {
     insert_task_from(&db, &other_index);
     let filter = Filter::default()
         .with_indices([Index::new(1).unwrap()])
-        .with_words(["milk".to_string()]);
+        .with_words(["milk"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -1230,7 +1230,7 @@ fn list_tasks_filter_word_with_index_short() {
     insert_task_from(&db, &other);
     let filter = Filter::default()
         .with_indices([Index::new(1).unwrap()])
-        .with_words(["hi".to_string()]);
+        .with_words(["hi"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 

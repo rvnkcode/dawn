@@ -226,7 +226,7 @@ fn build_where_clause_with_uid_and_index_and_status() {
 
 #[test]
 fn build_where_clause_with_single_long_word() {
-    let filter = Filter::default().with_words(["hello".to_string()]);
+    let filter = Filter::default().with_words(["hello"]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(
@@ -242,7 +242,7 @@ fn build_where_clause_with_single_long_word() {
 
 #[test]
 fn build_where_clause_with_multiple_long_words() {
-    let filter = Filter::default().with_words(["hello".to_string(), "world".to_string()]);
+    let filter = Filter::default().with_words(["hello", "world"]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(
@@ -258,7 +258,7 @@ fn build_where_clause_with_multiple_long_words() {
 
 #[test]
 fn build_where_clause_with_single_short_word() {
-    let filter = Filter::default().with_words(["hi".to_string()]);
+    let filter = Filter::default().with_words(["hi"]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(clause, r"WHERE t.description LIKE ? ESCAPE '\'");
@@ -268,7 +268,7 @@ fn build_where_clause_with_single_short_word() {
 
 #[test]
 fn build_where_clause_with_multiple_short_words() {
-    let filter = Filter::default().with_words(["a".to_string(), "bb".to_string()]);
+    let filter = Filter::default().with_words(["a", "bb"]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(
@@ -282,7 +282,7 @@ fn build_where_clause_with_multiple_short_words() {
 
 #[test]
 fn build_where_clause_with_mixed_word_lengths() {
-    let filter = Filter::default().with_words(["hi".to_string(), "hello".to_string()]);
+    let filter = Filter::default().with_words(["hi", "hello"]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(
@@ -299,7 +299,7 @@ fn build_where_clause_with_mixed_word_lengths() {
 
 #[test]
 fn build_where_clause_escapes_fts_quotes() {
-    let filter = Filter::default().with_words(["a\"b".to_string()]);
+    let filter = Filter::default().with_words(["a\"b"]);
 
     let (_, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(params.len(), 1);
@@ -311,7 +311,7 @@ fn build_where_clause_escapes_fts_quotes() {
 
 #[test]
 fn build_where_clause_escapes_like_percent() {
-    let filter = Filter::default().with_words(["a%".to_string()]);
+    let filter = Filter::default().with_words(["a%"]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(clause, r"WHERE t.description LIKE ? ESCAPE '\'");
@@ -321,7 +321,7 @@ fn build_where_clause_escapes_like_percent() {
 
 #[test]
 fn build_where_clause_escapes_like_underscore_and_backslash() {
-    let filter = Filter::default().with_words(["_\\".to_string()]);
+    let filter = Filter::default().with_words(["_\\"]);
 
     let (_, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(params.len(), 1);
@@ -330,7 +330,7 @@ fn build_where_clause_escapes_like_underscore_and_backslash() {
 
 #[test]
 fn build_where_clause_counts_chars_not_bytes_for_korean_short() {
-    let filter = Filter::default().with_words(["한".to_string()]);
+    let filter = Filter::default().with_words(["한"]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(clause, r"WHERE t.description LIKE ? ESCAPE '\'");
@@ -340,7 +340,7 @@ fn build_where_clause_counts_chars_not_bytes_for_korean_short() {
 
 #[test]
 fn build_where_clause_counts_chars_not_bytes_for_korean_long() {
-    let filter = Filter::default().with_words(["한글로".to_string()]);
+    let filter = Filter::default().with_words(["한글로"]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(
@@ -357,7 +357,7 @@ fn build_where_clause_counts_chars_not_bytes_for_korean_long() {
 #[test]
 fn build_where_clause_with_words_and_status() {
     let filter = Filter::default()
-        .with_words(["hello".to_string()])
+        .with_words(["hello"])
         .with_statuses([Status::Pending]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
@@ -380,7 +380,7 @@ fn build_where_clause_with_words_and_uid() {
     let uid_str = uid.to_string();
     let filter = Filter::default()
         .with_uids([uid])
-        .with_words(["hi".to_string()]);
+        .with_words(["hi"]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(
@@ -398,7 +398,7 @@ fn build_where_clause_with_words_and_index() {
 
     let filter = Filter::default()
         .with_indices([Index::new(1).unwrap()])
-        .with_words(["hi".to_string()]);
+        .with_words(["hi"]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(
