@@ -26,10 +26,12 @@ impl Filter {
     }
 
     pub fn with_words(mut self, words: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        self.words.extend(words.into_iter().filter_map(|word| {
+        for word in words {
             let trimmed = word.into().trim().to_string();
-            (!trimmed.is_empty()).then_some(trimmed)
-        }));
+            if !trimmed.is_empty() && !self.words.contains(&trimmed) {
+                self.words.push(trimmed);
+            }
+        }
         self
     }
 
@@ -226,5 +228,31 @@ mod tests {
         let filter = Filter::default().with_words(["", "   ", "\t\n", "valid"]);
 
         assert_eq!(filter.words(), &["valid".to_string()]);
+    }
+
+    #[test]
+    fn with_words_deduplicates() {
+        let filter = Filter::default().with_words(["foo", "bar", "foo"]);
+
+        assert_eq!(filter.words(), &["foo".to_string(), "bar".to_string()]);
+    }
+
+    #[test]
+    fn with_words_deduplicates_across_calls() {
+        let filter = Filter::default()
+            .with_words(["foo", "bar"])
+            .with_words(["bar", "baz"]);
+
+        assert_eq!(
+            filter.words(),
+            &["foo".to_string(), "bar".to_string(), "baz".to_string()],
+        );
+    }
+
+    #[test]
+    fn with_words_deduplicates_after_trimming() {
+        let filter = Filter::default().with_words(["foo", "  foo  "]);
+
+        assert_eq!(filter.words(), &["foo".to_string()]);
     }
 }
