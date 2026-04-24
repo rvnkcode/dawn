@@ -9,7 +9,7 @@ const ID_SEGMENT: &str = r"(?:[A-Za-z0-9_-]{12}|0*[1-9]\d*)";
 static SET_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(&format!(r"^{ID_SEGMENT}(?:,{ID_SEGMENT})+$")).unwrap());
 
-// Word like heuristic: nanoid collision with this shape occurs at 5ppm (5 in a million)
+// Word-like heuristic: nanoid collision with this shape occurs at 5ppm (5 in a million)
 fn looks_like_word(s: &str) -> bool {
     let bytes = s.as_bytes();
     bytes.len() == 12
