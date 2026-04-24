@@ -27,9 +27,10 @@ impl Filter {
 
     pub fn with_words(mut self, words: impl IntoIterator<Item = impl Into<String>>) -> Self {
         for word in words {
-            let trimmed = word.into().trim().to_string();
-            if !trimmed.is_empty() && !self.words.contains(&trimmed) {
-                self.words.push(trimmed);
+            let owned: String = word.into();
+            let trimmed = owned.trim();
+            if !trimmed.is_empty() && !self.words.iter().any(|w| w == trimmed) {
+                self.words.push(trimmed.to_string());
             }
         }
         self
