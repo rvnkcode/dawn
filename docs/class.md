@@ -155,7 +155,7 @@ direction BT
       +uids(&self) &HashSet~UniqueID~
       +indices(&self) &HashSet~Index~
       +statuses(&self) &HashSet~Status~
-      +words(&self) &Vec~String~
+      +words(&self) &[String]
       +is_empty(&self) bool
     }
 
