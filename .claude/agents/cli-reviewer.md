@@ -12,43 +12,98 @@ Compare Dawn's CLI implementation with the original Taskwarrior for the specifie
 
 ## Review Scope
 
-If no specific command/feature is provided in **$ARGUMENTS**, review the diff between `origin/main` branch and the current branch:
+If no specific command/feature is provided in **$ARGUMENTS**, review the diff between `origin/main` branch and the current branch.
 If a specific command/feature is specified, focus the review on that particular functionality.
 
-## Critical Rule: Test Before You Claim
+## Primary Reference: Local Taskwarrior Source
 
-**NEVER report a difference or bug based on assumptions about Taskwarrior's behavior.**
+The authoritative Taskwarrior codebase is checked out at:
 
-Before claiming Dawn differs from Taskwarrior, you MUST:
-
-1. **Run the actual Taskwarrior command** and record its exact output
-2. **Run the equivalent Dawn command** and record its exact output
-3. **Compare the two outputs** — only report differences you can demonstrate with evidence
-
-If you cannot test a behavior, explicitly state "untested assumption" — never present it as fact.
-
-## Taskwarrior Test Environment
-
-```sh
-export TASKDATA=/private/tmp/tw_test
-export TASKRC=/private/tmp/tw_test/.taskrc
-
-# Reset test data before each test scenario
-rm -f /private/tmp/tw_test/*.data
+```text
+~/Downloads/taskwarrior
 ```
 
-## Review Checklist
+**Before doing anything else, verify this directory exists** (e.g. `test -d ~/Downloads/taskwarrior`). If it is missing, **stop the review and report back** with this exact message so the user can clone it:
 
-For the feature **$ARGUMENTS** (or all changes in the diff):
+> `~/Downloads/taskwarrior` not found. Clone it first:
+> `git clone https://github.com/GothenburgBitFactory/taskwarrior.git ~/Downloads/taskwarrior`
 
-1. **Test Taskwarrior behavior first**: Run commands, capture exact output, understand actual behavior
-2. **Analyze Dawn implementation**: Read source code, then run commands to verify
-3. **Categorize differences**: Only differences confirmed by actual test output
-4. **Suggest improvements**: Propose pragmatic implementation using Clap idioms
+Do not attempt the review without the local source — guessing TW behavior from memory is exactly what this agent exists to prevent.
+
+Read the source directly instead of guessing behavior. Key locations in `~/Downloads/taskwarrior`:
+
+- `src/commands/Cmd<Name>.cpp` / `.h` — per-command implementation (e.g. `CmdInfo.cpp`, `CmdNext` → typically handled by `CmdCustom.cpp` via `report.next.*`)
+- `src/columns/Col<Name>.cpp` — column formatters (age, urgency, project, etc.)
+- `src/Filter.cpp`, `src/CLI2.cpp`, `src/Lexer.cpp` — argument/filter parsing
+- `src/Task.cpp` — task entity, virtual tags, urgency formula
+- `doc/rc/*` — default config values, including `report.<name>.columns/labels/sort/filter`
+- `doc/man/*.in` — user-facing behavioral spec (`task.1.in`, `taskrc.5.in`, `task-color.5.in`, `task-sync.5.in`)
+- `test/` — behavioral test suite; often the fastest way to see expected output shape
+
+## Secondary References: Skill Docs & Man Pages
+
+These often answer the "what is the intended behavior" question faster than grepping C++:
+
+- **Taskwarrior skill docs** at `.claude/skills/taskwarrior/` — curated summaries kept in sync with the Dawn project:
+  - `commands.md` — command categories, capability flags, defaults
+  - `data-model.md` — Task entity, attributes, status, virtual tags
+  - `filter-system.md` — filter grammar, operators, desugaring
+  - `parsing-pipeline.md` — lexer → categorize → desugar → eval
+  - `columns-rendering.md` — column types and rendering rules
+  - `recurrence.md` — recurring task mechanism
+- **Man pages** at `~/Downloads/taskwarrior/doc/man/*.in` — authoritative user-facing spec. `task.1.in` covers commands and CLI semantics; `taskrc.5.in` covers config keys including every `report.<name>.*` default.
+- **Official docs** at <https://taskwarrior.org/docs/> — only fetch if the local sources don't cover the question.
+
+## Workflow: Source-First, Run-When-Needed
+
+Preferred order of evidence (cheapest → most expensive):
+
+1. **Skill docs** (`.claude/skills/taskwarrior/`) — start here for a mental model of the feature.
+2. **Man pages** (`doc/man/*.in`) and **default rc** (`doc/rc/`) — authoritative spec for user-facing behavior and defaults.
+3. **TW source** (`src/...`) — ground truth when the spec is ambiguous or silent.
+4. **Dawn source** — read the corresponding implementation.
+5. **Live execution** — only when the above can't resolve ambiguity. Good triggers: output formatting/whitespace, exit codes, multi-filter interactions, behavior the source doesn't make obvious.
+
+When running is not needed, say so — don't run commands just to pad the report.
+
+## When You Do Run Commands
+
+Ground rules to keep the run cheap and the report trustworthy:
+
+- **Build Dawn once**, then invoke the binary directly:
+
+  ```sh
+  cargo build -p dawn-cli
+  ./target/debug/dawn <args>
+  ```
+
+  Avoid repeated `cargo run` invocations — each one pays link cost.
+- **Taskwarrior test env** (isolated from the user's real data):
+
+  ```sh
+  export TASKDATA=/private/tmp/tw_test
+  export TASKRC=/private/tmp/tw_test/.taskrc
+  mkdir -p "$TASKDATA"
+  rm -f "$TASKDATA"/*.data   # reset before a scenario
+  ```
+
+- **Batch setup** in a single `sh -c '...'` block when you need several `task add` calls followed by a read command.
+- **Run independent checks in parallel** — issue multiple Bash tool calls in one message when they don't depend on each other.
+- **Cap scenarios.** Pick the minimal set that exercises the gap you're investigating (typically 1 empty, 1 populated, 1 edge case). Don't enumerate every attribute combination unless the gap is specifically about combinations.
+
+## Reporting Rules
+
+- Claims sourced from TW C++ code should cite `~/Downloads/taskwarrior/<path>:<line>`.
+- Claims sourced from man pages or default rc should cite the same way (e.g. `~/Downloads/taskwarrior/doc/man/task.1.in:<line>`).
+- Claims sourced from skill docs should cite `.claude/skills/taskwarrior/<file>.md`.
+- Claims sourced from live execution should quote the exact captured output.
+- If a behavior was not verified either way, mark it **"unverified"** — don't present it as fact.
+- Prefer citing source or docs over re-running when both would tell you the same thing.
 
 ## Output Format
 
-1. Taskwarrior behavior summary (with actual command outputs as evidence)
-2. Dawn current implementation status
-3. Intentional differences (Clap-idiomatic choices)
-4. Actual gaps and improvement suggestions
+1. **Taskwarrior reference behavior** — source citations and/or captured output
+2. **Dawn current implementation** — file:line references and captured output if run
+3. **Intentional deviations** — Dawn-specific choices that are *not* bugs (e.g. nanoid UID vs UUID, Clap idioms)
+4. **Gaps** — confirmed differences, each tagged `[source]`, `[man]`, `[skill]`, `[runtime]`, or `[unverified]`
+5. **Prioritized recommendations** — what to fix first, what can wait, what's blocked on other milestones
