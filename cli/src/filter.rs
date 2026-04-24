@@ -4,7 +4,10 @@ use std::collections::HashSet;
 use std::str::FromStr;
 use std::sync::LazyLock;
 
-static SET_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[^,\s]+(,[^,\s]+)+$").unwrap());
+const ID_SEGMENT: &str = r"(?:[A-Za-z0-9_-]{12}|0*[1-9]\d*)";
+
+static SET_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(&format!(r"^{ID_SEGMENT}(?:,{ID_SEGMENT})+$")).unwrap());
 
 #[derive(Debug, PartialEq)]
 pub(crate) enum DefaultCommand {
@@ -15,10 +18,14 @@ pub(crate) enum DefaultCommand {
 pub(crate) fn parse(raw_terms: &[String]) -> DefaultCommand {
     let mut uids = HashSet::new();
     let mut indices = HashSet::new();
+    let mut words: Vec<String> = Vec::new();
     let mut has_bare_id = false;
 
     for raw in raw_terms {
         let fragment = raw.trim();
+        if fragment.is_empty() {
+            continue;
+        }
 
         if SET_RE.is_match(fragment) {
             for seg in fragment.split(',') {
@@ -34,10 +41,15 @@ pub(crate) fn parse(raw_terms: &[String]) -> DefaultCommand {
         } else if let Ok(i) = Index::from_str(fragment) {
             indices.insert(i);
             has_bare_id = true;
+        } else {
+            words.push(fragment.to_string());
         }
     }
 
-    let filter = Filter::default().with_uids(uids).with_indices(indices);
+    let filter = Filter::default()
+        .with_uids(uids)
+        .with_indices(indices)
+        .with_words(words);
     if has_bare_id {
         DefaultCommand::Info(filter)
     } else {
@@ -153,95 +165,98 @@ mod tests {
         );
     }
 
-    // ── Invalid bare → dropped, does not flip to Info ──
+    // ── Non-ID bare → collected as word, does not flip to Info ──
 
     #[test]
-    fn invalid_bare_drops_silently_and_stays_next() {
+    fn invalid_bare_collected_as_word() {
         assert_eq!(
             parse(&raw(&["invalid"])),
-            DefaultCommand::Next(Filter::default()),
+            DefaultCommand::Next(Filter::default().with_words(["invalid"])),
         );
     }
 
     #[test]
-    fn zero_bare_drops_silently_and_stays_next() {
-        assert_eq!(parse(&raw(&["0"])), DefaultCommand::Next(Filter::default()),);
+    fn zero_bare_collected_as_word() {
+        assert_eq!(
+            parse(&raw(&["0"])),
+            DefaultCommand::Next(Filter::default().with_words(["0"])),
+        );
     }
 
     #[test]
-    fn non_ascii_bare_drops_silently_and_stays_next() {
+    fn non_ascii_bare_collected_as_word() {
         assert_eq!(
             parse(&raw(&["한국어"])),
-            DefaultCommand::Next(Filter::default()),
+            DefaultCommand::Next(Filter::default().with_words(["한국어"])),
         );
     }
 
     #[test]
-    fn invalid_bare_mixed_with_set_stays_next() {
+    fn invalid_bare_mixed_with_set_collected_as_word() {
         assert_eq!(
             parse(&raw(&["invalid", "1,2"])),
-            DefaultCommand::Next(Filter::default().with_indices([idx(1), idx(2)])),
+            DefaultCommand::Next(
+                Filter::default()
+                    .with_indices([idx(1), idx(2)])
+                    .with_words(["invalid"]),
+            ),
         );
     }
 
-    // ── Invalid segment inside a set → dropped, set stays Next ──
+    // ── Invalid segment inside a set → whole token demoted to a single word ──
 
     #[test]
-    fn invalid_segment_in_set_drops_but_keeps_valid() {
+    fn invalid_segment_in_set_demotes_whole_token_to_word() {
         assert_eq!(
             parse(&raw(&["1,invalid,2"])),
-            DefaultCommand::Next(Filter::default().with_indices([idx(1), idx(2)])),
+            DefaultCommand::Next(Filter::default().with_words(["1,invalid,2"])),
         );
     }
 
     #[test]
-    fn all_invalid_set_yields_next_with_empty_filter() {
+    fn all_invalid_set_demotes_to_word() {
         assert_eq!(
             parse(&raw(&["invalid,xyz"])),
-            DefaultCommand::Next(Filter::default()),
+            DefaultCommand::Next(Filter::default().with_words(["invalid,xyz"])),
         );
     }
 
-    // ── Malformed tokens (comma shapes not matching SET_RE) ──
-    //
-    // These fall through to the bare branch; UniqueID/Index parsing then fails
-    // on the literal string (which contains commas), so they drop without
-    // flipping has_bare_id.
+    // ── Malformed comma shapes → whole token demoted to a single word ──
 
     #[test]
     fn empty_string_yields_next_with_empty_filter() {
-        assert_eq!(parse(&raw(&[""])), DefaultCommand::Next(Filter::default()),);
+        assert_eq!(parse(&raw(&[""])), DefaultCommand::Next(Filter::default()));
     }
 
     #[test]
-    fn double_comma_rejected_as_malformed() {
+    fn double_comma_demotes_to_word() {
         assert_eq!(
             parse(&raw(&["1,,2"])),
-            DefaultCommand::Next(Filter::default()),
+            DefaultCommand::Next(Filter::default().with_words(["1,,2"])),
         );
     }
 
     #[test]
-    fn trailing_comma_rejected_as_malformed() {
+    fn trailing_comma_demotes_to_word() {
         assert_eq!(
             parse(&raw(&["1,"])),
-            DefaultCommand::Next(Filter::default()),
+            DefaultCommand::Next(Filter::default().with_words(["1,"])),
         );
     }
 
     #[test]
-    fn leading_comma_rejected_as_malformed() {
+    fn leading_comma_demotes_to_word() {
         assert_eq!(
             parse(&raw(&[",1"])),
-            DefaultCommand::Next(Filter::default()),
+            DefaultCommand::Next(Filter::default().with_words([",1"])),
         );
     }
 
     #[test]
-    fn whitespace_around_comma_rejected() {
+    fn whitespace_around_comma_demotes_to_word() {
         assert_eq!(
             parse(&raw(&["1 , 2"])),
-            DefaultCommand::Next(Filter::default()),
+            DefaultCommand::Next(Filter::default().with_words(["1 , 2"])),
         );
     }
 
@@ -250,6 +265,74 @@ mod tests {
         assert_eq!(
             parse(&raw(&["  1,2  "])),
             DefaultCommand::Next(Filter::default().with_indices([idx(1), idx(2)])),
+        );
+    }
+
+    // ── Words filter (search terms) ──
+
+    #[test]
+    fn bare_word_collected_into_words() {
+        assert_eq!(
+            parse(&raw(&["hello"])),
+            DefaultCommand::Next(Filter::default().with_words(["hello"])),
+        );
+    }
+
+    #[test]
+    fn multiple_bare_words_collected() {
+        assert_eq!(
+            parse(&raw(&["hello", "world"])),
+            DefaultCommand::Next(Filter::default().with_words(["hello", "world"])),
+        );
+    }
+
+    #[test]
+    fn bare_id_with_word_yields_info_with_word_filter() {
+        assert_eq!(
+            parse(&raw(&["1", "hello"])),
+            DefaultCommand::Info(
+                Filter::default()
+                    .with_indices([idx(1)])
+                    .with_words(["hello"]),
+            ),
+        );
+    }
+
+    #[test]
+    fn set_with_word_yields_next_with_both() {
+        assert_eq!(
+            parse(&raw(&["1,2", "hello"])),
+            DefaultCommand::Next(
+                Filter::default()
+                    .with_indices([idx(1), idx(2)])
+                    .with_words(["hello"]),
+            ),
+        );
+    }
+
+    #[test]
+    fn duplicate_words_deduped() {
+        assert_eq!(
+            parse(&raw(&["hello", "hello"])),
+            DefaultCommand::Next(Filter::default().with_words(["hello"])),
+        );
+    }
+
+    #[test]
+    fn surrounding_whitespace_on_word_trimmed() {
+        assert_eq!(
+            parse(&raw(&["  hello  "])),
+            DefaultCommand::Next(Filter::default().with_words(["hello"])),
+        );
+    }
+
+    #[test]
+    fn set_with_zero_segment_demoted_to_word() {
+        // Strict SET_RE rejects "0" as an index segment, so the whole token
+        // falls through and becomes a single word.
+        assert_eq!(
+            parse(&raw(&["1,0,2"])),
+            DefaultCommand::Next(Filter::default().with_words(["1,0,2"])),
         );
     }
 
