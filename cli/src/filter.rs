@@ -1,15 +1,22 @@
+use dawn::domain::task::unique_id::UID_PATTERN;
 use dawn::domain::task::{Filter, Index, UniqueID};
 use regex::Regex;
 use std::collections::HashSet;
 use std::str::FromStr;
 use std::sync::LazyLock;
 
-const ID_SEGMENT: &str = r"(?:[A-Za-z0-9_-]{12}|0*[1-9]\d*)";
+// Taskwarrior parity: indices reject leading zeros (e.g. "007" is text, not 7).
+const INDEX_PATTERN: &str = r"[1-9]\d*";
 
-static SET_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(&format!(r"^{ID_SEGMENT}(?:,{ID_SEGMENT})+$")).unwrap());
+static INDEX_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(&format!(r"^{INDEX_PATTERN}$")).unwrap());
 
-// Word-like heuristic: nanoid collision with this shape occurs at 5ppm (5 in a million)
+static SET_RE: LazyLock<Regex> = LazyLock::new(|| {
+    let id_segment = format!(r"(?:{UID_PATTERN}|{INDEX_PATTERN})");
+    Regex::new(&format!(r"^{id_segment}(?:,{id_segment})+$")).unwrap()
+});
+
+// Word-like heuristic: nanoid collision with this shape occurs at 40ppm (0.004%)
 fn looks_like_word(s: &str) -> bool {
     let bytes = s.as_bytes();
     bytes.len() == 12
@@ -48,7 +55,9 @@ pub(crate) fn parse(raw_terms: &[String]) -> DefaultCommand {
         } else if let Ok(u) = UniqueID::from_str(fragment) {
             uids.insert(u);
             has_bare_id = true;
-        } else if let Ok(i) = Index::from_str(fragment) {
+        } else if INDEX_RE.is_match(fragment)
+            && let Ok(i) = Index::from_str(fragment)
+        {
             indices.insert(i);
             has_bare_id = true;
         } else {
@@ -378,6 +387,32 @@ mod tests {
         assert_eq!(
             parse(&raw(&["abc1efghijkl"])),
             DefaultCommand::Info(Filter::default().with_uids([uid("abc1efghijkl")])),
+        );
+    }
+
+    // ── Leading-zero numbers: Taskwarrior parity (007 is text, not 7) ──
+
+    #[test]
+    fn bare_leading_zero_collected_as_word() {
+        assert_eq!(
+            parse(&raw(&["007"])),
+            DefaultCommand::Next(Filter::default().with_words(["007"])),
+        );
+    }
+
+    #[test]
+    fn bare_double_zero_collected_as_word() {
+        assert_eq!(
+            parse(&raw(&["00"])),
+            DefaultCommand::Next(Filter::default().with_words(["00"])),
+        );
+    }
+
+    #[test]
+    fn set_with_leading_zero_segment_demoted_to_word() {
+        assert_eq!(
+            parse(&raw(&["1,007"])),
+            DefaultCommand::Next(Filter::default().with_words(["1,007"])),
         );
     }
 
