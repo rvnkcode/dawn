@@ -10,7 +10,9 @@ use thiserror::Error;
 // 1 ID per second for 309 years = 9B IDs
 const ID_LENGTH: usize = 12;
 
-static UID_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[A-Za-z0-9_-]{12}$").unwrap());
+pub const UID_PATTERN: &str = r"[A-Za-z0-9_-]{12}";
+
+static UID_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(&format!("^{UID_PATTERN}$")).unwrap());
 
 #[derive(Debug, Eq, Hash, PartialEq)]
 pub struct UniqueID(String);
