@@ -51,19 +51,29 @@ pub(crate) fn parse(raw_terms: &[String]) -> DefaultCommand {
                     indices.insert(i);
                 }
             }
-        } else if looks_like_word(fragment) {
+            continue;
+        }
+
+        if looks_like_word(fragment) {
             words.push(fragment.to_string());
-        } else if let Ok(u) = UniqueID::from_str(fragment) {
+            continue;
+        }
+
+        if let Ok(u) = UniqueID::from_str(fragment) {
             uids.insert(u);
             has_bare_id = true;
-        } else if INDEX_RE.is_match(fragment)
+            continue;
+        }
+
+        if INDEX_RE.is_match(fragment)
             && let Ok(i) = Index::from_str(fragment)
         {
             indices.insert(i);
             has_bare_id = true;
-        } else {
-            words.push(fragment.to_string());
+            continue;
         }
+
+        words.push(fragment.to_string());
     }
 
     let filter = Filter::default()
