@@ -1,4 +1,4 @@
-use dawn::domain::task::unique_id::UID_PATTERN;
+use dawn::domain::task::unique_id::{UID_LENGTH, UID_PATTERN};
 use dawn::domain::task::{Filter, Index, UniqueID};
 use regex::Regex;
 use std::collections::HashSet;
@@ -19,7 +19,7 @@ static SET_RE: LazyLock<Regex> = LazyLock::new(|| {
 // Word-like heuristic: nanoid collision with this shape occurs at 40ppm (0.004%)
 fn looks_like_word(s: &str) -> bool {
     let bytes = s.as_bytes();
-    bytes.len() == 12
+    bytes.len() == UID_LENGTH
         && bytes[0].is_ascii_alphabetic()
         && bytes[1..].iter().all(|b| b.is_ascii_lowercase())
 }

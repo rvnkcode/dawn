@@ -8,7 +8,7 @@ use std::{
 use thiserror::Error;
 
 // 1 ID per second for 309 years = 9B IDs
-const ID_LENGTH: usize = 12;
+pub const UID_LENGTH: usize = 12;
 
 pub const UID_PATTERN: &str = r"[A-Za-z0-9_-]{12}";
 
@@ -20,7 +20,7 @@ pub struct UniqueID(String);
 impl UniqueID {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self(nanoid!(ID_LENGTH))
+        Self(nanoid!(UID_LENGTH))
     }
 }
 
@@ -53,7 +53,7 @@ mod tests {
     #[test]
     fn unique_id_new() {
         let id = UniqueID::new();
-        assert_eq!(id.to_string().len(), ID_LENGTH);
+        assert_eq!(id.to_string().len(), UID_LENGTH);
     }
 
     #[test]
