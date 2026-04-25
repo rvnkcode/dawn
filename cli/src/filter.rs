@@ -43,6 +43,7 @@ pub(crate) fn parse(raw_terms: &[String]) -> DefaultCommand {
         }
 
         if SET_RE.is_match(fragment) {
+            // Treat as a set of IDs: skip heuristic
             for seg in fragment.split(',') {
                 if let Ok(u) = UniqueID::from_str(seg) {
                     uids.insert(u);
