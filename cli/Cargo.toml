@@ -18,6 +18,7 @@ colored = "3.1.1"
 regex.workspace = true
 tabled = "0.20.0"
 thiserror.workspace = true
+inquire = "0.9.4"
 
 [dev-dependencies]
 dawn = { workspace = true, features = ["testing"] }
