@@ -93,6 +93,22 @@ fn info_nonexistent_uid_prints_no_matches() {
         .stderr("No matches.\n");
 }
 
+// Regression: nanoid SAFE alphabet allows UIDs starting with '-'. Without
+// `allow_hyphen_values` on the pre-filter, clap rejects them as unknown flags.
+#[test]
+fn info_hyphen_prefixed_uid_does_not_panic_clap() {
+    let (_dir, db) = common::test_db();
+    common::dawn_cmd(&db)
+        .args(["add", "only"])
+        .assert()
+        .success();
+    common::dawn_cmd(&db)
+        .arg("-Abc1efghijk")
+        .assert()
+        .code(1)
+        .stderr("No matches.\n");
+}
+
 #[test]
 fn info_empty_db_with_index_prints_no_matches() {
     let (_dir, db) = common::test_db();
