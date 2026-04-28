@@ -44,6 +44,7 @@ pub(crate) fn parse_from_mods(pre: &[String], mods: &[String]) -> (Filter, Optio
         let desc_opt = if desc.is_empty() {
             None
         } else {
+            // non-empty by guard above; .ok() is None-as-unreachable
             Description::new(&desc.join(" ")).ok()
         };
         (pre_filter, desc_opt)
@@ -72,6 +73,7 @@ fn promote_ids_from_mods(mods: &[String]) -> (Filter, Option<Description>) {
     let desc_opt = if parsed.words.is_empty() {
         None
     } else {
+        // non-empty by guard above; .ok() is None-as-unreachable
         Description::new(&parsed.words.join(" ")).ok()
     };
     (filter, desc_opt)
