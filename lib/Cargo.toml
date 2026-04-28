@@ -9,22 +9,13 @@ repository.workspace = true
 name = "dawn"
 path = "src/lib.rs"
 
-[features]
-# Only use in [dev-dependencies], never in [dependencies].
-# Exposes mock types that must not be included in production builds.
-testing = ["dep:mockall"]
-
 [dependencies]
 anyhow.workspace = true
 dirs = "6.0.0"
 nanoid = "0.5.0"
-mockall = { workspace = true, optional = true }
 rusqlite = { version = "0.39.0", features = ["bundled"] }
 thiserror.workspace = true
 regex.workspace = true
-
-[dev-dependencies]
-mockall.workspace = true
 
 [lints]
 workspace = true

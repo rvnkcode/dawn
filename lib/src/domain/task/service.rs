@@ -31,7 +31,7 @@ where
         self.repo.list_tasks(filter)
     }
 
-    fn modify(&self, modification: &TaskModification, targets: &[UniqueID]) -> anyhow::Result<()> {
+    fn modify(&self, modification: &TaskModification, targets: &[&UniqueID]) -> anyhow::Result<()> {
         self.repo.update_tasks(modification, targets)
     }
 

@@ -178,7 +178,7 @@ impl TaskRepository for SQLite {
     fn update_tasks(
         &self,
         modification: &TaskModification,
-        targets: &[UniqueID],
+        targets: &[&UniqueID],
     ) -> anyhow::Result<()> {
         let (query, params) = query_builder::build_update_clause(modification, targets)?;
         self.conn.execute(&query, params_from_iter(params.iter()))?;

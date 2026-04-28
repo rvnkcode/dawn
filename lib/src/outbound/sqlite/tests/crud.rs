@@ -118,7 +118,7 @@ fn update_tasks_changes_description() {
         completed: None,
         deleted: None,
     };
-    db.update_tasks(&modification, &[id]).unwrap();
+    db.update_tasks(&modification, &[&id]).unwrap();
 
     let tasks = db.list_tasks(&Filter::default()).unwrap();
     assert_eq!(tasks[0].description, Description::new("updated").unwrap());
@@ -135,7 +135,7 @@ fn update_tasks_sets_completed() {
         completed: Some(Some(Timestamp::new(1700000000).unwrap())),
         deleted: None,
     };
-    db.update_tasks(&modification, &[id]).unwrap();
+    db.update_tasks(&modification, &[&id]).unwrap();
 
     let tasks = db
         .list_tasks(&Filter::default().with_statuses([Status::Completed]))
@@ -164,7 +164,7 @@ fn update_tasks_clears_completed() {
         completed: Some(None),
         deleted: None,
     };
-    db.update_tasks(&modification, &[id]).unwrap();
+    db.update_tasks(&modification, &[&id]).unwrap();
 
     let tasks = db
         .list_tasks(&Filter::default().with_statuses([Status::Pending]))
@@ -184,7 +184,7 @@ fn update_tasks_sets_deleted() {
         completed: None,
         deleted: Some(Some(Timestamp::new(1700000000).unwrap())),
     };
-    db.update_tasks(&modification, &[id]).unwrap();
+    db.update_tasks(&modification, &[&id]).unwrap();
 
     let tasks = db
         .list_tasks(&Filter::default().with_statuses([Status::Deleted]))
@@ -210,7 +210,7 @@ fn update_tasks_clears_deleted() {
         completed: None,
         deleted: Some(None),
     };
-    db.update_tasks(&modification, &[id]).unwrap();
+    db.update_tasks(&modification, &[&id]).unwrap();
 
     let tasks = db
         .list_tasks(&Filter::default().with_statuses([Status::Pending]))
@@ -231,7 +231,7 @@ fn update_tasks_fires_modified_trigger() {
         completed: None,
         deleted: None,
     };
-    db.update_tasks(&modification, &[id]).unwrap();
+    db.update_tasks(&modification, &[&id]).unwrap();
 
     assert!(get_modified(&db, "test_upd0005") > 0);
 }

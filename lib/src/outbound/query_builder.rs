@@ -152,7 +152,7 @@ fn build_words_clause(filter: &Filter) -> Option<Clause> {
 
 pub(crate) fn build_update_clause(
     modification: &TaskModification,
-    targets: &[UniqueID],
+    targets: &[&UniqueID],
 ) -> anyhow::Result<Clause> {
     if modification.is_empty() {
         return Err(anyhow::anyhow!("no modification specified"));
