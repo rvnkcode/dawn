@@ -24,9 +24,11 @@ pub(crate) enum DefaultCommand {
 
 // Default list; without any command input
 pub(crate) fn parse_and_determine_command(raw_terms: &[String]) -> DefaultCommand {
-    match classify(raw_terms) {
-        (filter, true) => DefaultCommand::Info(filter),
-        (filter, false) => DefaultCommand::Next(filter),
+    let (filter, has_bare_id) = classify(raw_terms);
+    if has_bare_id {
+        DefaultCommand::Info(filter)
+    } else {
+        DefaultCommand::Next(filter)
     }
 }
 
