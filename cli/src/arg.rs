@@ -7,5 +7,6 @@ pub(crate) struct Creation {
 
 #[derive(Args)]
 pub(crate) struct Modification {
+    #[arg(allow_hyphen_values = true)]
     pub(crate) mods: Vec<String>,
 }

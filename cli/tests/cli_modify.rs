@@ -354,3 +354,25 @@ fn modify_nonexistent_uid_prints_no_tasks_specified() {
         .code(1)
         .stderr("No tasks specified.\n");
 }
+
+// Regression: nanoid SAFE alphabet allows UIDs starting with '-'. Without
+// `allow_hyphen_values` on the pre-filter, clap rejects them as unknown flags.
+#[test]
+fn modify_by_pre_hyphen_prefixed_uid_does_not_panic_clap() {
+    let (_dir, db) = common::test_db();
+    common::dawn_cmd(&db)
+        .args(["-Abc1efghijk", "modify", "foo"])
+        .assert()
+        .code(1)
+        .stderr("No tasks specified.\n");
+}
+
+#[test]
+fn modify_promotion_with_hyphen_prefixed_uid_does_not_panic_clap() {
+    let (_dir, db) = common::test_db();
+    common::dawn_cmd(&db)
+        .args(["modify", "-Abc1efghijk", "foo"])
+        .assert()
+        .code(1)
+        .stderr("No tasks specified.\n");
+}
