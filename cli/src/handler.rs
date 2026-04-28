@@ -1,8 +1,16 @@
+mod modify;
+mod update;
+
 use crate::error::CliError;
 use crate::filter::{self, DefaultCommand};
 use crate::table::{BaseTable, InfoTable, NextRow};
 use chrono::Utc;
-use dawn::domain::task::{Description, Filter, Status, TaskCreation, port::TaskService};
+use dawn::domain::task::{
+    Description, Filter, Status, Task, TaskCreation, TaskModification, UniqueID, port::TaskService,
+};
+
+// Re-export for submodules
+pub(crate) use update::*;
 
 pub(crate) struct Handler<TS: TaskService> {
     task_service: TS,
@@ -27,8 +35,8 @@ impl<TS: TaskService> Handler<TS> {
         Ok(())
     }
 
-    pub(crate) fn default(&self, raw_filter: &[String]) -> Result<(), CliError> {
-        match filter::parse(raw_filter) {
+    pub(crate) fn default(&self, raw_filters: &[String]) -> Result<(), CliError> {
+        match filter::parse_and_determine_command(raw_filters) {
             DefaultCommand::Next(filter) => self.next(filter),
             DefaultCommand::Info(filter) => self.info(&filter),
         }

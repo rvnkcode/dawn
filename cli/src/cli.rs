@@ -1,4 +1,8 @@
-use crate::{arg::Creation, error::CliError, handler::Handler};
+use crate::{
+    arg::{Creation, Modification},
+    error::CliError,
+    handler::Handler,
+};
 use clap::{Parser, Subcommand};
 use dawn::domain::task::port::TaskService;
 
@@ -15,6 +19,8 @@ pub struct Cli {
 enum Command {
     /// Adds a new task
     Add(Creation),
+    /// Modifies the existing task with provided arguments
+    Modify(Modification),
 }
 
 impl Cli {
@@ -27,6 +33,7 @@ impl Cli {
         let handler = Handler::new(task_service);
         match &self.command {
             Some(Command::Add(creation)) => handler.add(&self.filter, &creation.description),
+            Some(Command::Modify(modification)) => handler.modify(&self.filter, &modification.mods),
             None => handler.default(&self.filter),
         }
     }
