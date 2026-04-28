@@ -10,13 +10,13 @@ direction BT
     }
 
     class Modification {
-      ~Option~Vec~String~~ mods
+      ~Vec~String~ mods
     }
 
     class Parsed {
       -HashSet~UniqueID~ uids
       -HashSet~Index~ indices
-      -Vec~Status~ words
+      -Vec~String~ words
       -bool has_bare_id
     }
 
@@ -24,6 +24,11 @@ direction BT
       <<enumeration>>
       ~Next(Filter)
       ~Info(Filter)
+    }
+
+    class Action {
+      <<enumeration>>
+      ~Modify
     }
 
     class Command {
@@ -117,10 +122,11 @@ direction BT
   Handler~TS~ ..> NextRow : displays
   Handler~TS~ ..> InfoTable : displays
 
-  %% Read
+  %% Update
   Command *-- Modification : has
   Cli ..> Modification : parses
   Handler~TS~ ..> TaskModification : creates
+  Handler~TS~ ..> Action : drives
 
   namespace Domain {
     class UniqueID {
