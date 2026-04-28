@@ -21,7 +21,6 @@ thiserror.workspace = true
 inquire = "0.9.4"
 
 [dev-dependencies]
-dawn = { workspace = true, features = ["testing"] }
 assert_cmd = "2.2.0"
 tempfile = "3.27.0"
 

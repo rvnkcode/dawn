@@ -12,7 +12,6 @@ repository = "https://github.com/rvnkcode/dawn"
 [workspace.dependencies]
 anyhow = "1.0.102"
 dawn = { path = "lib" }
-mockall = "0.14.0"
 regex = "1.12.3"
 thiserror = "2.0.18"
 

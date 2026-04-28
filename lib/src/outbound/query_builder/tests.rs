@@ -454,7 +454,7 @@ fn build_update_clause_with_empty_modification() {
         deleted: None,
     };
 
-    assert!(build_update_clause(&modification, &[uid]).is_err());
+    assert!(build_update_clause(&modification, &[&uid]).is_err());
 }
 
 #[test]
@@ -482,7 +482,7 @@ fn build_update_clause_with_description() {
         deleted: None,
     };
 
-    let (clause, params) = build_update_clause(&modification, &[uid]).unwrap();
+    let (clause, params) = build_update_clause(&modification, &[&uid]).unwrap();
     assert_eq!(clause, "UPDATE task SET description = ? WHERE id IN (?)");
     assert_eq!(params.len(), 2);
     assert_eq!(to_value(params[0].as_ref()), Value::Text("updated".into()));
@@ -501,7 +501,7 @@ fn build_update_clause_with_completed_set() {
         deleted: None,
     };
 
-    let (clause, params) = build_update_clause(&modification, &[uid]).unwrap();
+    let (clause, params) = build_update_clause(&modification, &[&uid]).unwrap();
     assert_eq!(clause, "UPDATE task SET completed = ? WHERE id IN (?)");
     assert_eq!(params.len(), 2);
     assert_eq!(to_value(params[0].as_ref()), Value::Integer(1700000000));
@@ -520,7 +520,7 @@ fn build_update_clause_with_completed_cleared() {
         deleted: None,
     };
 
-    let (clause, params) = build_update_clause(&modification, &[uid]).unwrap();
+    let (clause, params) = build_update_clause(&modification, &[&uid]).unwrap();
     assert_eq!(clause, "UPDATE task SET completed = ? WHERE id IN (?)");
     assert_eq!(params.len(), 2);
     assert_eq!(to_value(params[0].as_ref()), Value::Null);
@@ -539,7 +539,7 @@ fn build_update_clause_with_deleted_set() {
         deleted: Some(Some(Timestamp::new(1700000000).unwrap())),
     };
 
-    let (clause, params) = build_update_clause(&modification, &[uid]).unwrap();
+    let (clause, params) = build_update_clause(&modification, &[&uid]).unwrap();
     assert_eq!(clause, "UPDATE task SET deleted = ? WHERE id IN (?)");
     assert_eq!(params.len(), 2);
     assert_eq!(to_value(params[0].as_ref()), Value::Integer(1700000000));
@@ -558,7 +558,7 @@ fn build_update_clause_with_deleted_cleared() {
         deleted: Some(None),
     };
 
-    let (clause, params) = build_update_clause(&modification, &[uid]).unwrap();
+    let (clause, params) = build_update_clause(&modification, &[&uid]).unwrap();
     assert_eq!(clause, "UPDATE task SET deleted = ? WHERE id IN (?)");
     assert_eq!(params.len(), 2);
     assert_eq!(to_value(params[0].as_ref()), Value::Null);
@@ -577,7 +577,7 @@ fn build_update_clause_with_multiple_fields() {
         deleted: None,
     };
 
-    let (clause, params) = build_update_clause(&modification, &[uid]).unwrap();
+    let (clause, params) = build_update_clause(&modification, &[&uid]).unwrap();
     assert_eq!(
         clause,
         "UPDATE task SET description = ?, completed = ? WHERE id IN (?)"
@@ -602,7 +602,7 @@ fn build_update_clause_with_multiple_targets() {
         deleted: None,
     };
 
-    let (clause, params) = build_update_clause(&modification, &[uid1, uid2]).unwrap();
+    let (clause, params) = build_update_clause(&modification, &[&uid1, &uid2]).unwrap();
     assert_eq!(clause, "UPDATE task SET description = ? WHERE id IN (?,?)");
     assert_eq!(params.len(), 3);
     assert_eq!(to_value(params[0].as_ref()), Value::Text("updated".into()));
