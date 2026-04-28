@@ -6,7 +6,18 @@ title: Class Diagram
 direction BT
   namespace CLI {
     class Creation {
-      -Vec~String~ description
+      ~Vec~String~ description
+    }
+
+    class Modification {
+      ~Option~Vec~String~~ mods
+    }
+
+    class Parsed {
+      -HashSet~UniqueID~ uids
+      -HashSet~Index~ indices
+      -Vec~Status~ words
+      -bool has_bare_id
     }
 
     class DefaultCommand {
@@ -18,6 +29,7 @@ direction BT
     class Command {
       <<enumeration>>
       -Add(Creation)
+      -Modify(Modification)
     }
 
     class Cli {
@@ -31,9 +43,10 @@ direction BT
       -TS task_service
       ~new(task_service) Self
       ~add(&self, &filter, &words) Result~_, CliError~
-      ~default(&self, &raw_filter) Result~_, CliError~
+      ~default(&self, &raw_filters) Result~_, CliError~
       -next(&self, filter) Result~_, CliError~
       -info(&self, &filter) Result~_, CliError~
+      ~modify(&self, &raw_filter, &mods) Result~_, CliError~
     }
 
     class Age {
@@ -94,6 +107,8 @@ direction BT
   InfoTable o-- InfoRow
   InfoTable ..> Task : accepts
   DefaultCommand *-- Filter : carries
+  Parsed o-- UniqueID
+  Parsed o-- Index
   Handler~TS~ ..> DefaultCommand : dispatches
   Handler~TS~ ..> Filter : parses and accepts
   Handler~TS~ ..> Status : targets
@@ -101,6 +116,11 @@ direction BT
   Handler~TS~ ..> BaseTable~R~ : displays
   Handler~TS~ ..> NextRow : displays
   Handler~TS~ ..> InfoTable : displays
+
+  %% Read
+  Command *-- Modification : has
+  Cli ..> Modification : parses
+  Handler~TS~ ..> TaskModification : creates
 
   namespace Domain {
     class UniqueID {

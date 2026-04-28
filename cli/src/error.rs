@@ -9,6 +9,10 @@ pub enum CliError {
     Runtime(anyhow::Error),
     #[error("no matches")]
     NoMatch,
+    #[error("no tasks specified")]
+    NoSpecified,
+    #[error("partial success")]
+    Partial,
 }
 
 impl CliError {
@@ -19,17 +23,19 @@ impl CliError {
     pub fn exit_code(&self) -> ExitCode {
         match self {
             Self::Usage(_) => ExitCode::from(2),
-            Self::Runtime(_) | Self::NoMatch => ExitCode::from(1),
+            Self::Runtime(_) | Self::NoMatch | Self::NoSpecified | Self::Partial => {
+                ExitCode::from(1)
+            }
         }
     }
 
-    /// Mirror Taskwarrior: usage/filter errors render white-on-red on stderr;
-    /// runtime errors and "No matches." render yellow (footnote color) on stderr.
     pub fn write_stderr(&self) {
         match self {
             Self::Usage(e) => eprintln!("{}", format!("{e:#}").white().on_red()),
             Self::Runtime(e) => eprintln!("{}", format!("{e:#}").yellow()),
             Self::NoMatch => eprintln!("{}", "No matches.".yellow()),
+            Self::NoSpecified => eprintln!("{}", "No tasks specified.".yellow()),
+            Self::Partial => {} // Print nothing
         }
     }
 }
