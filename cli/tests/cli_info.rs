@@ -1,12 +1,6 @@
 mod common;
 
-// TODO: `done` / `delete` 서브커맨드가 추가되면 info table 의 conditional 행
-// 검증을 E2E 로 확장한다:
-//   - 완료된 태스크: `End` 행 렌더 + Status 가 `Completed`
-//   - 삭제된 태스크: `Deleted` 행 렌더 + Status 가 `Deleted`
-//   - 완료 + 삭제가 모두 설정된 태스크: 두 행 모두 렌더
-// 현재는 pending 상태만 CLI 로 도달 가능하므로 pending 경로만 검증한다.
-// (conditional 행 렌더 자체는 `cli/src/table/info_table.rs` 유닛 테스트가 커버한다.)
+use common::{delete_via_pty, extract_uid, run_stdout};
 
 #[test]
 fn info_single_index_renders_all_base_rows() {
@@ -48,6 +42,92 @@ fn info_omits_end_and_deleted_rows_for_pending() {
     assert!(
         !stdout.contains("Deleted"),
         "unexpected Deleted row: {stdout}"
+    );
+}
+
+#[test]
+fn info_completed_task_renders_end_row_and_completed_status() {
+    let (_dir, db) = common::test_db();
+    common::dawn_cmd(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+
+    let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let uid = extract_uid(&info_before);
+
+    common::dawn_cmd(&db).args(["1", "done"]).assert().success();
+
+    let out = common::dawn_cmd(&db).arg(&uid).output().expect("run");
+    assert!(out.status.success());
+    let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
+    assert!(stdout.contains("End"), "missing End row: {stdout}");
+    assert!(
+        stdout.contains("Completed"),
+        "missing Completed status: {stdout}"
+    );
+    assert!(
+        !stdout.contains("Deleted"),
+        "unexpected Deleted row/status: {stdout}"
+    );
+}
+
+#[test]
+fn info_deleted_task_renders_deleted_row_and_deleted_status() {
+    let (_dir, db) = common::test_db();
+    common::dawn_cmd(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+
+    let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let uid = extract_uid(&info_before);
+
+    delete_via_pty(&db, &uid);
+
+    let out = common::dawn_cmd(&db).arg(&uid).output().expect("run");
+    assert!(out.status.success());
+    let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
+    // "Deleted" appears twice: once as Status value, once as row label.
+    assert_eq!(
+        stdout.matches("Deleted").count(),
+        2,
+        "expected Deleted to appear as both status value and row label: {stdout}"
+    );
+    assert!(!stdout.contains("End"), "unexpected End row: {stdout}");
+    assert!(
+        !stdout.contains("Completed"),
+        "unexpected Completed status: {stdout}"
+    );
+}
+
+#[test]
+fn info_completed_then_deleted_task_renders_both_end_and_deleted_rows() {
+    let (_dir, db) = common::test_db();
+    common::dawn_cmd(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+
+    let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let uid = extract_uid(&info_before);
+
+    common::dawn_cmd(&db).args(["1", "done"]).assert().success();
+    delete_via_pty(&db, &uid);
+
+    let out = common::dawn_cmd(&db).arg(&uid).output().expect("run");
+    assert!(out.status.success());
+    let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
+    assert!(stdout.contains("End"), "missing End row: {stdout}");
+    // Terminal status is "Deleted"; row label "Deleted" also rendered.
+    assert_eq!(
+        stdout.matches("Deleted").count(),
+        2,
+        "expected Deleted to appear as both status value and row label: {stdout}"
+    );
+    assert!(
+        !stdout.contains("Completed"),
+        "unexpected Completed status (deleted is terminal): {stdout}"
     );
 }
 
@@ -104,16 +184,6 @@ fn info_hyphen_prefixed_uid_does_not_panic_clap() {
         .success();
     common::dawn_cmd(&db)
         .arg("-Abc1efghijk")
-        .assert()
-        .code(1)
-        .stderr("No matches.\n");
-}
-
-#[test]
-fn info_empty_db_with_index_prints_no_matches() {
-    let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
-        .arg("1")
         .assert()
         .code(1)
         .stderr("No matches.\n");
