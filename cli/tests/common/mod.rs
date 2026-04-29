@@ -104,14 +104,3 @@ pub fn run_stdout(cmd: &mut Command) -> String {
     );
     String::from_utf8(out.stdout).expect("utf8 stdout")
 }
-
-pub fn assert_empty_filter_aborts(args: &[&str]) {
-    let (_dir, db) = test_db();
-    let out = dawn_cmd(&db).args(args).output().expect("run");
-    assert_eq!(out.status.code(), Some(2), "expected exit 2");
-    let stderr = String::from_utf8(out.stderr).expect("utf8 stderr");
-    assert!(
-        stderr.contains("Command prevented from running."),
-        "stderr missing abort message: {stderr}"
-    );
-}
