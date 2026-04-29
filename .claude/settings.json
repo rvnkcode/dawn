@@ -33,9 +33,18 @@
       "Bash(cargo clippy:*)",
       "Bash(cargo doc:*)",
       "Bash(cargo search:*)",
+      "Bash(cargo run:*)",
+      "Bash(cargo tree:*)",
+      "Bash(cargo metadata:*)",
+      "Bash(cargo check:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
-      "Bash(git status:*)"
+      "Bash(git status:*)",
+      "Bash(gh pr:*)",
+      "Bash(gh api:*)",
+      "Bash(echo \"exit: $?\")",
+      "WebFetch(domain:taskwarrior.org)",
+      "WebSearch"
     ]
   }
 }
