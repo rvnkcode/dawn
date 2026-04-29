@@ -200,3 +200,5 @@ fn done_already_completed_task_skipped_partial() {
         "missing 0-count footer: {stdout}"
     );
 }
+
+// TODO: add `done_already_deleted_task_skipped_partial` once `delete` exists.
