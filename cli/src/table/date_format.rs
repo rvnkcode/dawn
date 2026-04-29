@@ -29,6 +29,18 @@ where
     Ok(utc.with_timezone(tz).format("%Y-%m-%d %H:%M:%S"))
 }
 
+pub(crate) fn format_date<Tz: TimeZone>(
+    ts: &Timestamp,
+    tz: &Tz,
+) -> Result<DelayedFormat<StrftimeItems<'static>>, AgeError>
+where
+    Tz::Offset: std::fmt::Display,
+{
+    let secs = ts.as_seconds();
+    let utc = DateTime::from_timestamp(secs, 0).ok_or(AgeError::OutOfRange(secs))?;
+    Ok(utc.with_timezone(tz).format("%Y-%m-%d"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -57,5 +69,19 @@ mod tests {
         let jst = FixedOffset::east_opt(9 * 3600).unwrap();
         let out = format_absolute(&ts(20 * 3600), &jst).unwrap().to_string();
         assert_eq!(out, "1970-01-02 05:00:00");
+    }
+
+    #[test]
+    fn format_date_renders_in_provided_timezone() {
+        let jst = FixedOffset::east_opt(9 * 3600).unwrap();
+        let out = format_date(&ts(0), &jst).unwrap().to_string();
+        assert_eq!(out, "1970-01-01");
+    }
+
+    #[test]
+    fn format_date_crosses_day_boundary_forward() {
+        let jst = FixedOffset::east_opt(9 * 3600).unwrap();
+        let out = format_date(&ts(20 * 3600), &jst).unwrap().to_string();
+        assert_eq!(out, "1970-01-02");
     }
 }
