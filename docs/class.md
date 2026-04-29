@@ -29,12 +29,14 @@ direction BT
     class Action {
       <<enumeration>>
       ~Modify
+      ~Complete
     }
 
     class Command {
       <<enumeration>>
       -Add(Creation)
       -Modify(Modification)
+      -Done(Modification)
     }
 
     class Cli {
@@ -51,8 +53,8 @@ direction BT
       ~default(&self, &raw_filters) Result~_, CliError~
       -next(&self, filter) Result~_, CliError~
       -info(&self, &filter) Result~_, CliError~
-      ~modify(&self, &raw_filter, &mods) Result~_, CliError~
-      ~done(&self, &raw_filter, &mods) Result~_, CliError~
+      ~modify(&self, &raw_filters, &mods) Result~_, CliError~
+      ~done(&self, &raw_filters, &mods) Result~_, CliError~
     }
 
     class Age {
