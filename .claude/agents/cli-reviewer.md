@@ -66,6 +66,23 @@ Preferred order of evidence (cheapest → most expensive):
 
 When running is not needed, say so — don't run commands just to pad the report.
 
+## Mutation Commands: Exit Code Parity Is Mandatory
+
+Any command that mutates tasks (`done`, `delete`, `modify`, `start`, `stop`, ...)
+must have exit-code parity verified against Taskwarrior across all four
+outcome shapes — output text alone is not enough:
+
+1. **Full success** — every matched target acted on (expect 0)
+2. **No-op** — filter matches but nothing actionable (e.g. all already-completed)
+3. **Partial** — filter matches multiple targets, only some acted on (mix of
+   valid + already-processed, or user declines some). TW returns 1 here.
+   **This is where Dawn-vs-TW divergence has historically hidden** — never
+   skip it.
+4. **Hard failure** — usage error or invalid input (expect 2)
+
+Run all four side-by-side in the isolated TW env and capture exit codes
+explicitly (`echo $?`). Do not infer exit code from stdout/stderr.
+
 ## When You Do Run Commands
 
 Ground rules to keep the run cheap and the report trustworthy:
@@ -89,7 +106,7 @@ Ground rules to keep the run cheap and the report trustworthy:
 
 - **Batch setup** in a single `sh -c '...'` block when you need several `task add` calls followed by a read command.
 - **Run independent checks in parallel** — issue multiple Bash tool calls in one message when they don't depend on each other.
-- **Cap scenarios.** Pick the minimal set that exercises the gap you're investigating (typically 1 empty, 1 populated, 1 edge case). Don't enumerate every attribute combination unless the gap is specifically about combinations.
+- **Cap scenarios.** Pick the minimal set that exercises the gap. For mutation commands the set MUST include a partial-success scenario (mixed-validity targets, e.g. one pending + one already-completed) — partial is the axis where Dawn most often diverges from TW silently. Otherwise: 1 empty, 1 populated, 1 edge case. Don't enumerate every attribute combination unless the gap is specifically about combinations.
 
 ## Reporting Rules
 
@@ -107,6 +124,7 @@ Before stating any concrete TW behavior (especially user-facing examples like "t
 - **Trace enum / mode / flag arguments to the switch they drive.** A call like `task.modify(Task::modAnnotate)` is not self-explanatory. Open the callee, find the `switch` on that argument, and read the branch that matches. Past failure: this agent claimed `done` accepts description replacements because `_accepts_modifications = true`, missing that `modAnnotate` (Task.cpp:2433) routes WORD args to `addAnnotation()` — annotation, not description replacement. The opposite of what was reported.
 - **Verify every user-facing example you write.** If you write "the user can do `task 1 done foo`", confirm by reading the relevant branch or running it in the isolated TW env. Do not invent illustrative examples.
 - **Distinguish "the call exists" from "the effect you assume."** A method being invoked tells you nothing about which branch fires — read the body.
+- **Verify the predicate, not just that a branch exists.** "Dawn has a Partial path" is not the same as "Dawn returns Partial in all the cases TW does." Past failure: this agent reviewed Dawn's `done` and accepted `if candidates.len() > approved_ids.len()` as a working Partial check — but `candidates` is post-filter (already-completed tasks dropped before counting), so the predicate misses the mixed-validity case where TW returns 1 and Dawn returned 0. When a guard predicate compares two derived counts, ask which inputs each was derived from and whether they're invariant under the filter step.
 
 When in doubt, stop and read another file rather than paraphrasing from memory or one level of indirection.
 
