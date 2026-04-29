@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::{CliError, table::date_format::format_date};
+use crate::table::date_format::{DATE_FMT, format_absolute};
 use inquire::{Confirm, Select};
 
 // Threshold for requiring individual confirmation on bulk modify operations
@@ -139,7 +139,7 @@ fn print_diff(task: &Task, modification: &TaskModification) -> anyhow::Result<()
     if let Some(Some(timestamp)) = &modification.completed
         && task.completed.is_none()
     {
-        let date = format_date(timestamp, &Local)?;
+        let date = format_absolute(timestamp, &Local, DATE_FMT)?;
         println!("  - End will be set to '{}'.", date);
     }
 
