@@ -86,29 +86,35 @@ pub(crate) fn collect_approved_ids<'a>(
     original_count: usize,
 ) -> anyhow::Result<Vec<&'a UniqueID>> {
     let needs_confirm = original_count >= BULK_CONFIRM_THRESHOLD;
+    process_confirmations(action, candidates, modification, |i, task| {
+        if !needs_confirm {
+            return Ok(ConfirmResult::Yes);
+        }
+        if i != 0 {
+            println!();
+        }
+        print_diff(task, modification)?;
+        confirm_bulk(&get_display_id(task), &task.description, action)
+    })
+}
+
+pub(crate) fn process_confirmations<'a, F>(
+    action: &Action,
+    candidates: &[&'a Task],
+    modification: &TaskModification,
+    mut confirm: F,
+) -> anyhow::Result<Vec<&'a UniqueID>>
+where
+    F: FnMut(usize, &Task) -> anyhow::Result<ConfirmResult>,
+{
     let mut approved: Vec<&UniqueID> = Vec::new();
-
     for (i, task) in candidates.iter().enumerate() {
-        let display_id = get_display_id(task);
-
-        let result = if needs_confirm {
-            if i != 0 {
-                println!();
-            }
-            print_diff(task, modification)?;
-            confirm_bulk(&display_id, &task.description, action)?
-        } else {
-            ConfirmResult::Yes
-        };
-
-        match result {
+        match confirm(i, task)? {
             ConfirmResult::Yes => {
                 print_action(action, task, modification);
                 approved.push(&task.uid);
             }
-            ConfirmResult::No => {
-                println!("{}", action.not_done_msg());
-            }
+            ConfirmResult::No => println!("{}", action.not_done_msg()),
             ConfirmResult::All => {
                 for remaining in &candidates[i..] {
                     print_action(action, remaining, modification);
