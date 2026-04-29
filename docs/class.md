@@ -30,6 +30,7 @@ direction BT
       <<enumeration>>
       ~Modify
       ~Complete
+      ~Delete
     }
 
     class Command {
@@ -37,6 +38,7 @@ direction BT
       -Add(Creation)
       -Modify(Modification)
       -Done(Modification)
+      -Delete(Modification)
     }
 
     class Cli {
@@ -55,6 +57,7 @@ direction BT
       -info(&self, &filter) Result~_, CliError~
       ~modify(&self, &raw_filters, &mods) Result~_, CliError~
       ~done(&self, &raw_filters, &mods) Result~_, CliError~
+      ~delete(&self, &raw_filters, &mods) Result~_, CliError~
     }
 
     class Age {

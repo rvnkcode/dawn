@@ -1,7 +1,5 @@
 use super::*;
 
-use colored::Colorize;
-
 impl<TS: TaskService> Handler<TS> {
     pub(crate) fn modify(&self, raw_filters: &[String], mods: &[String]) -> Result<(), CliError> {
         let (filter, new_description) = filter::parse_from_mods(raw_filters, mods);
@@ -54,24 +52,4 @@ fn has_changes(task: &Task, modification: &TaskModification) -> bool {
         return true;
     }
     false
-}
-
-fn print_not_pending_for_ids(tasks: &[Task], modified_ids: &[&UniqueID]) {
-    tasks
-        .iter()
-        .filter(|t| modified_ids.contains(&&t.uid))
-        .filter(|t| t.completed.is_some() || t.deleted.is_some())
-        .for_each(|t| {
-            let status = t.status();
-            let msg = format!(
-                "Note: Modified task {} is {}. \
-                 You may wish to make this task pending with: \
-                 task {} modify --status pending",
-                t.uid,
-                status.to_string().to_lowercase(),
-                t.uid,
-            )
-            .yellow();
-            println!("{}", msg);
-        });
 }

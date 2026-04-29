@@ -24,6 +24,8 @@ enum Command {
     Modify(Modification),
     /// Marks the specified task as completed
     Done(Modification),
+    /// Deletes the specified task
+    Delete(Modification),
 }
 
 impl Cli {
@@ -38,6 +40,7 @@ impl Cli {
             Some(Command::Add(creation)) => handler.add(&self.filter, &creation.description),
             Some(Command::Modify(modification)) => handler.modify(&self.filter, &modification.mods),
             Some(Command::Done(modification)) => handler.done(&self.filter, &modification.mods),
+            Some(Command::Delete(modification)) => handler.delete(&self.filter, &modification.mods),
             None => handler.default(&self.filter),
         }
     }
