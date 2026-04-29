@@ -100,6 +100,16 @@ Ground rules to keep the run cheap and the report trustworthy:
 - If a behavior was not verified either way, mark it **"unverified"** — don't present it as fact.
 - Prefer citing source or docs over re-running when both would tell you the same thing.
 
+## Never Assert TW Behavior Without Reading the Source
+
+Before stating any concrete TW behavior (especially user-facing examples like "the user can do X"), **read the actual implementation** — never paraphrase from a call site or method name alone.
+
+- **Trace enum / mode / flag arguments to the switch they drive.** A call like `task.modify(Task::modAnnotate)` is not self-explanatory. Open the callee, find the `switch` on that argument, and read the branch that matches. Past failure: this agent claimed `done` accepts description replacements because `_accepts_modifications = true`, missing that `modAnnotate` (Task.cpp:2433) routes WORD args to `addAnnotation()` — annotation, not description replacement. The opposite of what was reported.
+- **Verify every user-facing example you write.** If you write "the user can do `task 1 done foo`", confirm by reading the relevant branch or running it in the isolated TW env. Do not invent illustrative examples.
+- **Distinguish "the call exists" from "the effect you assume."** A method being invoked tells you nothing about which branch fires — read the body.
+
+When in doubt, stop and read another file rather than paraphrasing from memory or one level of indirection.
+
 ## Output Format
 
 1. **Taskwarrior reference behavior** — source citations and/or captured output
