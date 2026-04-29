@@ -1,5 +1,3 @@
-use dawn::domain::task::Timestamp;
-
 use super::*;
 
 impl<TS: TaskService> Handler<TS> {
@@ -13,8 +11,6 @@ impl<TS: TaskService> Handler<TS> {
         let tasks = self.task_service.list(&filter)?;
         validate_tasks(&tasks)?;
 
-        let now = Local::now().timestamp();
-        let completed = Timestamp::new(now).map_err(CliError::usage)?;
         let action = Action::Complete;
         let candidates = filter_pending_tasks(&tasks);
         if candidates.is_empty() {
@@ -22,6 +18,8 @@ impl<TS: TaskService> Handler<TS> {
             return Err(CliError::Partial);
         }
 
+        let now = Local::now().timestamp();
+        let completed = Timestamp::new(now).map_err(CliError::usage)?;
         let modification = TaskModification {
             description: None,
             completed: Some(Some(completed)),

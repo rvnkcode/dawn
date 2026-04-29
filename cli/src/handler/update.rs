@@ -1,6 +1,7 @@
 use super::*;
 
 use crate::table::date_format::{DATE_FMT, format_absolute};
+use colored::Colorize;
 use inquire::{Confirm, Select};
 
 // Threshold for requiring individual confirmation on bulk modify operations
@@ -33,6 +34,7 @@ pub(crate) fn validate_tasks(tasks: &[Task]) -> Result<(), CliError> {
 pub(crate) enum Action {
     Modify,
     Complete,
+    Delete,
 }
 
 impl Action {
@@ -40,6 +42,7 @@ impl Action {
         match self {
             Action::Modify => "Modify",
             Action::Complete => "Complete",
+            Action::Delete => "Delete",
         }
     }
 
@@ -47,6 +50,7 @@ impl Action {
         match self {
             Self::Modify => "Modified",
             Self::Complete => "Completed",
+            Self::Delete => "Deleted",
         }
     }
 
@@ -54,13 +58,15 @@ impl Action {
         match self {
             Action::Modify => "Modifying",
             Action::Complete => "Completed",
+            Action::Delete => "Deleting",
         }
     }
 
-    fn not_done_msg(&self) -> &'static str {
+    pub(crate) fn not_done_msg(&self) -> &'static str {
         match self {
             Action::Modify => "Task not modified.",
             Action::Complete => "Task not completed.",
+            Action::Delete => "Task not deleted.",
         }
     }
 }
@@ -163,14 +169,14 @@ fn print_diff(task: &Task, modification: &TaskModification) -> anyhow::Result<()
     Ok(())
 }
 
-enum ConfirmResult {
+pub(crate) enum ConfirmResult {
     Yes,  // Modify this task
     No,   // Skip this task
     All,  // Modify all remaining tasks
     Quit, // Skip all remaining tasks
 }
 
-fn confirm_bulk(
+pub(crate) fn confirm_bulk(
     display_id: &str,
     description: &Description,
     action: &Action,
@@ -192,12 +198,32 @@ fn confirm_bulk(
     }
 }
 
-// Print action message for a task (e.g., "Modifying task 1 'description'.")
-fn print_action(action: &Action, task: &Task, modification: &TaskModification) {
+/// Print action message for a task (e.g., "Modifying task 1 'description'.")
+pub(crate) fn print_action(action: &Action, task: &Task, modification: &TaskModification) {
     let display_id = get_display_id(task);
     let desc = match &modification.description {
         Some(d) => d,
         None => &task.description,
     };
     println!("{} task {} '{}'.", action.verb_ing(), display_id, desc);
+}
+
+pub(crate) fn print_not_pending_for_ids(tasks: &[Task], modified_ids: &[&UniqueID]) {
+    tasks
+        .iter()
+        .filter(|t| modified_ids.contains(&&t.uid))
+        .filter(|t| t.completed.is_some() || t.deleted.is_some())
+        .for_each(|t| {
+            let status = t.status();
+            let msg = format!(
+                "Note: Modified task {} is {}. \
+                 You may wish to make this task pending with: \
+                 task {} modify --status pending",
+                t.uid,
+                status.to_string().to_lowercase(),
+                t.uid,
+            )
+            .yellow();
+            println!("{}", msg);
+        });
 }
