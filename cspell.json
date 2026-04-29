@@ -5,6 +5,7 @@
   "words": [
     "clippy",
     "mockall",
+    "rexpect",
     "rusqlite",
     "rustdoc",
     "sqlfluff",
