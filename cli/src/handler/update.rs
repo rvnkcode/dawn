@@ -155,7 +155,7 @@ fn print_diff(task: &Task, modification: &TaskModification) -> anyhow::Result<()
     if let Some(status) = new_status {
         let old_status = task.status().to_string().to_lowercase();
         println!(
-            "  - Status will be changed from '{} to '{}'.",
+            "  - Status will be changed from '{}' to '{}'.",
             old_status, status
         );
     }
