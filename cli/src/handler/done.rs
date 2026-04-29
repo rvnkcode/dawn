@@ -4,6 +4,7 @@ use super::*;
 
 impl<TS: TaskService> Handler<TS> {
     pub(crate) fn done(&self, raw_filters: &[String], mods: &[String]) -> Result<(), CliError> {
+        // TODO: route trailing text to an annotation once annotations are supported (TW modAnnotate).
         let (filter, _) = filter::parse_from_mods(raw_filters, mods);
         if filter.is_empty() {
             confirm_empty_filter()?;
