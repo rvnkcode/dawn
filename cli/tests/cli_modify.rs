@@ -1,31 +1,6 @@
 mod common;
 
-// extract UID from `info` output
-fn extract_uid(stdout: &str) -> String {
-    for line in stdout.lines() {
-        let trimmed = line.trim_start();
-        if let Some(rest) = trimmed.strip_prefix("UID")
-            && let Some(token) = rest.split_whitespace().next()
-            && token.len() == 12
-            && token
-                .bytes()
-                .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
-        {
-            return token.to_string();
-        }
-    }
-    panic!("UID row not found in info output:\n{stdout}");
-}
-
-fn run_stdout(cmd: &mut assert_cmd::Command) -> String {
-    let out = cmd.output().expect("run");
-    assert!(
-        out.status.success(),
-        "command failed: stderr={}",
-        String::from_utf8_lossy(&out.stderr)
-    );
-    String::from_utf8(out.stdout).expect("utf8 stdout")
-}
+use common::{extract_uid, run_stdout};
 
 // ── Group A: Pre-filter route ──
 
@@ -259,25 +234,14 @@ fn modify_promotion_with_id_only_mods_is_noop() {
     assert!(info.contains("one"));
 }
 
-fn assert_empty_filter_aborts(args: &[&str]) {
-    let (_dir, db) = common::test_db();
-    let out = common::dawn_cmd(&db).args(args).output().expect("run");
-    assert_eq!(out.status.code(), Some(2), "expected exit 2");
-    let stderr = String::from_utf8(out.stderr).expect("utf8 stderr");
-    assert!(
-        stderr.contains("Command prevented from running."),
-        "stderr missing abort message: {stderr}"
-    );
-}
-
 #[test]
 fn modify_promotion_word_only_does_not_promote_aborts_under_non_tty() {
-    assert_empty_filter_aborts(&["modify", "text", "modification"]);
+    common::assert_empty_filter_aborts(&["modify", "text", "modification"]);
 }
 
 #[test]
 fn modify_promotion_leading_zero_treated_as_word_aborts_under_non_tty() {
-    assert_empty_filter_aborts(&["modify", "007", "foo"]);
+    common::assert_empty_filter_aborts(&["modify", "007", "foo"]);
 }
 
 // ── Group C: No-op (0-count) ──
