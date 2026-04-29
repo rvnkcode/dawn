@@ -36,6 +36,7 @@ impl<TS: TaskService> Handler<TS> {
             print_result(&action, 0);
             return Err(CliError::Partial);
         }
+
         self.task_service.modify(&modification, &approved_ids)?;
         print_result(&action, approved_ids.len());
         print_not_pending_for_ids(&tasks, &approved_ids);

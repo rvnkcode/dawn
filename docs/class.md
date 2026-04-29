@@ -52,6 +52,7 @@ direction BT
       -next(&self, filter) Result~_, CliError~
       -info(&self, &filter) Result~_, CliError~
       ~modify(&self, &raw_filter, &mods) Result~_, CliError~
+      ~done(&self, &raw_filter, &mods) Result~_, CliError~
     }
 
     class Age {
