@@ -1,13 +1,65 @@
 #![allow(dead_code)]
 
 use assert_cmd::Command;
+use rexpect::process::WaitStatus;
+use rexpect::session::{PtySession, spawn_command};
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
+
+const PTY_TIMEOUT_MS: u64 = 5000;
+const SELECT_DOWN: &str = "\x1b[B";
 
 pub fn dawn_cmd(db: &Path) -> Command {
     let mut cmd = Command::cargo_bin("dawn").expect("binary 'dawn' from dawn-cli crate");
     cmd.env("DAWN_DB_PATH", db).env_remove("XDG_DATA_HOME");
     cmd
+}
+
+pub fn dawn_pty(db: &Path, args: &[&str]) -> PtySession {
+    let mut cmd = std::process::Command::new(env!("CARGO_BIN_EXE_dawn"));
+    cmd.env("DAWN_DB_PATH", db).env_remove("XDG_DATA_HOME");
+    cmd.args(args);
+    spawn_command(cmd, Some(PTY_TIMEOUT_MS)).expect("spawn dawn under PTY")
+}
+
+// Drives a single-task delete flow under PTY (Yes on the Confirm prompt) and
+// waits for the success footer. Used by tests that need a deleted task as
+// fixture rather than as the system under test.
+pub fn delete_via_pty(db: &Path, target: &str) {
+    let mut p = dawn_pty(db, &[target, "delete"]);
+    p.exp_string("Delete task").expect("delete confirm prompt");
+    p.send_line("y").expect("send y");
+    p.exp_string("Deleted 1 task.").expect("delete footer");
+    p.exp_eof().expect("delete eof");
+}
+
+// Picks an option from inquire's `Select` list (Yes/No/All/Quit ordering).
+// Sent as N down-arrows + Enter; the LineWriter requires explicit flush
+// because `\r` is not a newline.
+pub fn select_option(p: &mut PtySession, choice: &str) {
+    let down_count = match choice {
+        "Yes" => 0,
+        "No" => 1,
+        "All" => 2,
+        "Quit" => 3,
+        _ => panic!("unknown select option: {choice}"),
+    };
+    for _ in 0..down_count {
+        p.send(SELECT_DOWN).expect("send down arrow");
+    }
+    p.send("\r").expect("send enter");
+    p.flush().expect("flush");
+}
+
+pub fn assert_pty_exit(p: &mut PtySession, expected_code: i32) {
+    p.exp_eof().expect("eof");
+    match p.process().wait().expect("wait") {
+        WaitStatus::Exited(_, code) => assert_eq!(
+            code, expected_code,
+            "expected exit {expected_code}, got {code}"
+        ),
+        other => panic!("expected exit {expected_code}, got {other:?}"),
+    }
 }
 
 pub fn test_db() -> (TempDir, PathBuf) {

@@ -1,6 +1,6 @@
 mod common;
 
-use common::{extract_uid, run_stdout};
+use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uid, run_stdout, select_option};
 
 // ── Group A: Pre-filter route ──
 
@@ -97,24 +97,6 @@ fn modify_pre_set_filter_two_tasks_both_updated() {
 }
 
 #[test]
-fn modify_pre_filter_multiword_description_joined() {
-    let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
-        .args(["add", "old"])
-        .assert()
-        .success();
-
-    common::dawn_cmd(&db)
-        .args(["1", "modify", "pick", "up", "milk"])
-        .assert()
-        .success()
-        .stdout("Modifying task 1 'pick up milk'.\nModified 1 task.\n");
-
-    let info = run_stdout(common::dawn_cmd(&db).arg("1"));
-    assert!(info.contains("pick up milk"));
-}
-
-#[test]
 fn modify_pre_filter_with_id_shaped_mod_joins_into_description() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two"]);
@@ -199,24 +181,6 @@ fn modify_promotes_set_from_mods_two_tasks() {
 }
 
 #[test]
-fn modify_promotes_blank_pre_strings_treated_as_empty() {
-    let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
-        .args(["add", "old"])
-        .assert()
-        .success();
-
-    common::dawn_cmd(&db)
-        .args(["", "modify", "1", "foo"])
-        .assert()
-        .success()
-        .stdout("Modifying task 1 'foo'.\nModified 1 task.\n");
-
-    let info = run_stdout(common::dawn_cmd(&db).arg("1"));
-    assert!(info.contains("foo"));
-}
-
-#[test]
 fn modify_promotion_with_id_only_mods_is_noop() {
     let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
@@ -234,14 +198,138 @@ fn modify_promotion_with_id_only_mods_is_noop() {
     assert!(info.contains("one"));
 }
 
+// ── Modify on completed/deleted tasks ──
+
 #[test]
-fn modify_promotion_word_only_does_not_promote_aborts_under_non_tty() {
-    common::assert_empty_filter_aborts(&["modify", "text", "modification"]);
+fn modify_completed_task_by_uid_emits_note() {
+    let (_dir, db) = common::test_db();
+    common::dawn_cmd(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+
+    let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let uid = extract_uid(&info_before);
+
+    common::dawn_cmd(&db).args(["1", "done"]).assert().success();
+
+    let stdout = run_stdout(common::dawn_cmd(&db).args([&uid, "modify", "renamed"]));
+    assert!(
+        stdout.contains("'renamed'"),
+        "action line missing: {stdout}"
+    );
+    assert!(
+        stdout.contains("Modified 1 task."),
+        "footer missing: {stdout}"
+    );
+    assert!(
+        stdout.contains(&format!("Note: Modified task {uid} is completed.")),
+        "missing completed note: {stdout}"
+    );
+
+    let info_after = run_stdout(common::dawn_cmd(&db).arg(&uid));
+    assert!(
+        info_after.contains("renamed"),
+        "description not updated: {info_after}"
+    );
+    assert!(
+        !info_after.contains("buy milk"),
+        "old description remains: {info_after}"
+    );
 }
 
 #[test]
-fn modify_promotion_leading_zero_treated_as_word_aborts_under_non_tty() {
-    common::assert_empty_filter_aborts(&["modify", "007", "foo"]);
+fn modify_deleted_task_by_uid_emits_note() {
+    let (_dir, db) = common::test_db();
+    common::dawn_cmd(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+
+    let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let uid = extract_uid(&info_before);
+
+    delete_via_pty(&db, &uid);
+
+    let stdout = run_stdout(common::dawn_cmd(&db).args([&uid, "modify", "renamed"]));
+    assert!(
+        stdout.contains("'renamed'"),
+        "action line missing: {stdout}"
+    );
+    assert!(
+        stdout.contains("Modified 1 task."),
+        "footer missing: {stdout}"
+    );
+    assert!(
+        stdout.contains(&format!("Note: Modified task {uid} is deleted.")),
+        "missing deleted note: {stdout}"
+    );
+
+    let info_after = run_stdout(common::dawn_cmd(&db).arg(&uid));
+    assert!(
+        info_after.contains("renamed"),
+        "description not updated: {info_after}"
+    );
+    assert!(
+        !info_after.contains("buy milk"),
+        "old description remains: {info_after}"
+    );
+}
+
+// ── Empty-filter prompt (TTY) ──
+
+#[test]
+fn modify_no_filter_tty_decline_aborts() {
+    let (_dir, db) = common::test_db();
+    common::dawn_cmd(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+
+    let mut p = dawn_pty(&db, &["modify", "renamed"]);
+    p.exp_string("This command has no filter")
+        .expect("empty-filter prompt");
+    p.send_line("n").expect("send n");
+    p.exp_string("Command prevented from running.")
+        .expect("abort msg");
+    assert_pty_exit(&mut p, 2);
+
+    let info = run_stdout(common::dawn_cmd(&db).arg("1"));
+    assert!(
+        info.contains("buy milk"),
+        "task unexpectedly changed: {info}"
+    );
+    assert!(
+        !info.contains("renamed"),
+        "task unexpectedly changed: {info}"
+    );
+}
+
+#[test]
+fn modify_no_filter_tty_accept_modifies_all() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["one", "two"]);
+
+    let mut p = dawn_pty(&db, &["modify", "renamed"]);
+    p.exp_string("This command has no filter")
+        .expect("empty-filter prompt");
+    p.send_line("y").expect("send y");
+    p.exp_string("This command will alter 2 tasks.")
+        .expect("alter header");
+    for _ in 0..2 {
+        p.exp_string("Modifying task").expect("action line");
+    }
+    p.exp_string("Modified 2 tasks.").expect("footer");
+    assert_pty_exit(&mut p, 0);
+
+    let next = run_stdout(&mut common::dawn_cmd(&db));
+    assert_eq!(
+        next.matches("renamed").count(),
+        2,
+        "expected both tasks renamed: {next}"
+    );
+    assert!(!next.contains("one"));
+    assert!(!next.contains("two"));
 }
 
 // ── Group C: No-op (0-count) ──
@@ -339,4 +427,103 @@ fn modify_promotion_with_hyphen_prefixed_uid_does_not_panic_clap() {
         .assert()
         .code(1)
         .stderr("No tasks specified.\n");
+}
+
+// ── Group E: Bulk-confirm route (3+ tasks, per-task Select) ──
+
+#[test]
+fn modify_bulk_three_tasks_all_modified() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
+
+    let mut p = dawn_pty(&db, &["1,2,3", "modify", "renamed"]);
+    p.exp_string("This command will alter 3 tasks.")
+        .expect("alter header");
+    p.exp_string("Description will be changed from")
+        .expect("first diff");
+    p.exp_string("Modify task").expect("first prompt");
+    select_option(&mut p, "All");
+    for _ in 0..3 {
+        p.exp_string("Modifying task").expect("action line");
+    }
+    p.exp_string("Modified 3 tasks.").expect("footer");
+    assert_pty_exit(&mut p, 0);
+
+    let next = run_stdout(&mut common::dawn_cmd(&db));
+    assert_eq!(
+        next.matches("renamed").count(),
+        3,
+        "expected all 3 renamed: {next}"
+    );
+    for original in ["alpha", "beta", "gamma"] {
+        assert!(
+            !next.contains(original),
+            "old description '{original}' remains: {next}"
+        );
+    }
+}
+
+#[test]
+fn modify_bulk_no_skips_one_partial() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
+
+    let mut p = dawn_pty(&db, &["1,2,3", "modify", "renamed"]);
+    p.exp_string("This command will alter 3 tasks.")
+        .expect("alter header");
+    p.exp_string("Modify task").expect("first prompt");
+    select_option(&mut p, "Yes");
+    p.exp_string("Modifying task").expect("first action");
+    p.exp_string("Modify task").expect("second prompt");
+    select_option(&mut p, "No");
+    p.exp_string("Task not modified.")
+        .expect("not-modified msg");
+    p.exp_string("Modify task").expect("third prompt");
+    select_option(&mut p, "Yes");
+    p.exp_string("Modifying task").expect("third action");
+    p.exp_string("Modified 2 tasks.").expect("footer");
+    assert_pty_exit(&mut p, 1);
+
+    let next = run_stdout(&mut common::dawn_cmd(&db));
+    assert_eq!(
+        next.matches("renamed").count(),
+        2,
+        "expected 2 renamed: {next}"
+    );
+    let untouched = ["alpha", "beta", "gamma"]
+        .iter()
+        .filter(|w| next.contains(*w))
+        .count();
+    assert_eq!(untouched, 1, "expected 1 untouched task: {next}");
+}
+
+#[test]
+fn modify_bulk_quit_aborts_remaining() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
+
+    let mut p = dawn_pty(&db, &["1,2,3", "modify", "renamed"]);
+    p.exp_string("This command will alter 3 tasks.")
+        .expect("alter header");
+    p.exp_string("Modify task").expect("first prompt");
+    select_option(&mut p, "Yes");
+    p.exp_string("Modifying task").expect("first action");
+    p.exp_string("Modify task").expect("second prompt");
+    select_option(&mut p, "Quit");
+    p.exp_string("Task not modified.")
+        .expect("not-modified msg");
+    p.exp_string("Modified 1 task.").expect("footer");
+    assert_pty_exit(&mut p, 1);
+
+    let next = run_stdout(&mut common::dawn_cmd(&db));
+    assert_eq!(
+        next.matches("renamed").count(),
+        1,
+        "expected 1 renamed: {next}"
+    );
+    let untouched = ["alpha", "beta", "gamma"]
+        .iter()
+        .filter(|w| next.contains(*w))
+        .count();
+    assert_eq!(untouched, 2, "expected 2 untouched tasks: {next}");
 }

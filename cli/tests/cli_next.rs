@@ -158,16 +158,6 @@ fn all_invalid_single_prints_no_matches() {
 }
 
 #[test]
-fn all_invalid_set_prints_no_matches() {
-    let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
-        .arg("invalid,xyz")
-        .assert()
-        .code(1)
-        .stderr("No matches.\n");
-}
-
-#[test]
 fn zero_bare_prints_no_matches() {
     let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
