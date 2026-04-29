@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::CliError;
+use crate::{CliError, table::date_format::format_date};
 use inquire::{Confirm, Select};
 
 // Threshold for requiring individual confirmation on bulk modify operations
@@ -32,30 +32,35 @@ pub(crate) fn validate_tasks(tasks: &[Task]) -> Result<(), CliError> {
 /// Action type for bulk operations: determines message wording
 pub(crate) enum Action {
     Modify,
+    Complete,
 }
 
 impl Action {
     fn verb_present(&self) -> &'static str {
         match self {
             Action::Modify => "Modify",
+            Action::Complete => "Complete",
         }
     }
 
     fn verb_past(&self) -> &'static str {
         match self {
             Self::Modify => "Modified",
+            Self::Complete => "Completed",
         }
     }
 
     fn verb_ing(&self) -> &'static str {
         match self {
             Action::Modify => "Modifying",
+            Action::Complete => "Completed",
         }
     }
 
     fn not_done_msg(&self) -> &'static str {
         match self {
             Action::Modify => "Task not modified.",
+            Action::Complete => "Task not completed.",
         }
     }
 }
@@ -84,7 +89,7 @@ pub(crate) fn collect_approved_ids<'a>(
             if i != 0 {
                 println!();
             }
-            print_diff(task, modification);
+            print_diff(task, modification)?;
             confirm_bulk(&display_id, &task.description, action)?
         } else {
             ConfirmResult::Yes
@@ -121,14 +126,41 @@ pub(crate) fn get_display_id(task: &Task) -> String {
     }
 }
 
-/// Print diff for a task before confirmation (3+ tasks mode)
-fn print_diff(task: &Task, modification: &TaskModification) {
+// Print diff for a task before confirmation (3+ tasks mode)
+fn print_diff(task: &Task, modification: &TaskModification) -> anyhow::Result<()> {
     if let Some(new_desc) = &modification.description {
         println!(
             "  - Description will be changed from '{}' to '{}'.",
             task.description, new_desc
         );
     }
+
+    // "End will be set" message for complete action
+    if let Some(Some(timestamp)) = &modification.completed
+        && task.completed.is_none()
+    {
+        let date = format_date(timestamp, &Local)?;
+        println!("  - End will be set to '{}'.", date);
+    }
+
+    let new_status = if matches!(&modification.deleted, Some(Some(_))) {
+        Some("deleted")
+    } else if matches!(&modification.completed, Some(Some(_))) {
+        Some("completed")
+    } else if modification.completed == Some(None) || modification.deleted == Some(None) {
+        Some("pending")
+    } else {
+        None
+    };
+    if let Some(status) = new_status {
+        let old_status = task.status().to_string().to_lowercase();
+        println!(
+            "  - Status will be changed from '{} to '{}'.",
+            old_status, status
+        );
+    }
+
+    Ok(())
 }
 
 enum ConfirmResult {
