@@ -64,48 +64,20 @@ fn collect_approved_ids_for_delete<'a>(
     candidates: &[&'a Task],
     modification: &TaskModification,
 ) -> anyhow::Result<Vec<&'a UniqueID>> {
-    let mut approved: Vec<&UniqueID> = Vec::new();
     let is_single = candidates.len() == 1;
-
-    for (i, task) in candidates.iter().enumerate() {
+    process_confirmations(action, candidates, modification, |i, task| {
         let display_id = get_display_id(task);
-        let prompt = format!("Delete task {} '{}'?", display_id, task.description);
-
-        let result = if is_single {
-            // yes/no confirmation
-            if Confirm::new(&prompt).with_default(false).prompt()? {
+        if is_single {
+            let prompt = format!("Delete task {} '{}'?", display_id, task.description);
+            return Ok(if Confirm::new(&prompt).with_default(false).prompt()? {
                 ConfirmResult::Yes
             } else {
                 ConfirmResult::No
-            }
-        } else {
-            if i != 0 {
-                println!();
-            }
-            // yes/no/all/quit confirmation
-            confirm_bulk(&display_id, &task.description, action)?
-        };
-
-        match result {
-            ConfirmResult::Yes => {
-                print_action(action, task, modification);
-                approved.push(&task.uid);
-            }
-            ConfirmResult::No => {
-                println!("{}", action.not_done_msg());
-            }
-            ConfirmResult::All => {
-                for remaining in &candidates[i..] {
-                    print_action(action, remaining, modification);
-                    approved.push(&remaining.uid);
-                }
-                break;
-            }
-            ConfirmResult::Quit => {
-                println!("{}", action.not_done_msg());
-                break;
-            }
+            });
         }
-    }
-    Ok(approved)
+        if i != 0 {
+            println!();
+        }
+        confirm_bulk(&display_id, &task.description, action)
+    })
 }
