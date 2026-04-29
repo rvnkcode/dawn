@@ -31,6 +31,8 @@
       "Bash(cargo audit:*)",
       "Bash(cargo fmt:*)",
       "Bash(cargo clippy:*)",
+      "Bash(cargo doc:*)",
+      "Bash(cargo search:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
       "Bash(git status:*)"
