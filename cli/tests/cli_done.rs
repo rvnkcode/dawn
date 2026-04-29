@@ -244,6 +244,50 @@ fn done_already_deleted_task_skipped_partial() {
     );
 }
 
+// Filter resolves to one already-completed task and one pending task.
+// The matched count (2) exceeds the approved count (1) so the command exits
+// Partial — matching Taskwarrior's behavior when only a subset of the
+// matched tasks could be acted on. With <3 matches, no per-task prompt fires
+// and the surviving candidate is auto-approved.
+#[test]
+fn done_mixed_pending_and_completed_partial() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta"]);
+
+    // alpha/beta ↔ index mapping is non-deterministic — capture both UIDs
+    // before the fixture completion so the test does not depend on it.
+    let uid_first = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("1")));
+    let uid_second = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("2")));
+
+    common::dawn_cmd(&db)
+        .args([&uid_first, "done"])
+        .assert()
+        .success();
+
+    let target = format!("{uid_first},{uid_second}");
+    let out = common::dawn_cmd(&db)
+        .args([&target, "done"])
+        .output()
+        .expect("run");
+    assert_eq!(out.status.code(), Some(1), "expected Partial exit 1");
+    assert!(out.stderr.is_empty(), "Partial should not write stderr");
+    let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
+    assert!(
+        stdout.contains("This command will alter 2 tasks."),
+        "missing pre-filter alter header: {stdout}"
+    );
+    assert!(
+        stdout.contains("is neither pending nor waiting."),
+        "missing skip warning: {stdout}"
+    );
+    assert!(
+        stdout.contains("Completed 1 task."),
+        "missing 1-count footer: {stdout}"
+    );
+
+    assert_no_pending_tasks(&db);
+}
+
 // ── Group E: Bulk-confirm route (3+ tasks, per-task Select) ──
 
 #[test]

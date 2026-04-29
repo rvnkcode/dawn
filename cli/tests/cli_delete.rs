@@ -261,6 +261,38 @@ fn delete_already_deleted_task_skipped_partial() {
     );
 }
 
+// Filter resolves to one already-deleted task and one pending task.
+// The matched count (2) exceeds the approved count (1) so the command exits
+// Partial — matching Taskwarrior's behavior when only a subset of the
+// matched tasks could be acted on.
+#[test]
+fn delete_mixed_pending_and_deleted_partial() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta"]);
+
+    // alpha/beta ↔ index mapping is non-deterministic — capture both UIDs
+    // before the fixture deletion so the test does not depend on it.
+    let uid_first = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("1")));
+    let uid_second = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("2")));
+
+    delete_via_pty(&db, &uid_first);
+
+    let target = format!("{uid_first},{uid_second}");
+    let mut p = dawn_pty(&db, &[&target, "delete"]);
+    p.exp_string("This command will alter 2 tasks.")
+        .expect("alter header counts pre-filter");
+    p.exp_string("is not deletable.")
+        .expect("not-deletable warning for already-deleted task");
+    // Single candidate after filtering → yes/no Confirm path, not Select.
+    p.exp_string("Delete task").expect("single-confirm prompt");
+    p.send_line("y").expect("send y");
+    p.exp_string("Deleting task").expect("action line");
+    p.exp_string("Deleted 1 task.").expect("footer");
+    assert_pty_exit(&mut p, 1);
+
+    assert_no_pending_tasks(&db);
+}
+
 #[test]
 fn delete_user_declines_partial() {
     let (_dir, db) = common::test_db();

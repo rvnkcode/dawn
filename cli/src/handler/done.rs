@@ -33,7 +33,7 @@ impl<TS: TaskService> Handler<TS> {
 
         self.task_service.modify(&modification, &approved_ids)?;
         print_result(&action, approved_ids.len());
-        if candidates.len() > approved_ids.len() {
+        if tasks.len() > approved_ids.len() {
             return Err(CliError::Partial);
         }
         Ok(())
