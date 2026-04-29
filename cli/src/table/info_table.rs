@@ -1,4 +1,4 @@
-use crate::table::date_format::{format_absolute, format_with_age};
+use crate::table::date_format::{DATETIME_FMT, format_absolute, format_with_age};
 use chrono::Local;
 use colored::control::SHOULD_COLORIZE;
 use dawn::domain::task::Task;
@@ -44,13 +44,13 @@ impl InfoTable {
         if let Some(completed) = &task.completed {
             rows.push(InfoRow {
                 name: "End".to_string(),
-                value: format_absolute(completed, &Local)?.to_string(),
+                value: format_absolute(completed, &Local, DATETIME_FMT)?.to_string(),
             });
         }
         if let Some(deleted) = &task.deleted {
             rows.push(InfoRow {
                 name: "Deleted".to_string(),
-                value: format_absolute(deleted, &Local)?.to_string(),
+                value: format_absolute(deleted, &Local, DATETIME_FMT)?.to_string(),
             });
         }
         rows.push(InfoRow {
