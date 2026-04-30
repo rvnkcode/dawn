@@ -16,14 +16,15 @@ static SET_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(&format!(r"^{id_segment}(?:,{id_segment})+$")).unwrap()
 });
 
+/// List types to display when no command is present
 #[derive(Debug, PartialEq)]
 pub(crate) enum DefaultCommand {
     Next(Filter),
     Info(Filter),
 }
 
-// Default list; without any command input
-pub(crate) fn parse_and_determine_command(raw_terms: &[String]) -> DefaultCommand {
+/// No command word: pre→Filter, with bare-id heuristic for Info/Next routing
+pub(crate) fn parse_default(raw_terms: &[String]) -> DefaultCommand {
     let (filter, has_bare_id) = classify(raw_terms);
     if has_bare_id {
         DefaultCommand::Info(filter)
@@ -32,13 +33,18 @@ pub(crate) fn parse_and_determine_command(raw_terms: &[String]) -> DefaultComman
     }
 }
 
-pub(crate) fn parse_from_mods(pre: &[String], mods: &[String]) -> (Filter, Option<Description>) {
-    let pre_filter = parse(pre);
+/// Read-only report (e.g. `all`): pre and post merge into a single filter pass
+pub(crate) fn parse_report(pre: &[String], post: &[String]) -> Filter {
+    classify(pre.iter().chain(post)).0
+}
+
+/// Mutation (modify/done/delete): pre→filter, post→description or annotation
+pub(crate) fn parse_mutation(pre: &[String], post: &[String]) -> (Filter, Option<Description>) {
+    let pre_filter = classify(pre).0;
     if pre_filter.is_empty() {
-        promote_ids_from_mods(mods)
+        promote_ids_from_post(post)
     } else {
-        // join mods args input into a new description
-        let desc: Vec<&str> = mods
+        let desc: Vec<&str> = post
             .iter()
             .map(|s| s.trim())
             .filter(|s| !s.is_empty())
@@ -53,11 +59,7 @@ pub(crate) fn parse_from_mods(pre: &[String], mods: &[String]) -> (Filter, Optio
     }
 }
 
-fn parse(raw_terms: &[String]) -> Filter {
-    classify(raw_terms).0
-}
-
-fn classify(raw_terms: &[String]) -> (Filter, bool) {
+fn classify<S: AsRef<str>>(raw_terms: impl IntoIterator<Item = S>) -> (Filter, bool) {
     let p = process_terms(raw_terms);
     let filter = Filter::default()
         .with_uids(p.uids)
@@ -66,9 +68,10 @@ fn classify(raw_terms: &[String]) -> (Filter, bool) {
     (filter, p.has_bare_id)
 }
 
-// Parse ID filters from modifications, promoting to filter if pre-command filter is empty
-fn promote_ids_from_mods(mods: &[String]) -> (Filter, Option<Description>) {
-    let parsed = process_terms(mods);
+// Promotes IDs from post into the filter when pre filter is empty;
+// remaining words become the description or annotation
+fn promote_ids_from_post(post: &[String]) -> (Filter, Option<Description>) {
+    let parsed = process_terms(post);
     let filter = Filter::default()
         .with_uids(parsed.uids)
         .with_indices(parsed.indices);
@@ -89,11 +92,11 @@ struct Parsed {
     has_bare_id: bool,
 }
 
-fn process_terms(raw_terms: &[String]) -> Parsed {
+fn process_terms<S: AsRef<str>>(raw_terms: impl IntoIterator<Item = S>) -> Parsed {
     let mut out = Parsed::default();
 
     for raw in raw_terms {
-        let fragment = raw.trim();
+        let fragment = raw.as_ref().trim();
         if fragment.is_empty() {
             continue;
         }
@@ -166,7 +169,7 @@ mod tests {
     #[test]
     fn single_uid_bare_yields_info() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["abcdefghi-_0"])),
+            parse_default(&raw(&["abcdefghi-_0"])),
             DefaultCommand::Info(Filter::default().with_uids([uid("abcdefghi-_0")])),
         );
     }
@@ -174,7 +177,7 @@ mod tests {
     #[test]
     fn single_index_bare_yields_info() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["42"])),
+            parse_default(&raw(&["42"])),
             DefaultCommand::Info(Filter::default().with_indices([idx(42)])),
         );
     }
@@ -182,7 +185,7 @@ mod tests {
     #[test]
     fn twelve_digit_numeric_parses_as_uid() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["123456789012"])),
+            parse_default(&raw(&["123456789012"])),
             DefaultCommand::Info(Filter::default().with_uids([uid("123456789012")])),
         );
     }
@@ -190,7 +193,7 @@ mod tests {
     #[test]
     fn multiple_bare_args_merge_and_yield_info() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["1", "2"])),
+            parse_default(&raw(&["1", "2"])),
             DefaultCommand::Info(Filter::default().with_indices([idx(1), idx(2)])),
         );
     }
@@ -200,7 +203,7 @@ mod tests {
     #[test]
     fn comma_separated_indices_yield_next() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["1,2,3"])),
+            parse_default(&raw(&["1,2,3"])),
             DefaultCommand::Next(Filter::default().with_indices([idx(1), idx(2), idx(3)])),
         );
     }
@@ -208,7 +211,7 @@ mod tests {
     #[test]
     fn set_with_index_and_uid_yields_next() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["1,abcdefghi-_0"])),
+            parse_default(&raw(&["1,abcdefghi-_0"])),
             DefaultCommand::Next(
                 Filter::default()
                     .with_indices([idx(1)])
@@ -221,7 +224,7 @@ mod tests {
     fn multiple_set_args_merge_and_dedup() {
         // Overlapping "2" is deduped by HashSet.
         assert_eq!(
-            parse_and_determine_command(&raw(&["1,2", "2,3"])),
+            parse_default(&raw(&["1,2", "2,3"])),
             DefaultCommand::Next(Filter::default().with_indices([idx(1), idx(2), idx(3)])),
         );
     }
@@ -229,7 +232,7 @@ mod tests {
     #[test]
     fn duplicates_within_set_are_deduped() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["1,1,1"])),
+            parse_default(&raw(&["1,1,1"])),
             DefaultCommand::Next(Filter::default().with_indices([idx(1)])),
         );
     }
@@ -239,7 +242,7 @@ mod tests {
     #[test]
     fn bare_plus_set_yields_info_with_union() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["1", "2,3"])),
+            parse_default(&raw(&["1", "2,3"])),
             DefaultCommand::Info(Filter::default().with_indices([idx(1), idx(2), idx(3)])),
         );
     }
@@ -248,7 +251,7 @@ mod tests {
     fn set_and_bare_with_overlapping_ids_dedup() {
         // Bare "2" overlaps with set "2" — deduped to {1, 2}.
         assert_eq!(
-            parse_and_determine_command(&raw(&["1,2", "2"])),
+            parse_default(&raw(&["1,2", "2"])),
             DefaultCommand::Info(Filter::default().with_indices([idx(1), idx(2)])),
         );
     }
@@ -258,7 +261,7 @@ mod tests {
     #[test]
     fn invalid_bare_collected_as_word() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["invalid"])),
+            parse_default(&raw(&["invalid"])),
             DefaultCommand::Next(Filter::default().with_words(["invalid"])),
         );
     }
@@ -266,7 +269,7 @@ mod tests {
     #[test]
     fn zero_bare_collected_as_word() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["0"])),
+            parse_default(&raw(&["0"])),
             DefaultCommand::Next(Filter::default().with_words(["0"])),
         );
     }
@@ -274,7 +277,7 @@ mod tests {
     #[test]
     fn non_ascii_bare_collected_as_word() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["한국어"])),
+            parse_default(&raw(&["한국어"])),
             DefaultCommand::Next(Filter::default().with_words(["한국어"])),
         );
     }
@@ -282,7 +285,7 @@ mod tests {
     #[test]
     fn invalid_bare_mixed_with_set_collected_as_word() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["invalid", "1,2"])),
+            parse_default(&raw(&["invalid", "1,2"])),
             DefaultCommand::Next(
                 Filter::default()
                     .with_indices([idx(1), idx(2)])
@@ -296,7 +299,7 @@ mod tests {
     #[test]
     fn invalid_segment_in_set_demotes_whole_token_to_word() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["1,invalid,2"])),
+            parse_default(&raw(&["1,invalid,2"])),
             DefaultCommand::Next(Filter::default().with_words(["1,invalid,2"])),
         );
     }
@@ -304,7 +307,7 @@ mod tests {
     #[test]
     fn all_invalid_set_demotes_to_word() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["invalid,xyz"])),
+            parse_default(&raw(&["invalid,xyz"])),
             DefaultCommand::Next(Filter::default().with_words(["invalid,xyz"])),
         );
     }
@@ -314,7 +317,7 @@ mod tests {
     #[test]
     fn empty_string_yields_next_with_empty_filter() {
         assert_eq!(
-            parse_and_determine_command(&raw(&[""])),
+            parse_default(&raw(&[""])),
             DefaultCommand::Next(Filter::default())
         );
     }
@@ -322,7 +325,7 @@ mod tests {
     #[test]
     fn double_comma_demotes_to_word() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["1,,2"])),
+            parse_default(&raw(&["1,,2"])),
             DefaultCommand::Next(Filter::default().with_words(["1,,2"])),
         );
     }
@@ -330,7 +333,7 @@ mod tests {
     #[test]
     fn trailing_comma_demotes_to_word() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["1,"])),
+            parse_default(&raw(&["1,"])),
             DefaultCommand::Next(Filter::default().with_words(["1,"])),
         );
     }
@@ -338,7 +341,7 @@ mod tests {
     #[test]
     fn leading_comma_demotes_to_word() {
         assert_eq!(
-            parse_and_determine_command(&raw(&[",1"])),
+            parse_default(&raw(&[",1"])),
             DefaultCommand::Next(Filter::default().with_words([",1"])),
         );
     }
@@ -346,7 +349,7 @@ mod tests {
     #[test]
     fn whitespace_around_comma_demotes_to_word() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["1 , 2"])),
+            parse_default(&raw(&["1 , 2"])),
             DefaultCommand::Next(Filter::default().with_words(["1 , 2"])),
         );
     }
@@ -354,7 +357,7 @@ mod tests {
     #[test]
     fn outer_whitespace_trimmed_then_parsed_as_set() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["  1,2  "])),
+            parse_default(&raw(&["  1,2  "])),
             DefaultCommand::Next(Filter::default().with_indices([idx(1), idx(2)])),
         );
     }
@@ -364,7 +367,7 @@ mod tests {
     #[test]
     fn bare_word_collected_into_words() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["hello"])),
+            parse_default(&raw(&["hello"])),
             DefaultCommand::Next(Filter::default().with_words(["hello"])),
         );
     }
@@ -372,7 +375,7 @@ mod tests {
     #[test]
     fn multiple_bare_words_collected() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["hello", "world"])),
+            parse_default(&raw(&["hello", "world"])),
             DefaultCommand::Next(Filter::default().with_words(["hello", "world"])),
         );
     }
@@ -380,7 +383,7 @@ mod tests {
     #[test]
     fn bare_id_with_word_yields_info_with_word_filter() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["1", "hello"])),
+            parse_default(&raw(&["1", "hello"])),
             DefaultCommand::Info(
                 Filter::default()
                     .with_indices([idx(1)])
@@ -392,7 +395,7 @@ mod tests {
     #[test]
     fn set_with_word_yields_next_with_both() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["1,2", "hello"])),
+            parse_default(&raw(&["1,2", "hello"])),
             DefaultCommand::Next(
                 Filter::default()
                     .with_indices([idx(1), idx(2)])
@@ -404,7 +407,7 @@ mod tests {
     #[test]
     fn duplicate_words_deduped() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["hello", "hello"])),
+            parse_default(&raw(&["hello", "hello"])),
             DefaultCommand::Next(Filter::default().with_words(["hello"])),
         );
     }
@@ -412,7 +415,7 @@ mod tests {
     #[test]
     fn surrounding_whitespace_on_word_trimmed() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["  hello  "])),
+            parse_default(&raw(&["  hello  "])),
             DefaultCommand::Next(Filter::default().with_words(["hello"])),
         );
     }
@@ -422,7 +425,7 @@ mod tests {
         // Strict SET_RE rejects "0" as an index segment, so the whole token
         // falls through and becomes a single word.
         assert_eq!(
-            parse_and_determine_command(&raw(&["1,0,2"])),
+            parse_default(&raw(&["1,0,2"])),
             DefaultCommand::Next(Filter::default().with_words(["1,0,2"])),
         );
     }
@@ -432,7 +435,7 @@ mod tests {
     #[test]
     fn twelve_letter_lowercase_collected_as_word() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["breakthrough"])),
+            parse_default(&raw(&["breakthrough"])),
             DefaultCommand::Next(Filter::default().with_words(["breakthrough"])),
         );
     }
@@ -440,7 +443,7 @@ mod tests {
     #[test]
     fn twelve_letter_title_case_collected_as_word() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["Acknowledged"])),
+            parse_default(&raw(&["Acknowledged"])),
             DefaultCommand::Next(Filter::default().with_words(["Acknowledged"])),
         );
     }
@@ -449,7 +452,7 @@ mod tests {
     fn twelve_letter_all_uppercase_unaffected_by_heuristic() {
         // ALL CAPS is intentionally outside the heuristic — treated as UID.
         assert_eq!(
-            parse_and_determine_command(&raw(&["BREAKTHROUGH"])),
+            parse_default(&raw(&["BREAKTHROUGH"])),
             DefaultCommand::Info(Filter::default().with_uids([uid("BREAKTHROUGH")])),
         );
     }
@@ -457,7 +460,7 @@ mod tests {
     #[test]
     fn uid_with_digit_unaffected_by_heuristic() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["abc1efghijkl"])),
+            parse_default(&raw(&["abc1efghijkl"])),
             DefaultCommand::Info(Filter::default().with_uids([uid("abc1efghijkl")])),
         );
     }
@@ -467,7 +470,7 @@ mod tests {
     #[test]
     fn bare_leading_zero_collected_as_word() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["007"])),
+            parse_default(&raw(&["007"])),
             DefaultCommand::Next(Filter::default().with_words(["007"])),
         );
     }
@@ -475,7 +478,7 @@ mod tests {
     #[test]
     fn bare_double_zero_collected_as_word() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["00"])),
+            parse_default(&raw(&["00"])),
             DefaultCommand::Next(Filter::default().with_words(["00"])),
         );
     }
@@ -483,7 +486,7 @@ mod tests {
     #[test]
     fn set_with_leading_zero_segment_demoted_to_word() {
         assert_eq!(
-            parse_and_determine_command(&raw(&["1,007"])),
+            parse_default(&raw(&["1,007"])),
             DefaultCommand::Next(Filter::default().with_words(["1,007"])),
         );
     }
@@ -494,7 +497,7 @@ mod tests {
         // heuristic is intentionally skipped inside sets. "breakthrough" is
         // parsed as a UID alongside index 1.
         assert_eq!(
-            parse_and_determine_command(&raw(&["breakthrough,1"])),
+            parse_default(&raw(&["breakthrough,1"])),
             DefaultCommand::Next(
                 Filter::default()
                     .with_indices([idx(1)])
@@ -508,26 +511,26 @@ mod tests {
     #[test]
     fn empty_input_yields_next_with_empty_filter() {
         assert_eq!(
-            parse_and_determine_command(&raw(&[])),
+            parse_default(&raw(&[])),
             DefaultCommand::Next(Filter::default())
         );
     }
 
-    // ── parse_modification: 비-promotion (pre 비어있지 않음) ──
+    // ── mutation: no promotion (pre is non-empty) ──
 
     #[test]
-    fn parse_modification_pre_index_mods_word() {
+    fn mutation_pre_index_post_word() {
         assert_eq!(
-            parse_from_mods(&raw(&["1"]), &raw(&["foo"])),
+            parse_mutation(&raw(&["1"]), &raw(&["foo"])),
             (Filter::default().with_indices([idx(1)]), Some(desc("foo")),),
         );
     }
 
     #[test]
-    fn parse_modification_pre_index_mods_id_shaped_stays_in_description() {
-        // pre가 비어있지 않으므로 promotion 발동하지 않고, post의 "2"도 description으로 합쳐짐
+    fn mutation_pre_index_post_id_shaped_stays_in_description() {
+        // pre is non-empty, so promotion does not trigger; post's "2" is folded into the description
         assert_eq!(
-            parse_from_mods(&raw(&["1"]), &raw(&["2", "foo"])),
+            parse_mutation(&raw(&["1"]), &raw(&["2", "foo"])),
             (
                 Filter::default().with_indices([idx(1)]),
                 Some(desc("2 foo")),
@@ -536,44 +539,44 @@ mod tests {
     }
 
     #[test]
-    fn parse_modification_pre_word_mods_word() {
+    fn mutation_pre_word_post_word() {
         assert_eq!(
-            parse_from_mods(&raw(&["hello"]), &raw(&["foo"])),
+            parse_mutation(&raw(&["hello"]), &raw(&["foo"])),
             (Filter::default().with_words(["hello"]), Some(desc("foo")),),
         );
     }
 
     #[test]
-    fn parse_modification_pre_index_mods_empty_yields_no_description() {
+    fn mutation_pre_index_post_empty_yields_no_description() {
         assert_eq!(
-            parse_from_mods(&raw(&["1"]), &raw(&[])),
+            parse_mutation(&raw(&["1"]), &raw(&[])),
             (Filter::default().with_indices([idx(1)]), None),
         );
     }
 
-    // ── parse_modification: promotion (pre가 빈 vec 또는 빈 string만) ──
+    // ── mutation: promotion (pre is empty vec or only blank strings) ──
 
     #[test]
-    fn parse_modification_empty_pre_promotes_index() {
+    fn mutation_empty_pre_promotes_index() {
         assert_eq!(
-            parse_from_mods(&raw(&[]), &raw(&["1", "foo"])),
+            parse_mutation(&raw(&[]), &raw(&["1", "foo"])),
             (Filter::default().with_indices([idx(1)]), Some(desc("foo")),),
         );
     }
 
     #[test]
-    fn parse_modification_blank_pre_strings_treated_as_empty() {
-        // raw Vec은 비어있지 않지만 trim 결과 empty fragment만 → promotion 발동
+    fn mutation_blank_pre_strings_treated_as_empty() {
+        // raw Vec is non-empty but trim leaves only empty fragments → promotion triggers
         assert_eq!(
-            parse_from_mods(&raw(&[""]), &raw(&["1", "foo"])),
+            parse_mutation(&raw(&[""]), &raw(&["1", "foo"])),
             (Filter::default().with_indices([idx(1)]), Some(desc("foo")),),
         );
     }
 
     #[test]
-    fn parse_modification_whitespace_only_pre_promotes_uid() {
+    fn mutation_whitespace_only_pre_promotes_uid() {
         assert_eq!(
-            parse_from_mods(&raw(&["", "  "]), &raw(&["abcdefghi-_0", "new"])),
+            parse_mutation(&raw(&["", "  "]), &raw(&["abcdefghi-_0", "new"])),
             (
                 Filter::default().with_uids([uid("abcdefghi-_0")]),
                 Some(desc("new")),
@@ -582,9 +585,9 @@ mod tests {
     }
 
     #[test]
-    fn parse_modification_empty_pre_promotes_set() {
+    fn mutation_empty_pre_promotes_set() {
         assert_eq!(
-            parse_from_mods(&raw(&[]), &raw(&["1,2", "foo"])),
+            parse_mutation(&raw(&[]), &raw(&["1,2", "foo"])),
             (
                 Filter::default().with_indices([idx(1), idx(2)]),
                 Some(desc("foo")),
@@ -593,36 +596,105 @@ mod tests {
     }
 
     #[test]
-    fn parse_modification_empty_pre_word_only_does_not_promote() {
-        // taskwarrior parity: `task modify text modification`은 모두 description
+    fn mutation_empty_pre_word_only_does_not_promote() {
+        // taskwarrior parity: `task modify text modification` — all goes to description
         assert_eq!(
-            parse_from_mods(&raw(&[]), &raw(&["text", "modification"])),
+            parse_mutation(&raw(&[]), &raw(&["text", "modification"])),
             (Filter::default(), Some(desc("text modification"))),
         );
     }
 
     #[test]
-    fn parse_modification_empty_pre_leading_zero_treated_as_word() {
+    fn mutation_empty_pre_leading_zero_treated_as_word() {
         assert_eq!(
-            parse_from_mods(&raw(&[]), &raw(&["007", "foo"])),
+            parse_mutation(&raw(&[]), &raw(&["007", "foo"])),
             (Filter::default(), Some(desc("007 foo"))),
         );
     }
 
     #[test]
-    fn parse_modification_empty_pre_word_heuristic_demotion() {
-        // 12-letter all-lowercase는 word heuristic으로 description
+    fn mutation_empty_pre_word_heuristic_demotion() {
+        // 12-letter all-lowercase falls into the word heuristic → description
         assert_eq!(
-            parse_from_mods(&raw(&[]), &raw(&["breakthrough", "foo"])),
+            parse_mutation(&raw(&[]), &raw(&["breakthrough", "foo"])),
             (Filter::default(), Some(desc("breakthrough foo")),),
         );
     }
 
     #[test]
-    fn parse_modification_empty_pre_and_mods() {
+    fn mutation_empty_pre_and_post() {
         assert_eq!(
-            parse_from_mods(&raw(&[]), &raw(&[])),
+            parse_mutation(&raw(&[]), &raw(&[])),
             (Filter::default(), None),
+        );
+    }
+
+    // ── report: both pre and post are treated as filter ──
+
+    #[test]
+    fn report_pre_only() {
+        assert_eq!(
+            parse_report(&raw(&["1", "hello"]), &raw(&[])),
+            Filter::default()
+                .with_indices([idx(1)])
+                .with_words(["hello"]),
+        );
+    }
+
+    #[test]
+    fn report_post_only() {
+        assert_eq!(
+            parse_report(&raw(&[]), &raw(&["1", "hello"])),
+            Filter::default()
+                .with_indices([idx(1)])
+                .with_words(["hello"]),
+        );
+    }
+
+    #[test]
+    fn report_merges_indices_from_both_sides() {
+        assert_eq!(
+            parse_report(&raw(&["1"]), &raw(&["2"])),
+            Filter::default().with_indices([idx(1), idx(2)]),
+        );
+    }
+
+    #[test]
+    fn report_merges_words_from_both_sides() {
+        assert_eq!(
+            parse_report(&raw(&["hello"]), &raw(&["world"])),
+            Filter::default().with_words(["hello", "world"]),
+        );
+    }
+
+    #[test]
+    fn report_dedupes_across_sides() {
+        assert_eq!(
+            parse_report(&raw(&["1"]), &raw(&["1"])),
+            Filter::default().with_indices([idx(1)]),
+        );
+    }
+
+    #[test]
+    fn report_set_in_post() {
+        assert_eq!(
+            parse_report(&raw(&[]), &raw(&["1,2,3"])),
+            Filter::default().with_indices([idx(1), idx(2), idx(3)]),
+        );
+    }
+
+    #[test]
+    fn report_both_empty_yields_empty_filter() {
+        assert_eq!(parse_report(&raw(&[]), &raw(&[])), Filter::default());
+    }
+
+    #[test]
+    fn report_uid_in_pre_word_in_post() {
+        assert_eq!(
+            parse_report(&raw(&["abcdefghi-_0"]), &raw(&["search"])),
+            Filter::default()
+                .with_uids([uid("abcdefghi-_0")])
+                .with_words(["search"]),
         );
     }
 }

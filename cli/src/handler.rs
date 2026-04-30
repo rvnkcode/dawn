@@ -5,13 +5,14 @@ mod update;
 
 use crate::error::CliError;
 use crate::filter::{self, DefaultCommand};
-use crate::table::{BaseTable, InfoTable, NextRow};
+use crate::table::{AllRow, BaseTable, InfoTable, NextRow, base::TableRow};
 use chrono::{Local, Utc};
 use dawn::domain::task::{
     Description, Filter, Status, Task, TaskCreation, TaskModification, Timestamp, UniqueID,
     port::TaskService,
 };
 
+use tabled::Tabled;
 // Re-export for submodules
 pub(crate) use update::*;
 
@@ -38,8 +39,14 @@ impl<TS: TaskService> Handler<TS> {
         Ok(())
     }
 
+    pub(crate) fn all(&self, raw_filters: &[String], mods: &[String]) -> Result<(), CliError> {
+        let filter = filter::parse_report(raw_filters, mods);
+        let tasks = self.task_service.list(&filter)?;
+        display_list_table::<AllRow>(tasks)
+    }
+
     pub(crate) fn default(&self, raw_filters: &[String]) -> Result<(), CliError> {
-        match filter::parse_and_determine_command(raw_filters) {
+        match filter::parse_default(raw_filters) {
             DefaultCommand::Next(filter) => self.next(filter),
             DefaultCommand::Info(filter) => self.info(&filter),
         }
@@ -48,19 +55,7 @@ impl<TS: TaskService> Handler<TS> {
     fn next(&self, filter: Filter) -> Result<(), CliError> {
         let filter = filter.with_statuses([Status::Pending]);
         let tasks = self.task_service.list(&filter)?;
-        if tasks.is_empty() {
-            return Err(CliError::NoMatch);
-        }
-        let table = BaseTable::<NextRow>::new(tasks.into_iter())?;
-        let count = table.count();
-        println!("{}", table.render());
-        println!();
-        if count == 1 {
-            println!("{} task", count);
-        } else {
-            println!("{} tasks", count);
-        }
-        Ok(())
+        display_list_table::<NextRow>(tasks)
     }
 
     fn info(&self, filter: &Filter) -> Result<(), CliError> {
@@ -78,4 +73,20 @@ impl<TS: TaskService> Handler<TS> {
         }
         Ok(())
     }
+}
+
+fn display_list_table<R: TableRow + Tabled>(tasks: Vec<Task>) -> Result<(), CliError> {
+    if tasks.is_empty() {
+        return Err(CliError::NoMatch);
+    }
+    let table = BaseTable::<R>::new(tasks.into_iter())?;
+    println!("{}", table.render());
+    println!();
+    let count = table.count();
+    if count == 1 {
+        println!("{} task", count);
+    } else {
+        println!("{} tasks", count);
+    }
+    Ok(())
 }
