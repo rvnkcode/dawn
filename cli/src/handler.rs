@@ -11,8 +11,8 @@ use dawn::domain::task::{
     Description, Filter, Status, Task, TaskCreation, TaskModification, Timestamp, UniqueID,
     port::TaskService,
 };
-
 use tabled::Tabled;
+
 // Re-export for submodules
 pub(crate) use update::*;
 
