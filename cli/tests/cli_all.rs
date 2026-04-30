@@ -278,9 +278,13 @@ fn all_word_filter_matches_across_statuses() {
         .assert()
         .success();
 
-    // Complete the task at index 1 — `next` would hide it, but `all` must
-    // still surface it under a word filter.
-    common::dawn_cmd(&db).args(["1", "done"]).assert().success();
+    // Complete one task by description (index↔description mapping is unstable
+    // when tasks share `entry` seconds — see `setup_tasks` doc). `next` would
+    // hide the completed row, but `all` must still surface it under a word filter.
+    common::dawn_cmd(&db)
+        .args(["shared", "keyword", "one", "done"])
+        .assert()
+        .success();
 
     let stdout = run_stdout(common::dawn_cmd(&db).args(["all", "shared"]));
     assert!(
