@@ -26,9 +26,9 @@ fn display_index(val: &Option<Index>) -> String {
 
 fn display_status(val: &Status) -> String {
     match val {
-        Status::Pending => "P".to_string(),
-        Status::Completed => "C".to_string(),
-        Status::Deleted => "D".to_string(),
+        Status::Pending => String::from("P"),
+        Status::Completed => String::from("C"),
+        Status::Deleted => String::from("D"),
     }
 }
 
