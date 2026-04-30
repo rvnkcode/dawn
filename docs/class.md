@@ -31,6 +31,10 @@ direction BT
       ~Modify
       ~Complete
       ~Delete
+      -verb_present(&self) &str
+      -verb_past(&self) &str
+      -verb_ing(&self) &str
+      ~not_done_msg(&self) &str
     }
 
     class Command {
@@ -109,7 +113,7 @@ direction BT
   }
 
   Cli ..> TaskService : accepts
-  Cli ..> Handler : calls
+  Cli ..> Handler~TS~ : calls
   Handler~TS~ ..> TaskService : where TS is TaskService
 
   %% Create
@@ -132,6 +136,7 @@ direction BT
   AllRow o-- Age : done
   AllRow *-- Description
   AllRow ..|> TableRow : implements
+  TableRow ..> Task : accepts
   BaseTable~R~ ..> TableRow : where R is TableRow and Tabled
   BaseTable~R~ ..> Task : accepts
   InfoTable o-- InfoRow
@@ -151,8 +156,10 @@ direction BT
   %% Update
   Command *-- Modification : has
   Cli ..> Modification : parses
+  Handler~TS~ ..> Timestamp : creates
   Handler~TS~ ..> TaskModification : creates
   Handler~TS~ ..> Action : drives
+  Handler~TS~ ..> UniqueID : collects
 
   namespace Domain {
     class UniqueID {
@@ -288,4 +295,11 @@ direction BT
   }
 
   SQLite ..|> TaskRepository : implements
+
+  %%Read
+  SQLite ..> Task : queries
+  SQLite ..> UniqueID : initializes
+  SQLite ..> Index : initializes
+  SQLite ..> Description : initializes
+  SQLite ..> Timestamp : initializes
 ```
