@@ -39,6 +39,7 @@ direction BT
       -Modify(Modification)
       -Done(Modification)
       -Delete(Modification)
+      -All(Modification)
     }
 
     class Cli {
@@ -58,6 +59,7 @@ direction BT
       ~modify(&self, &raw_filters, &mods) Result~_, CliError~
       ~done(&self, &raw_filters, &mods) Result~_, CliError~
       ~delete(&self, &raw_filters, &mods) Result~_, CliError~
+      ~all(&self, &raw_filters, &mods) Result~_, CliError~
     }
 
     class Age {
@@ -73,6 +75,16 @@ direction BT
     class NextRow {
       -Index id
       -Age age
+      -Description description
+      ~new(task, now) Result~Self~
+    }
+
+    class AllRow {
+      -Option~Index~ id
+      -Status status
+      -UniqueID uid
+      -Age age
+      -Option~Age~ done
       -Description description
       ~new(task, now) Result~Self~
     }
@@ -126,6 +138,7 @@ direction BT
   Handler~TS~ ..> Task : fetches
   Handler~TS~ ..> BaseTable~R~ : displays
   Handler~TS~ ..> NextRow : displays
+  Handler~TS~ ..> AllRow : displays
   Handler~TS~ ..> InfoTable : displays
 
   %% Update

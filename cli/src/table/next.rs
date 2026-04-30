@@ -1,4 +1,4 @@
-use crate::table::{Age, base_table::TableRow};
+use crate::table::{Age, base::TableRow};
 use dawn::domain::task::{Description, Index, Task};
 use tabled::Tabled;
 

@@ -16,6 +16,7 @@ pub struct Cli {
     command: Option<Command>,
 }
 
+// TODO: help usage for each command
 #[derive(Subcommand)]
 enum Command {
     /// Adds a new task
@@ -26,6 +27,8 @@ enum Command {
     Done(Modification),
     /// Deletes the specified task
     Delete(Modification),
+    /// All tasks
+    All(Modification),
 }
 
 impl Cli {
@@ -41,6 +44,7 @@ impl Cli {
             Some(Command::Modify(modification)) => handler.modify(&self.filter, &modification.mods),
             Some(Command::Done(modification)) => handler.done(&self.filter, &modification.mods),
             Some(Command::Delete(modification)) => handler.delete(&self.filter, &modification.mods),
+            Some(Command::All(modification)) => handler.all(&self.filter, &modification.mods),
             None => handler.default(&self.filter),
         }
     }
