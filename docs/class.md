@@ -125,6 +125,13 @@ direction BT
   NextRow *-- Age
   NextRow *-- Description
   NextRow ..|> TableRow : implements
+  AllRow o-- Index
+  AllRow *-- Status
+  AllRow *-- UniqueID
+  AllRow *-- Age : entry
+  AllRow o-- Age : done
+  AllRow *-- Description
+  AllRow ..|> TableRow : implements
   BaseTable~R~ ..> TableRow : where R is TableRow and Tabled
   BaseTable~R~ ..> Task : accepts
   InfoTable o-- InfoRow
