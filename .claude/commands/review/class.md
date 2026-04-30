@@ -60,6 +60,8 @@ For labeled dependency edges, check that the **verb matches the actual interacti
 
 Pass-through forwarding (A just hands B to a dependency) should be labeled `accepts`, not `determines` / `targets`.
 
+**No transitive rationalization.** If a type appears in the class's own method/helper signatures or local typed bindings, it requires its own edge — even when it is also borrowed from another struct's field. Do not omit an edge with reasoning like "already covered transitively by the parent type's edge."
+
 ### E. Generics
 
 - `Class~T~` generic parameter names should match the Rust definition.
@@ -70,6 +72,7 @@ Pass-through forwarding (A just hands B to a dependency) should be labeled `acce
 1. Read `docs/class.md` end-to-end first.
 2. For each namespace block in order (CLI → Domain → Outbound):
    - For each class node, open the corresponding source file with `Read` and verify sections A–C.
+   - Enumerate the class file's `use` imports of domain/CLI types (skip error types per scope policy and stdlib/external crates). For each imported type, verify a corresponding outgoing edge (`..>` / `*--` / `o--` / `..|>`) from that class exists in the diagram. Missing edge → drift.
 3. After all nodes, walk through every edge (lines matching `*--`, `o--`, `..>`, `..|>`) and verify section D.
 4. Build a findings list. For each finding:
    - Quote the diagram line (path `docs/class.md:<line>`).
