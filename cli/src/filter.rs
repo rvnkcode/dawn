@@ -35,7 +35,7 @@ pub(crate) fn parse_default(raw_terms: &[String]) -> DefaultCommand {
 
 /// Read-only report (e.g. `all`): pre and post merge into a single filter pass
 pub(crate) fn parse_report(pre: &[String], post: &[String]) -> Filter {
-    classify(pre.iter().chain(post)).0
+    classify(pre.iter().chain(post.iter())).0
 }
 
 /// Mutation (modify/done/delete): pre→filter, post→description or annotation
