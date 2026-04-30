@@ -60,11 +60,11 @@ fn all_with_one_task_prints_singular_footer() {
 #[test]
 fn all_with_multiple_tasks_prints_plural_footer() {
     let (_dir, db) = common::test_db();
-    common::setup_tasks(&db, &["one", "two"]);
+    common::setup_tasks(&db, &["alpha", "beta"]);
 
     let stdout = run_stdout(common::dawn_cmd(&db).arg("all"));
-    assert!(stdout.contains("one"), "missing 'one': {stdout}");
-    assert!(stdout.contains("two"), "missing 'two': {stdout}");
+    assert!(stdout.contains("alpha"), "missing 'alpha': {stdout}");
+    assert!(stdout.contains("beta"), "missing 'beta': {stdout}");
     assert!(
         stdout.contains("2 tasks"),
         "missing plural footer: {stdout}"
