@@ -39,8 +39,8 @@ impl<TS: TaskService> Handler<TS> {
         Ok(())
     }
 
-    pub(crate) fn all(&self, raw_filters: &[String], mods: &[String]) -> Result<(), CliError> {
-        let filter = filter::parse_report(raw_filters, mods);
+    pub(crate) fn all(&self, pre: &[String], post: &[String]) -> Result<(), CliError> {
+        let filter = filter::parse_report(pre, post);
         let tasks = self.task_service.list(&filter)?;
         display_list_table::<AllRow>(tasks)
     }

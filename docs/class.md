@@ -59,7 +59,7 @@ direction BT
       ~modify(&self, &raw_filters, &mods) Result~_, CliError~
       ~done(&self, &raw_filters, &mods) Result~_, CliError~
       ~delete(&self, &raw_filters, &mods) Result~_, CliError~
-      ~all(&self, &raw_filters, &mods) Result~_, CliError~
+      ~all(&self, &pre, &post) Result~_, CliError~
     }
 
     class Age {
