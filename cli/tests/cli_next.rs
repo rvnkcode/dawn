@@ -220,6 +220,25 @@ fn bare_equal_bounds_range_routes_to_next_not_info() {
     );
 }
 
+// E2E for `tpr.row_id BETWEEN ? AND ?` AND-ed with the FTS MATCH clause.
+#[test]
+fn next_filter_range_combined_with_word_filter() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(
+        &db,
+        &["alpha foo", "bravo foo", "charlie foo", "delta", "echo"],
+    );
+    let stdout = common::run_stdout(common::dawn_cmd(&db).args(["1-5", "foo"]));
+    assert_eq!(
+        stdout.matches("foo").count(),
+        3,
+        "expected 3 foo matches: {stdout}"
+    );
+    assert!(stdout.contains("3 tasks"), "missing footer: {stdout}");
+    assert!(!stdout.contains("delta"), "delta leaked through: {stdout}");
+    assert!(!stdout.contains("echo"), "echo leaked through: {stdout}");
+}
+
 // ── Malformed sets demote whole token to a word ──
 
 #[test]

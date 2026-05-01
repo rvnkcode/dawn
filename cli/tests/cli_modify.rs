@@ -431,6 +431,25 @@ fn modify_nonexistent_index_prints_no_tasks_specified() {
         .stderr("No tasks specified.\n");
 }
 
+// Out-of-bounds range must not silently mutate; covers the mutation SQL path.
+#[test]
+fn modify_by_pre_out_of_bounds_range_prints_no_tasks_specified() {
+    let (_dir, db) = common::test_db();
+    common::dawn_cmd(&db)
+        .args(["add", "only"])
+        .assert()
+        .success();
+    common::dawn_cmd(&db)
+        .args(["99-100", "modify", "renamed"])
+        .assert()
+        .code(1)
+        .stderr("No tasks specified.\n");
+
+    let next = run_stdout(&mut common::dawn_cmd(&db));
+    assert!(next.contains("only"), "task was mutated: {next}");
+    assert!(!next.contains("renamed"), "renamed leaked: {next}");
+}
+
 #[test]
 fn modify_nonexistent_uid_prints_no_tasks_specified() {
     let (_dir, db) = common::test_db();
