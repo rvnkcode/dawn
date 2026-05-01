@@ -52,7 +52,7 @@ fn build_id_clause(filter: &Filter) -> anyhow::Result<Option<Clause>> {
     }
 
     for range in filter.index_ranges() {
-        fragments.push("(tpr.row_id BETWEEN ? AND ?)".to_string());
+        fragments.push("tpr.row_id BETWEEN ? AND ?".to_string());
         let start = i64::try_from(range.start().get()).context("task index exceeds i64 range")?;
         let end = i64::try_from(range.end().get()).context("task index exceeds i64 range")?;
         params.push(Box::new(start) as Box<dyn ToSql>);
