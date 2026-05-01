@@ -176,7 +176,7 @@ direction BT
     class IndexRange {
       -Index from
       -Index to
-      +new(from, to) Result~Self, Index~
+      +new(start, end) Result~Self, Index~
       +start(&self) &Index
       +end(&self) &Index
     }
@@ -282,7 +282,7 @@ direction BT
   Task *-- Timestamp : entry, modified
   Task o-- Timestamp : completed, deleted
   Task ..> Status : computes
-  IndexRange *-- Index : from, to
+  IndexRange *-- Index : start, end
   Filter o-- UniqueID
   Filter o-- Index
   Filter o-- IndexRange
