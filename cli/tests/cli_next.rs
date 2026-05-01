@@ -145,20 +145,15 @@ fn next_filter_descending_range_swaps_and_matches() {
     assert!(stdout.contains("3 tasks"), "missing footer: {stdout}");
 }
 
-// `2-2` collapses to a single Index in parse_range_segment — proves the
-// collapse reaches SQL as `IN (?)` rather than `BETWEEN ? AND ?`.
+// Equal-bounds range smoke check; collapse to single Index is unit-tested in filter.rs.
 #[test]
 fn next_filter_equal_bounds_range_matches_single_task() {
     let (_dir, db) = common::test_db();
-    common::setup_tasks(&db, &["one", "two", "three"]);
-    let out = common::dawn_cmd(&db).arg("2-2").output().expect("run");
+    common::setup_tasks(&db, &["only"]);
+    let out = common::dawn_cmd(&db).arg("1-1").output().expect("run");
     let stdout = String::from_utf8(out.stdout).expect("utf8");
     assert!(out.status.success());
-    let present = ["one", "two", "three"]
-        .iter()
-        .filter(|d| stdout.contains(*d))
-        .count();
-    assert_eq!(present, 1, "expected 1 of 3 tasks to match: {stdout}");
+    assert!(stdout.contains("only"), "missing task: {stdout}");
     assert!(
         stdout.contains("1 task"),
         "missing singular footer: {stdout}"
