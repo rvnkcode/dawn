@@ -145,6 +145,7 @@ direction BT
   DefaultCommand *-- Filter : carries
   Parsed o-- UniqueID
   Parsed o-- Index
+  Parsed o-- IndexRange
   Handler~TS~ ..> DefaultCommand : dispatches
   Handler~TS~ ..> Filter : parses and accepts
   Handler~TS~ ..> Status : targets
