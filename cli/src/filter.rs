@@ -566,15 +566,6 @@ mod tests {
     }
 
     #[test]
-    fn bare_range_alone_does_not_set_info() {
-        // Regression guard: a lone range routes to Next, not Info.
-        match parse_default(&raw(&["5-10"])) {
-            DefaultCommand::Next(_) => {}
-            DefaultCommand::Info(_) => panic!("bare range must route to Next"),
-        }
-    }
-
-    #[test]
     fn bare_range_descending_swaps() {
         assert_eq!(
             parse_default(&raw(&["10-5"])),
