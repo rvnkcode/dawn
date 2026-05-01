@@ -157,7 +157,7 @@ fn build_where_clause_with_single_index_range() {
     .unwrap()]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(clause, "WHERE (tpr.row_id BETWEEN ? AND ?)");
+    assert_eq!(clause, "WHERE tpr.row_id BETWEEN ? AND ?");
     assert_eq!(params.len(), 2);
     assert_eq!(to_value(params[0].as_ref()), Value::Integer(1));
     assert_eq!(to_value(params[1].as_ref()), Value::Integer(3));
@@ -174,7 +174,7 @@ fn build_where_clause_with_swapped_index_range_normalizes() {
     .unwrap()]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(clause, "WHERE (tpr.row_id BETWEEN ? AND ?)");
+    assert_eq!(clause, "WHERE tpr.row_id BETWEEN ? AND ?");
     assert_eq!(params.len(), 2);
     assert_eq!(to_value(params[0].as_ref()), Value::Integer(3));
     assert_eq!(to_value(params[1].as_ref()), Value::Integer(5));
@@ -192,7 +192,7 @@ fn build_where_clause_with_multiple_index_ranges() {
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(
         clause,
-        "WHERE ((tpr.row_id BETWEEN ? AND ?) OR (tpr.row_id BETWEEN ? AND ?))"
+        "WHERE (tpr.row_id BETWEEN ? AND ? OR tpr.row_id BETWEEN ? AND ?)"
     );
     assert_eq!(params.len(), 4);
     let values: Vec<Value> = params.iter().map(|p| to_value(p.as_ref())).collect();
@@ -216,7 +216,7 @@ fn build_where_clause_with_index_and_index_range() {
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(
         clause,
-        "WHERE (tpr.row_id IN (?) OR (tpr.row_id BETWEEN ? AND ?))"
+        "WHERE (tpr.row_id IN (?) OR tpr.row_id BETWEEN ? AND ?)"
     );
     assert_eq!(params.len(), 3);
     assert_eq!(to_value(params[0].as_ref()), Value::Integer(7));
@@ -237,10 +237,7 @@ fn build_where_clause_with_uid_and_index_range() {
         ]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(
-        clause,
-        "WHERE (t.id IN (?) OR (tpr.row_id BETWEEN ? AND ?))"
-    );
+    assert_eq!(clause, "WHERE (t.id IN (?) OR tpr.row_id BETWEEN ? AND ?)");
     assert_eq!(params.len(), 3);
     assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
     assert_eq!(to_value(params[1].as_ref()), Value::Integer(1));
@@ -263,7 +260,7 @@ fn build_where_clause_with_uid_and_index_and_index_range() {
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(
         clause,
-        "WHERE (t.id IN (?) OR tpr.row_id IN (?) OR (tpr.row_id BETWEEN ? AND ?))"
+        "WHERE (t.id IN (?) OR tpr.row_id IN (?) OR tpr.row_id BETWEEN ? AND ?)"
     );
     assert_eq!(params.len(), 4);
     assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
@@ -284,7 +281,7 @@ fn build_where_clause_with_index_range_and_status() {
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert!(clause.starts_with("WHERE "));
-    assert!(clause.contains("(tpr.row_id BETWEEN ? AND ?)"));
+    assert!(clause.contains("tpr.row_id BETWEEN ? AND ?"));
     assert!(clause.contains(" AND "));
     assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
     assert_eq!(params.len(), 2);
