@@ -177,8 +177,8 @@ direction BT
       -Index from
       -Index to
       +new(from, to) Result~Self, Index~
-      +from(&self) &Index
-      +to(&self) &Index
+      +start(&self) &Index
+      +end(&self) &Index
     }
 
     class Description {
