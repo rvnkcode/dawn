@@ -53,15 +53,15 @@ fn build_id_clause(filter: &Filter) -> anyhow::Result<Option<Clause>> {
 
     for range in filter.index_ranges() {
         fragments.push("(tpr.row_id BETWEEN ? AND ?)".to_string());
-        let from = i64::try_from(range.from().get()).context("task index exceeds i64 range")?;
-        let to = i64::try_from(range.to().get()).context("task index exceeds i64 range")?;
-        params.push(Box::new(from) as Box<dyn ToSql>);
-        params.push(Box::new(to) as Box<dyn ToSql>);
+        let start = i64::try_from(range.start().get()).context("task index exceeds i64 range")?;
+        let end = i64::try_from(range.end().get()).context("task index exceeds i64 range")?;
+        params.push(Box::new(start) as Box<dyn ToSql>);
+        params.push(Box::new(end) as Box<dyn ToSql>);
     }
 
     Ok(match fragments.len() {
         0 => None,
-        1 => Some((fragments.into_iter().next().unwrap(), params)),
+        1 => Some((fragments.remove(0), params)),
         _ => Some((format!("({})", fragments.join(" OR ")), params)),
     })
 }
