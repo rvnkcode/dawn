@@ -174,8 +174,8 @@ direction BT
     }
 
     class IndexRange {
-      -Index from
-      -Index to
+      -Index start
+      -Index end
       +new(start, end) Result~Self, Index~
       +start(&self) &Index
       +end(&self) &Index
