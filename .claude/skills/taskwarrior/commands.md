@@ -20,6 +20,8 @@
 
 ### Report Commands
 
+All reports are dispatched through `CmdCustom` with `filter=Yes, mods=No, misc=No`. See [capability flags](#capability-flags-by-command) for what this means.
+
 | Command     | Description         | Default Filter              |
 | ----------- | ------------------- | --------------------------- |
 | `list`      | All pending tasks   | `status:pending`            |
@@ -37,21 +39,24 @@
 
 ### Operation Commands
 
-| Command     | Accepts Filter | Accepts Mods | Description            |
-| ----------- | -------------- | ------------ | ---------------------- |
-| `add`       | No             | Yes          | Create new task        |
-| `modify`    | Yes            | Yes          | Change existing tasks  |
-| `done`      | Yes            | Yes          | Mark complete          |
-| `delete`    | Yes            | No           | Mark deleted           |
-| `start`     | Yes            | No           | Begin work             |
-| `stop`      | Yes            | No           | Stop work              |
-| `annotate`  | Yes            | No           | Add annotation         |
-| `denotate`  | Yes            | No           | Remove annotation      |
-| `duplicate` | Yes            | Yes          | Copy task              |
-| `append`    | Yes            | No           | Append to description  |
-| `prepend`   | Yes            | No           | Prepend to description |
-| `edit`      | Yes            | No           | Edit in editor         |
-| `undo`      | No             | No           | Undo last change       |
+| Command     | Description            |
+| ----------- | ---------------------- |
+| `add`       | Create new task        |
+| `modify`    | Change existing tasks  |
+| `done`      | Mark complete          |
+| `delete`    | Mark deleted           |
+| `start`     | Begin work             |
+| `stop`      | Stop work              |
+| `annotate`  | Add annotation         |
+| `denotate`  | Remove annotation      |
+| `duplicate` | Copy task              |
+| `append`    | Append to description  |
+| `prepend`   | Prepend to description |
+| `edit`      | Edit in editor         |
+| `undo`      | Undo last change       |
+| `info`      | Show task details      |
+
+For per-command capability flags (filter / mods / misc), see [capability flags table](#capability-flags-by-command).
 
 ### System Commands
 
@@ -98,23 +103,29 @@ Each command declares three boolean flags:
 | `accepts_modifications` | Arguments after command are interpreted as modifications  |
 | `accepts_miscellaneous` | Other arguments (rarely used)                             |
 
-### Flag Settings by Command
+### Capability Flags by Command
 
-| Command     | Filter | Mods | Misc |
-| ----------- | ------ | ---- | ---- |
-| `add`       | No     | Yes  | No   |
-| `modify`    | Yes    | Yes  | No   |
-| `done`      | Yes    | Yes  | No   |
-| `delete`    | Yes    | No   | No   |
-| `start`     | Yes    | No   | No   |
-| `stop`      | Yes    | No   | No   |
-| `list`      | Yes    | No   | No   |
-| `annotate`  | Yes    | Yes  | No   |
-| `append`    | Yes    | Yes  | No   |
-| `prepend`   | Yes    | Yes  | No   |
-| `duplicate` | Yes    | Yes  | No   |
-| `info`      | Yes    | No   | No   |
-| `export`    | Yes    | No   | No   |
+Single source of truth for `_accepts_filter` / `_accepts_modifications` / `_accepts_miscellaneous`. Verified against the `Cmd*.cpp` constructors in the Taskwarrior source tree.
+
+| Command     | Filter | Mods | Misc | Notes                                       |
+| ----------- | ------ | ---- | ---- | ------------------------------------------- |
+| `add`       | No     | Yes  | No   | All args become description/mods            |
+| `modify`    | Yes    | Yes  | No   |                                             |
+| `done`      | Yes    | Yes  | No   |                                             |
+| `delete`    | Yes    | Yes  | No   | Trailing words → annotation                 |
+| `start`     | Yes    | Yes  | No   | Trailing words → annotation                 |
+| `stop`      | Yes    | Yes  | No   | Trailing words → annotation                 |
+| `annotate`  | Yes    | Yes  | No   |                                             |
+| `denotate`  | Yes    | No   | Yes  | Annotation text passed via `misc`           |
+| `duplicate` | Yes    | Yes  | No   |                                             |
+| `append`    | Yes    | Yes  | No   |                                             |
+| `prepend`   | Yes    | Yes  | No   |                                             |
+| `edit`      | Yes    | No   | No   |                                             |
+| `undo`      | No     | No   | No   |                                             |
+| `info`      | Yes    | No   | No   |                                             |
+| `purge`     | Yes    | No   | No   | Trailing words narrow filter, not modify    |
+| `export`    | Yes    | No   | Yes  | Misc used for output format flags           |
+| Reports     | Yes    | No   | No   | `list`/`next`/`all`/etc. via `CmdCustom`    |
 
 ### Position-Based Interpretation
 
@@ -139,6 +150,19 @@ task [BEFORE command] <command> [AFTER command]
 | No     | Yes  | → MODIFICATION | → MODIFICATION |
 | No     | No   | → Error        | → Error        |
 
+### Dawn Handler Dispatch
+
+When wiring a Dawn handler for a TW-parity command, pick the parser in `cli/src/filter.rs` based on the capability combo — **never by command intent.** `delete` and `purge` both "remove things" but have different `mods` flags and therefore different parsers.
+
+| Filter | Mods | Dawn parser              | Post-args become              | Examples                                                |
+| ------ | ---- | ------------------------ | ----------------------------- | ------------------------------------------------------- |
+| Yes    | Yes  | `filter::parse_mutation` | annotation / description      | `delete`, `done`, `modify`, `start`, `stop`, `annotate` |
+| Yes    | No   | `filter::parse_report`   | merged into filter (pre+post) | `purge`, `list`, `all`, `info`, `edit`                  |
+| No     | Yes  | (custom; e.g. `add`)     | description / mods            | `add`                                                   |
+| No     | No   | (none — no args needed)  | n/a                           | `undo`                                                  |
+
+**Rule of thumb:** look up the command in [Capability Flags by Command](#capability-flags-by-command), then this table tells you exactly which `parse_*` function to call. Do not infer the parser from what the command "feels like."
+
 ### Examples
 
 ```sh
@@ -156,9 +180,15 @@ task project:home +urgent list
 #    └────── FILTER ─────┘
 # Arguments after command also treated as filter
 
-# delete: accepts_filter=Yes, accepts_modifications=No
+# delete: accepts_filter=Yes, accepts_modifications=Yes
 task 1-5 delete
 #    └─┘ FILTER (task IDs 1 through 5)
+# Trailing words after `delete` become an annotation on the deleted tasks.
+
+# purge: accepts_filter=Yes, accepts_modifications=No
+task status:deleted purge
+#    └────── FILTER ─────┘
+# Trailing words after `purge` are also treated as filter (narrowing).
 ```
 
 ### Plain Word Desugaring
