@@ -154,8 +154,6 @@ fn process_terms<S: AsRef<str>>(raw_terms: impl IntoIterator<Item = S>) -> Parse
     out
 }
 
-// Caller should ensure seg matched RANGE_RE; on any unexpected mismatch,
-// the function silently no-ops (mirrors set-branch parsing style).
 fn parse_range_segment(seg: &str, out: &mut Parsed) {
     let Some((lhs, rhs)) = seg.split_once('-') else {
         return;
