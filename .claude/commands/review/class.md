@@ -14,6 +14,7 @@ These omissions are **intentional**:
 2. **Non-struct modules** — function-only helper modules (e.g. `outbound/query_builder.rs`) that do not expose a struct/enum/trait are deliberately excluded. Do not propose adding them.
 3. **Std trait impls** — `Display`, `FromStr`, `Debug`, `Default`, `From`, `TryFrom`, `Clone`, `Eq`, `Hash`, `PartialEq`, etc. are deliberately not listed as members or `..|>` edges. Do not propose adding them.
 4. **Derive-only traits** — `#[derive(Tabled)]` and similar derive-based trait implementations are not listed as `..|>` edges.
+5. **Interface-covered dependencies** — When a class implements a trait via `..|>`, dependency edges (`..>` / `o--` / `*--`) for types already declared on the trait are intentionally omitted from the implementer. The trait owns the contract; the implementer only carries edges for behavior beyond the contract (e.g. types it constructs from raw data, or generates fresh) — and these may use a more specific verb than the trait's edge (e.g. `creates` / `queries` / `generates` instead of `accepts`). Do not propose adding edges that merely duplicate the trait's contract. This rule applies to trait implementations only; it does not weaken "No transitive rationalization" (section D) for field-borrowing across plain structs.
 
 If the user expands scope in the prompt (e.g. "include errors this time"), override item 1 for that run only.
 
