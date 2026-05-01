@@ -1,10 +1,11 @@
-use crate::domain::task::{Index, Status, UniqueID};
+use crate::domain::task::{Index, IndexRange, Status, UniqueID};
 use std::collections::HashSet;
 
 #[derive(Debug, Default, PartialEq)]
 pub struct Filter {
     uids: HashSet<UniqueID>,
     indices: HashSet<Index>,
+    index_ranges: HashSet<IndexRange>,
     statuses: HashSet<Status>,
     words: Vec<String>,
 }
@@ -17,6 +18,11 @@ impl Filter {
 
     pub fn with_indices(mut self, indices: impl IntoIterator<Item = Index>) -> Self {
         self.indices.extend(indices);
+        self
+    }
+
+    pub fn with_index_ranges(mut self, index_ranges: impl IntoIterator<Item = IndexRange>) -> Self {
+        self.index_ranges.extend(index_ranges);
         self
     }
 
@@ -44,6 +50,10 @@ impl Filter {
         &self.indices
     }
 
+    pub fn index_ranges(&self) -> &HashSet<IndexRange> {
+        &self.index_ranges
+    }
+
     pub fn statuses(&self) -> &HashSet<Status> {
         &self.statuses
     }
@@ -55,6 +65,7 @@ impl Filter {
     pub fn is_empty(&self) -> bool {
         self.uids.is_empty()
             && self.indices.is_empty()
+            && self.index_ranges.is_empty()
             && self.statuses.is_empty()
             && self.words.is_empty()
     }
@@ -66,6 +77,10 @@ mod tests {
 
     fn uid(s: &str) -> UniqueID {
         s.parse().expect(s)
+    }
+
+    fn range(from: usize, to: usize) -> IndexRange {
+        IndexRange::new(Index::new(from).unwrap(), Index::new(to).unwrap()).unwrap()
     }
 
     // UIDs
@@ -116,6 +131,35 @@ mod tests {
         assert_eq!(filter.indices().len(), 1);
     }
 
+    // Index ranges
+
+    #[test]
+    fn with_index_ranges_single() {
+        let filter = Filter::default().with_index_ranges([range(1, 3)]);
+        assert_eq!(filter.index_ranges().len(), 1);
+        assert!(filter.index_ranges().contains(&range(1, 3)));
+    }
+
+    #[test]
+    fn with_index_ranges_multiple() {
+        let filter = Filter::default().with_index_ranges([range(1, 3), range(5, 7)]);
+        assert_eq!(filter.index_ranges().len(), 2);
+        assert!(filter.index_ranges().contains(&range(1, 3)));
+        assert!(filter.index_ranges().contains(&range(5, 7)));
+    }
+
+    #[test]
+    fn with_index_ranges_deduplicates() {
+        let filter = Filter::default().with_index_ranges([range(1, 3), range(1, 3)]);
+        assert_eq!(filter.index_ranges().len(), 1);
+    }
+
+    #[test]
+    fn with_index_ranges_dedup_after_swap_normalization() {
+        let filter = Filter::default().with_index_ranges([range(1, 3), range(3, 1)]);
+        assert_eq!(filter.index_ranges().len(), 1);
+    }
+
     // Statuses
 
     #[test]
@@ -150,6 +194,12 @@ mod tests {
     #[test]
     fn is_empty_with_indices_only() {
         let filter = Filter::default().with_indices([Index::new(1).unwrap()]);
+        assert!(!filter.is_empty());
+    }
+
+    #[test]
+    fn is_empty_with_index_ranges_only() {
+        let filter = Filter::default().with_index_ranges([range(1, 3)]);
         assert!(!filter.is_empty());
     }
 
@@ -194,6 +244,16 @@ mod tests {
         assert_eq!(filter.indices().len(), 2);
         assert!(filter.indices().contains(&Index::new(1).unwrap()));
         assert!(filter.indices().contains(&Index::new(2).unwrap()));
+    }
+
+    #[test]
+    fn with_index_ranges_extends() {
+        let filter = Filter::default()
+            .with_index_ranges([range(1, 3)])
+            .with_index_ranges([range(5, 7)]);
+        assert_eq!(filter.index_ranges().len(), 2);
+        assert!(filter.index_ranges().contains(&range(1, 3)));
+        assert!(filter.index_ranges().contains(&range(5, 7)));
     }
 
     #[test]

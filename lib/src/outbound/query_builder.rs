@@ -31,35 +31,38 @@ pub(crate) fn build_where_clause(filter: &Filter) -> anyhow::Result<Option<Claus
 }
 
 fn build_id_clause(filter: &Filter) -> anyhow::Result<Option<Clause>> {
+    let mut fragments: Vec<String> = Vec::new();
+    let mut params: Vec<Box<dyn ToSql>> = Vec::new();
+
     let uids = filter.uids();
-    let uid_clause = (!uids.is_empty()).then(|| {
-        let params: Vec<Box<dyn ToSql>> = uids
-            .iter()
-            .map(|uid| Box::new(uid.to_string()) as Box<dyn ToSql>)
-            .collect();
-        (format!("t.id IN ({})", repeat_vars(uids.len())), params)
-    });
+    if !uids.is_empty() {
+        fragments.push(format!("t.id IN ({})", repeat_vars(uids.len())));
+        for uid in uids {
+            params.push(Box::new(uid.to_string()) as Box<dyn ToSql>);
+        }
+    }
+
     let indices = filter.indices();
-    let index_clause = (!indices.is_empty())
-        .then(|| -> anyhow::Result<Clause> {
-            let params: Vec<Box<dyn ToSql>> = indices
-                .iter()
-                .map(|index| i64::try_from(index.get()).map(|v| Box::new(v) as Box<dyn ToSql>))
-                .collect::<Result<_, _>>()
-                .context("task index exceeds i64 range")?;
-            Ok((
-                format!("tpr.row_id IN ({})", repeat_vars(indices.len())),
-                params,
-            ))
-        })
-        .transpose()?;
-    Ok(match (uid_clause, index_clause) {
-        (None, None) => None,
-        (Some(single), None) | (None, Some(single)) => Some(single),
-        (Some((uid_cl, uid_params)), Some((idx_cl, idx_params))) => Some((
-            format!("({uid_cl} OR {idx_cl})"),
-            uid_params.into_iter().chain(idx_params).collect(),
-        )),
+    if !indices.is_empty() {
+        fragments.push(format!("tpr.row_id IN ({})", repeat_vars(indices.len())));
+        for index in indices {
+            let v = i64::try_from(index.get()).context("task index exceeds i64 range")?;
+            params.push(Box::new(v) as Box<dyn ToSql>);
+        }
+    }
+
+    for range in filter.index_ranges() {
+        fragments.push("(tpr.row_id BETWEEN ? AND ?)".to_string());
+        let from = i64::try_from(range.from().get()).context("task index exceeds i64 range")?;
+        let to = i64::try_from(range.to().get()).context("task index exceeds i64 range")?;
+        params.push(Box::new(from) as Box<dyn ToSql>);
+        params.push(Box::new(to) as Box<dyn ToSql>);
+    }
+
+    Ok(match fragments.len() {
+        0 => None,
+        1 => Some((fragments.into_iter().next().unwrap(), params)),
+        _ => Some((format!("({})", fragments.join(" OR ")), params)),
     })
 }
 

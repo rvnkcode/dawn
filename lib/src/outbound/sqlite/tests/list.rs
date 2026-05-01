@@ -1,6 +1,6 @@
 use super::setup;
 use crate::domain::task::{
-    Description, Filter, Index, Status, Task, Timestamp, UniqueID, port::TaskRepository,
+    Description, Filter, Index, IndexRange, Status, Task, Timestamp, UniqueID, port::TaskRepository,
 };
 use crate::outbound::sqlite::SQLite;
 
@@ -627,6 +627,96 @@ fn list_tasks_filter_nonexistent_index() {
     let tasks = db.list_tasks(&filter).unwrap();
 
     assert!(tasks.is_empty());
+}
+
+// Filter by Index Range
+
+fn five_pending(prefix: &str) -> [Task; 5] {
+    std::array::from_fn(|i| {
+        let n = i + 1;
+        let secs = (n as i64) * 1000;
+        Task {
+            uid: format!("{prefix}{n:02}").parse().unwrap(),
+            index: Some(Index::new(n).unwrap()),
+            description: Description::new(&format!("task {n}")).unwrap(),
+            entry: Timestamp::new(secs).unwrap(),
+            completed: None,
+            deleted: None,
+            modified: Timestamp::new(secs).unwrap(),
+        }
+    })
+}
+
+#[test]
+fn list_tasks_filter_index_range() {
+    let db = setup();
+    let [t1, t2, t3, t4, t5] = five_pending("test_rng_a");
+    for t in [&t1, &t2, &t3, &t4, &t5] {
+        insert_task_from(&db, t);
+    }
+    let filter = Filter::default().with_index_ranges([IndexRange::new(
+        Index::new(1).unwrap(),
+        Index::new(3).unwrap(),
+    )
+    .unwrap()]);
+
+    let tasks = db.list_tasks(&filter).unwrap();
+
+    assert_eq!(tasks, vec![t1, t2, t3]);
+}
+
+#[test]
+fn list_tasks_filter_index_range_oversized_upper_returns_existing() {
+    let db = setup();
+    let [t1, t2, t3, t4, t5] = five_pending("test_rng_b");
+    for t in [&t1, &t2, &t3, &t4, &t5] {
+        insert_task_from(&db, t);
+    }
+    let filter = Filter::default().with_index_ranges([IndexRange::new(
+        Index::new(1).unwrap(),
+        Index::new(100).unwrap(),
+    )
+    .unwrap()]);
+
+    let tasks = db.list_tasks(&filter).unwrap();
+
+    assert_eq!(tasks, vec![t1, t2, t3, t4, t5]);
+}
+
+#[test]
+fn list_tasks_filter_index_range_combined_with_index() {
+    let db = setup();
+    let [t1, t2, _t3, t4, _t5] = five_pending("test_rng_c");
+    for t in [&t1, &t2, &_t3, &t4, &_t5] {
+        insert_task_from(&db, t);
+    }
+    let filter = Filter::default()
+        .with_indices([Index::new(4).unwrap()])
+        .with_index_ranges([
+            IndexRange::new(Index::new(1).unwrap(), Index::new(2).unwrap()).unwrap(),
+        ]);
+
+    let tasks = db.list_tasks(&filter).unwrap();
+
+    assert_eq!(tasks, vec![t1, t2, t4]);
+}
+
+#[test]
+fn list_tasks_filter_swapped_index_range_normalizes() {
+    let db = setup();
+    let [_t1, _t2, t3, t4, t5] = five_pending("test_rng_d");
+    for t in [&_t1, &_t2, &t3, &t4, &t5] {
+        insert_task_from(&db, t);
+    }
+    let filter = Filter::default().with_index_ranges([IndexRange::new(
+        Index::new(5).unwrap(),
+        Index::new(3).unwrap(),
+    )
+    .unwrap()]);
+
+    let tasks = db.list_tasks(&filter).unwrap();
+
+    assert_eq!(tasks, vec![t3, t4, t5]);
 }
 
 // Filter by UID + Index

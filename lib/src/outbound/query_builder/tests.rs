@@ -144,6 +144,154 @@ fn build_where_clause_with_multiple_indices() {
     assert!(values.contains(&Value::Integer(2)));
 }
 
+// filter.index_ranges
+
+#[test]
+fn build_where_clause_with_single_index_range() {
+    use crate::domain::task::{Index, IndexRange};
+
+    let filter = Filter::default().with_index_ranges([IndexRange::new(
+        Index::new(1).unwrap(),
+        Index::new(3).unwrap(),
+    )
+    .unwrap()]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(clause, "WHERE (tpr.row_id BETWEEN ? AND ?)");
+    assert_eq!(params.len(), 2);
+    assert_eq!(to_value(params[0].as_ref()), Value::Integer(1));
+    assert_eq!(to_value(params[1].as_ref()), Value::Integer(3));
+}
+
+#[test]
+fn build_where_clause_with_swapped_index_range_normalizes() {
+    use crate::domain::task::{Index, IndexRange};
+
+    let filter = Filter::default().with_index_ranges([IndexRange::new(
+        Index::new(5).unwrap(),
+        Index::new(3).unwrap(),
+    )
+    .unwrap()]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(clause, "WHERE (tpr.row_id BETWEEN ? AND ?)");
+    assert_eq!(params.len(), 2);
+    assert_eq!(to_value(params[0].as_ref()), Value::Integer(3));
+    assert_eq!(to_value(params[1].as_ref()), Value::Integer(5));
+}
+
+#[test]
+fn build_where_clause_with_multiple_index_ranges() {
+    use crate::domain::task::{Index, IndexRange};
+
+    let filter = Filter::default().with_index_ranges([
+        IndexRange::new(Index::new(1).unwrap(), Index::new(3).unwrap()).unwrap(),
+        IndexRange::new(Index::new(5).unwrap(), Index::new(7).unwrap()).unwrap(),
+    ]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(
+        clause,
+        "WHERE ((tpr.row_id BETWEEN ? AND ?) OR (tpr.row_id BETWEEN ? AND ?))"
+    );
+    assert_eq!(params.len(), 4);
+    let values: Vec<Value> = params.iter().map(|p| to_value(p.as_ref())).collect();
+    // HashSet ordering is non-deterministic; assert pair semantics by membership
+    assert!(values.contains(&Value::Integer(1)));
+    assert!(values.contains(&Value::Integer(3)));
+    assert!(values.contains(&Value::Integer(5)));
+    assert!(values.contains(&Value::Integer(7)));
+}
+
+#[test]
+fn build_where_clause_with_index_and_index_range() {
+    use crate::domain::task::{Index, IndexRange};
+
+    let filter = Filter::default()
+        .with_indices([Index::new(7).unwrap()])
+        .with_index_ranges([
+            IndexRange::new(Index::new(1).unwrap(), Index::new(3).unwrap()).unwrap(),
+        ]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(
+        clause,
+        "WHERE (tpr.row_id IN (?) OR (tpr.row_id BETWEEN ? AND ?))"
+    );
+    assert_eq!(params.len(), 3);
+    assert_eq!(to_value(params[0].as_ref()), Value::Integer(7));
+    assert_eq!(to_value(params[1].as_ref()), Value::Integer(1));
+    assert_eq!(to_value(params[2].as_ref()), Value::Integer(3));
+}
+
+#[test]
+fn build_where_clause_with_uid_and_index_range() {
+    use crate::domain::task::{Index, IndexRange, UniqueID};
+
+    let uid = UniqueID::new();
+    let uid_str = uid.to_string();
+    let filter = Filter::default()
+        .with_uids([uid])
+        .with_index_ranges([
+            IndexRange::new(Index::new(1).unwrap(), Index::new(3).unwrap()).unwrap(),
+        ]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(
+        clause,
+        "WHERE (t.id IN (?) OR (tpr.row_id BETWEEN ? AND ?))"
+    );
+    assert_eq!(params.len(), 3);
+    assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
+    assert_eq!(to_value(params[1].as_ref()), Value::Integer(1));
+    assert_eq!(to_value(params[2].as_ref()), Value::Integer(3));
+}
+
+#[test]
+fn build_where_clause_with_uid_and_index_and_index_range() {
+    use crate::domain::task::{Index, IndexRange, UniqueID};
+
+    let uid = UniqueID::new();
+    let uid_str = uid.to_string();
+    let filter = Filter::default()
+        .with_uids([uid])
+        .with_indices([Index::new(7).unwrap()])
+        .with_index_ranges([
+            IndexRange::new(Index::new(1).unwrap(), Index::new(3).unwrap()).unwrap(),
+        ]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(
+        clause,
+        "WHERE (t.id IN (?) OR tpr.row_id IN (?) OR (tpr.row_id BETWEEN ? AND ?))"
+    );
+    assert_eq!(params.len(), 4);
+    assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
+    assert_eq!(to_value(params[1].as_ref()), Value::Integer(7));
+    assert_eq!(to_value(params[2].as_ref()), Value::Integer(1));
+    assert_eq!(to_value(params[3].as_ref()), Value::Integer(3));
+}
+
+#[test]
+fn build_where_clause_with_index_range_and_status() {
+    use crate::domain::task::{Index, IndexRange};
+
+    let filter = Filter::default()
+        .with_index_ranges([
+            IndexRange::new(Index::new(1).unwrap(), Index::new(3).unwrap()).unwrap(),
+        ])
+        .with_statuses([Status::Pending]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert!(clause.starts_with("WHERE "));
+    assert!(clause.contains("(tpr.row_id BETWEEN ? AND ?)"));
+    assert!(clause.contains(" AND "));
+    assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
+    assert_eq!(params.len(), 2);
+    assert_eq!(to_value(params[0].as_ref()), Value::Integer(1));
+    assert_eq!(to_value(params[1].as_ref()), Value::Integer(3));
+}
+
 // filter.uids + filter.indices
 
 #[test]
