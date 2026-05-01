@@ -1,5 +1,5 @@
 use dawn::domain::task::unique_id::{UID_LENGTH, UID_PATTERN};
-use dawn::domain::task::{Description, Filter, Index, UniqueID};
+use dawn::domain::task::{Description, Filter, Index, IndexRange, UniqueID};
 use regex::Regex;
 use std::collections::HashSet;
 use std::str::FromStr;
@@ -7,12 +7,18 @@ use std::sync::LazyLock;
 
 // Taskwarrior parity: indices reject leading zeros (e.g. "007" is text, not 7).
 const INDEX_PATTERN: &str = r"[1-9]\d*";
+const RANGE_PATTERN: &str = r"[1-9]\d*-[1-9]\d*";
 
 static INDEX_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(&format!(r"^{INDEX_PATTERN}$")).unwrap());
 
+// e.g. 1-10
+static RANGE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(&format!(r"^{RANGE_PATTERN}$")).unwrap());
+
+// e.g. 1,2-5,abcdefghi-_0
 static SET_RE: LazyLock<Regex> = LazyLock::new(|| {
-    let id_segment = format!(r"(?:{UID_PATTERN}|{INDEX_PATTERN})");
+    let id_segment = format!(r"(?:{UID_PATTERN}|{INDEX_PATTERN}|{RANGE_PATTERN})");
     Regex::new(&format!(r"^{id_segment}(?:,{id_segment})+$")).unwrap()
 });
 
@@ -64,6 +70,7 @@ fn classify<S: AsRef<str>>(raw_terms: impl IntoIterator<Item = S>) -> (Filter, b
     let filter = Filter::default()
         .with_uids(p.uids)
         .with_indices(p.indices)
+        .with_index_ranges(p.index_ranges)
         .with_words(p.words);
     (filter, p.has_bare_id)
 }
@@ -74,7 +81,8 @@ fn promote_ids_from_post(post: &[String]) -> (Filter, Option<Description>) {
     let parsed = process_terms(post);
     let filter = Filter::default()
         .with_uids(parsed.uids)
-        .with_indices(parsed.indices);
+        .with_indices(parsed.indices)
+        .with_index_ranges(parsed.index_ranges);
     let desc_opt = if parsed.words.is_empty() {
         None
     } else {
@@ -88,6 +96,7 @@ fn promote_ids_from_post(post: &[String]) -> (Filter, Option<Description>) {
 struct Parsed {
     uids: HashSet<UniqueID>,
     indices: HashSet<Index>,
+    index_ranges: HashSet<IndexRange>,
     words: Vec<String>,
     has_bare_id: bool,
 }
@@ -108,8 +117,16 @@ fn process_terms<S: AsRef<str>>(raw_terms: impl IntoIterator<Item = S>) -> Parse
                     out.uids.insert(u);
                 } else if let Ok(i) = Index::from_str(seg) {
                     out.indices.insert(i);
+                } else if RANGE_RE.is_match(seg) {
+                    parse_range_segment(seg, &mut out);
                 }
             }
+            continue;
+        }
+
+        // Bare range (e.g. "5-10"): treated like a set, does not set has_bare_id.
+        if RANGE_RE.is_match(fragment) {
+            parse_range_segment(fragment, &mut out);
             continue;
         }
 
@@ -134,6 +151,26 @@ fn process_terms<S: AsRef<str>>(raw_terms: impl IntoIterator<Item = S>) -> Parse
     }
 
     out
+}
+
+// Caller should ensure seg matched RANGE_RE; on any unexpected mismatch,
+// the function silently no-ops (mirrors set-branch parsing style).
+fn parse_range_segment(seg: &str, out: &mut Parsed) {
+    let Some((lhs, rhs)) = seg.split_once('-') else {
+        return;
+    };
+    let (Ok(start), Ok(end)) = (Index::from_str(lhs), Index::from_str(rhs)) else {
+        return;
+    };
+    match IndexRange::new(start, end) {
+        Ok(range) => {
+            out.index_ranges.insert(range);
+        }
+        Err(idx) => {
+            // Equal bounds (e.g. "5-5") collapse to a single index
+            out.indices.insert(idx);
+        }
+    }
 }
 
 // Word-like heuristic: nanoid collision with this shape occurs at 40ppm (0.004%)
@@ -162,6 +199,10 @@ mod tests {
 
     fn desc(s: &str) -> Description {
         Description::new(s).unwrap()
+    }
+
+    fn range(a: usize, b: usize) -> IndexRange {
+        IndexRange::new(idx(a), idx(b)).unwrap()
     }
 
     // ── Bare (single token, no comma) → Info ──
@@ -506,6 +547,141 @@ mod tests {
         );
     }
 
+    // ── Index ranges ──
+
+    #[test]
+    fn bare_range_yields_next() {
+        assert_eq!(
+            parse_default(&raw(&["5-10"])),
+            DefaultCommand::Next(Filter::default().with_index_ranges([range(5, 10)])),
+        );
+    }
+
+    #[test]
+    fn bare_range_alone_does_not_set_info() {
+        // Regression guard: a lone range routes to Next, not Info.
+        match parse_default(&raw(&["5-10"])) {
+            DefaultCommand::Next(_) => {}
+            DefaultCommand::Info(_) => panic!("bare range must route to Next"),
+        }
+    }
+
+    #[test]
+    fn bare_range_descending_swaps() {
+        assert_eq!(
+            parse_default(&raw(&["10-5"])),
+            DefaultCommand::Next(Filter::default().with_index_ranges([range(5, 10)])),
+        );
+    }
+
+    #[test]
+    fn range_equal_bounds_collapses_to_index() {
+        assert_eq!(
+            parse_default(&raw(&["5-5"])),
+            DefaultCommand::Next(Filter::default().with_indices([idx(5)])),
+        );
+    }
+
+    #[test]
+    fn range_with_invalid_right_falls_to_word() {
+        assert_eq!(
+            parse_default(&raw(&["1-foo"])),
+            DefaultCommand::Next(Filter::default().with_words(["1-foo"])),
+        );
+    }
+
+    #[test]
+    fn range_with_invalid_left_falls_to_word() {
+        assert_eq!(
+            parse_default(&raw(&["foo-1"])),
+            DefaultCommand::Next(Filter::default().with_words(["foo-1"])),
+        );
+    }
+
+    #[test]
+    fn range_with_zero_left_falls_to_word() {
+        assert_eq!(
+            parse_default(&raw(&["0-5"])),
+            DefaultCommand::Next(Filter::default().with_words(["0-5"])),
+        );
+    }
+
+    #[test]
+    fn range_with_zero_right_falls_to_word() {
+        assert_eq!(
+            parse_default(&raw(&["1-0"])),
+            DefaultCommand::Next(Filter::default().with_words(["1-0"])),
+        );
+    }
+
+    #[test]
+    fn open_range_left_falls_to_word() {
+        assert_eq!(
+            parse_default(&raw(&["5-"])),
+            DefaultCommand::Next(Filter::default().with_words(["5-"])),
+        );
+    }
+
+    #[test]
+    fn open_range_right_falls_to_word() {
+        assert_eq!(
+            parse_default(&raw(&["-10"])),
+            DefaultCommand::Next(Filter::default().with_words(["-10"])),
+        );
+    }
+
+    #[test]
+    fn range_in_set_with_indices() {
+        assert_eq!(
+            parse_default(&raw(&["1,3,5-10,19"])),
+            DefaultCommand::Next(
+                Filter::default()
+                    .with_indices([idx(1), idx(3), idx(19)])
+                    .with_index_ranges([range(5, 10)]),
+            ),
+        );
+    }
+
+    #[test]
+    fn range_in_set_with_uid() {
+        assert_eq!(
+            parse_default(&raw(&["abcdefghi-_0,5-10"])),
+            DefaultCommand::Next(
+                Filter::default()
+                    .with_uids([uid("abcdefghi-_0")])
+                    .with_index_ranges([range(5, 10)]),
+            ),
+        );
+    }
+
+    #[test]
+    fn multiple_bare_ranges_dedup() {
+        assert_eq!(
+            parse_default(&raw(&["5-10", "5-10"])),
+            DefaultCommand::Next(Filter::default().with_index_ranges([range(5, 10)])),
+        );
+    }
+
+    #[test]
+    fn bare_range_plus_bare_index_yields_info() {
+        assert_eq!(
+            parse_default(&raw(&["1", "5-10"])),
+            DefaultCommand::Info(
+                Filter::default()
+                    .with_indices([idx(1)])
+                    .with_index_ranges([range(5, 10)]),
+            ),
+        );
+    }
+
+    #[test]
+    fn range_in_set_with_invalid_segment_demotes_to_word() {
+        assert_eq!(
+            parse_default(&raw(&["1,5-foo,2"])),
+            DefaultCommand::Next(Filter::default().with_words(["1,5-foo,2"])),
+        );
+    }
+
     // ── Empty input ──
 
     #[test]
@@ -551,6 +727,17 @@ mod tests {
         assert_eq!(
             parse_mutation(&raw(&["1"]), &raw(&[])),
             (Filter::default().with_indices([idx(1)]), None),
+        );
+    }
+
+    #[test]
+    fn mutation_pre_range_post_word() {
+        assert_eq!(
+            parse_mutation(&raw(&["5-10"]), &raw(&["foo"])),
+            (
+                Filter::default().with_index_ranges([range(5, 10)]),
+                Some(desc("foo")),
+            ),
         );
     }
 
@@ -629,6 +816,17 @@ mod tests {
         );
     }
 
+    #[test]
+    fn mutation_empty_pre_promotes_range() {
+        assert_eq!(
+            parse_mutation(&raw(&[]), &raw(&["5-10", "foo"])),
+            (
+                Filter::default().with_index_ranges([range(5, 10)]),
+                Some(desc("foo")),
+            ),
+        );
+    }
+
     // ── report: both pre and post are treated as filter ──
 
     #[test]
@@ -695,6 +893,16 @@ mod tests {
             Filter::default()
                 .with_uids([uid("abcdefghi-_0")])
                 .with_words(["search"]),
+        );
+    }
+
+    #[test]
+    fn report_set_with_range_in_post() {
+        assert_eq!(
+            parse_report(&raw(&[]), &raw(&["1,5-10"])),
+            Filter::default()
+                .with_indices([idx(1)])
+                .with_index_ranges([range(5, 10)]),
         );
     }
 }
