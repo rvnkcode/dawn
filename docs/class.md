@@ -16,6 +16,7 @@ direction BT
     class Parsed {
       -HashSet~UniqueID~ uids
       -HashSet~Index~ indices
+      -HashSet~IndexRange~ index_ranges
       -Vec~String~ words
       -bool has_bare_id
     }
