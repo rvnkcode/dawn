@@ -261,16 +261,11 @@ Because `set` tokens (`1,2,3` / `5-10`) are NOT counted as `found_sequence`, the
 
 ## Confirmation Behavior
 
-Operations that modify multiple tasks require confirmation:
-
-```txt
-$ task project:work delete
-This will delete 15 tasks.
-  a1b2c3d4 Review PR #123
-  e5f6g7h8 Fix login bug
-  ...
-Proceed? (y/n)
-```
+See [confirmation.md](confirmation.md) for the full per-command prompt flow:
+permission/confirm/confirm4 primitives, exact prompt strings, the qty/bulk
+threshold (delete and purge switch to `(yes/no/all/quit)` at qty >= 2 — `bulk`
+only kicks in when `confirmation=off`), recurrence sub-prompts, filter safety,
+and exit codes.
 
 Bypass with `rc.confirmation=off` or pipe `yes |`.
 
