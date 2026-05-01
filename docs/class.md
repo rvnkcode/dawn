@@ -290,6 +290,7 @@ direction BT
   Filter o-- IndexRange
   Filter o-- Status
   TaskService ..> Task : returns
+  TaskService ..> Filter : accepts
   TaskRepository ..> Filter : accepts
   TaskRepository ..> Task : returns
 
