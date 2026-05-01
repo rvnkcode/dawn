@@ -215,6 +215,34 @@ fn all_pre_and_post_indices_merge_into_union() {
 }
 
 #[test]
+fn all_pre_range_filters_to_two_tasks() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["apple", "banana", "cherry"]);
+
+    let stdout = run_stdout(common::dawn_cmd(&db).args(["1-2", "all"]));
+    let present = ["apple", "banana", "cherry"]
+        .iter()
+        .filter(|d| stdout.contains(*d))
+        .count();
+    assert_eq!(present, 2, "expected 2 of 3 tasks: {stdout}");
+    assert!(stdout.contains("2 tasks"), "missing footer: {stdout}");
+}
+
+#[test]
+fn all_post_range_filters_to_two_tasks() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["apple", "banana", "cherry"]);
+
+    let stdout = run_stdout(common::dawn_cmd(&db).args(["all", "1-2"]));
+    let present = ["apple", "banana", "cherry"]
+        .iter()
+        .filter(|d| stdout.contains(*d))
+        .count();
+    assert_eq!(present, 2, "expected 2 of 3 tasks: {stdout}");
+    assert!(stdout.contains("2 tasks"), "missing footer: {stdout}");
+}
+
+#[test]
 fn all_set_filter_returns_two_tasks() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["apple", "banana", "cherry"]);

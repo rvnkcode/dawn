@@ -86,6 +86,18 @@ fn done_pre_set_filter_two_tasks_both_completed() {
     assert_no_pending_tasks(&db);
 }
 
+#[test]
+fn done_by_pre_range_completes_two_tasks() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["one", "two"]);
+
+    let stdout = run_stdout(common::dawn_cmd(&db).args(["1-2", "done"]));
+    assert!(stdout.contains("This command will alter 2 tasks."));
+    assert!(stdout.contains("Completed 2 tasks."));
+
+    assert_no_pending_tasks(&db);
+}
+
 // ── Group B: Promotion route ──
 
 #[test]
