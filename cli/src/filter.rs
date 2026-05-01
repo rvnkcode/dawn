@@ -124,13 +124,8 @@ fn process_terms<S: AsRef<str>>(raw_terms: impl IntoIterator<Item = S>) -> Parse
             continue;
         }
 
-        // Bare range (e.g. "5-10"): treated like a set, does not set has_bare_id.
-        if RANGE_RE.is_match(fragment) {
-            parse_range_segment(fragment, &mut out);
-            continue;
-        }
-
-        // Bare IDs: for info table
+        // UID before range: a 12-char digit/hyphen token (e.g. "12345-678901")
+        // matches both; favor UID since such ranges need ~10-digit indices.
         if !looks_like_word(fragment) {
             if let Ok(u) = UniqueID::from_str(fragment) {
                 out.uids.insert(u);
@@ -144,6 +139,12 @@ fn process_terms<S: AsRef<str>>(raw_terms: impl IntoIterator<Item = S>) -> Parse
                 out.has_bare_id = true;
                 continue;
             }
+        }
+
+        // Bare range (e.g. "5-10"): treated like a set, does not set has_bare_id.
+        if RANGE_RE.is_match(fragment) {
+            parse_range_segment(fragment, &mut out);
+            continue;
         }
 
         // Fallback: treat as a search word
@@ -548,6 +549,15 @@ mod tests {
     }
 
     // ── Index ranges ──
+
+    #[test]
+    fn twelve_char_digit_hyphen_token_parses_as_uid_not_range() {
+        // Boundary: matches both UID_PATTERN and RANGE_RE — UID wins.
+        assert_eq!(
+            parse_default(&raw(&["12345-678901"])),
+            DefaultCommand::Info(Filter::default().with_uids([uid("12345-678901")])),
+        );
+    }
 
     #[test]
     fn bare_range_yields_next() {
