@@ -195,12 +195,17 @@ fn build_where_clause_with_multiple_index_ranges() {
         "WHERE (tpr.row_id BETWEEN ? AND ? OR tpr.row_id BETWEEN ? AND ?)"
     );
     assert_eq!(params.len(), 4);
-    let values: Vec<Value> = params.iter().map(|p| to_value(p.as_ref())).collect();
-    // HashSet ordering is non-deterministic; assert pair semantics by membership
-    assert!(values.contains(&Value::Integer(1)));
-    assert!(values.contains(&Value::Integer(3)));
-    assert!(values.contains(&Value::Integer(5)));
-    assert!(values.contains(&Value::Integer(7)));
+    let values: Vec<i64> = params
+        .iter()
+        .map(|p| match to_value(p.as_ref()) {
+            Value::Integer(n) => n,
+            v => panic!("expected integer parameter, got {v:?}"),
+        })
+        .collect();
+    // HashSet ordering is non-deterministic, but each (start, end) pair must stay together
+    let mut pairs = [(values[0], values[1]), (values[2], values[3])];
+    pairs.sort();
+    assert_eq!(pairs, [(1, 3), (5, 7)]);
 }
 
 #[test]
