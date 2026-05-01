@@ -5,7 +5,7 @@ use std::{
 };
 use thiserror::Error;
 
-#[derive(Debug, Eq, Hash, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash, PartialOrd)]
 pub struct Index(usize);
 
 #[derive(Debug, Error, PartialEq)]

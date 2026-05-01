@@ -4,6 +4,8 @@ pub mod filter;
 pub use filter::Filter;
 pub mod index;
 pub use index::Index;
+pub mod index_range;
+pub use index_range::IndexRange;
 pub mod port;
 pub mod service;
 pub mod timestamp;

@@ -173,6 +173,14 @@ direction BT
       ~get(&self) usize
     }
 
+    class IndexRange {
+      -Index from
+      -Index to
+      +new(from, to) Result~Self, Index~
+      +from(&self) &Index
+      +to(&self) &Index
+    }
+
     class Description {
       -String
       +new(&raw) Result~Self, DescriptionEmptyError~
@@ -205,14 +213,17 @@ direction BT
     class Filter {
       -HashSet~UniqueID~ uids
       -HashSet~Index~ indices
+      -HashSet~IndexRange~ index_ranges
       -HashSet~Status~ statuses
       -Vec~String~ words
       +with_uids(mut self, uids) Self
       +with_indices(mut self, indices) Self
+      +with_index_ranges(mut self, index_ranges) Self
       +with_statuses(mut self, statuses) Self
       +with_words(mut self, words) Self
       +uids(&self) &HashSet~UniqueID~
       +indices(&self) &HashSet~Index~
+      +index_ranges(&self) &HashSet~IndexRange~
       +statuses(&self) &HashSet~Status~
       +words(&self) &[String]
       +is_empty(&self) bool
@@ -271,8 +282,10 @@ direction BT
   Task *-- Timestamp : entry, modified
   Task o-- Timestamp : completed, deleted
   Task ..> Status : computes
+  IndexRange *-- Index : from, to
   Filter o-- UniqueID
   Filter o-- Index
+  Filter o-- IndexRange
   Filter o-- Status
   TaskService ..> Task : returns
   TaskRepository ..> Filter : accepts
