@@ -111,6 +111,120 @@ fn next_filter_nonexistent_index_prints_no_matches() {
         .stderr("No matches.\n");
 }
 
+// ── Filter: index range (a-b) → next table ──
+
+#[test]
+fn next_filter_bare_range_returns_subset() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["one", "two", "three", "four", "five"]);
+    let out = common::dawn_cmd(&db).arg("1-3").output().expect("run");
+    let stdout = String::from_utf8(out.stdout).expect("utf8");
+    assert!(out.status.success());
+    // Index↔description mapping is not stable (see common::setup_tasks).
+    // Range filter `1-3` selects exactly 3 of the 5 seeded tasks.
+    let present = ["one", "two", "three", "four", "five"]
+        .iter()
+        .filter(|d| stdout.contains(*d))
+        .count();
+    assert_eq!(present, 3, "expected 3 of 5 tasks to match: {stdout}");
+    assert!(stdout.contains("3 tasks"), "missing footer: {stdout}");
+}
+
+// `3-1` auto-swaps to `1-3` in IndexRange::new — proves the swap survives the
+// parser → Filter → query_builder BETWEEN clause path.
+#[test]
+fn next_filter_descending_range_swaps_and_matches() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["one", "two", "three"]);
+    let out = common::dawn_cmd(&db).arg("3-1").output().expect("run");
+    let stdout = String::from_utf8(out.stdout).expect("utf8");
+    assert!(out.status.success());
+    assert!(stdout.contains("one"));
+    assert!(stdout.contains("two"));
+    assert!(stdout.contains("three"));
+    assert!(stdout.contains("3 tasks"), "missing footer: {stdout}");
+}
+
+// `2-2` collapses to a single Index in parse_range_segment — proves the
+// collapse reaches SQL as `IN (?)` rather than `BETWEEN ? AND ?`.
+#[test]
+fn next_filter_equal_bounds_range_matches_single_task() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["one", "two", "three"]);
+    let out = common::dawn_cmd(&db).arg("2-2").output().expect("run");
+    let stdout = String::from_utf8(out.stdout).expect("utf8");
+    assert!(out.status.success());
+    let present = ["one", "two", "three"]
+        .iter()
+        .filter(|d| stdout.contains(*d))
+        .count();
+    assert_eq!(present, 1, "expected 1 of 3 tasks to match: {stdout}");
+    assert!(
+        stdout.contains("1 task"),
+        "missing singular footer: {stdout}"
+    );
+    assert!(
+        !stdout.contains("1 tasks"),
+        "stdout has plural form: {stdout}"
+    );
+}
+
+#[test]
+fn next_filter_set_with_range_and_index() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["one", "two", "three", "four"]);
+    let out = common::dawn_cmd(&db).arg("1-2,3").output().expect("run");
+    let stdout = String::from_utf8(out.stdout).expect("utf8");
+    assert!(out.status.success());
+    let present = ["one", "two", "three", "four"]
+        .iter()
+        .filter(|d| stdout.contains(*d))
+        .count();
+    assert_eq!(present, 3, "expected 3 of 4 tasks to match: {stdout}");
+    assert!(stdout.contains("3 tasks"), "missing footer: {stdout}");
+}
+
+#[test]
+fn next_filter_out_of_bounds_range_prints_no_matches() {
+    let (_dir, db) = common::test_db();
+    common::dawn_cmd(&db)
+        .args(["add", "only"])
+        .assert()
+        .success();
+    common::dawn_cmd(&db)
+        .arg("99-100")
+        .assert()
+        .code(1)
+        .stderr("No matches.\n");
+}
+
+// `1-1` collapses to Index(1) at the parser, but the range branch does not
+// set has_bare_id, so it routes to `next` rather than `info` — unlike bare
+// `dawn 1`, which produces the same Index(1) filter yet dispatches to info.
+// Distinguishing signal: next prints the "N tasks" footer and never the
+// vertical Info table header "Last modified".
+#[test]
+fn bare_equal_bounds_range_routes_to_next_not_info() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["one", "two"]);
+    let out = common::dawn_cmd(&db).arg("1-1").output().expect("run");
+    let stdout = String::from_utf8(out.stdout).expect("utf8");
+    assert!(out.status.success());
+    assert!(
+        stdout.contains("1 task"),
+        "missing singular next footer: {stdout}"
+    );
+    assert!(
+        !stdout.contains("1 tasks"),
+        "unexpected plural footer: {stdout}"
+    );
+    assert_eq!(
+        stdout.matches("Last modified").count(),
+        0,
+        "unexpected Info table render: {stdout}"
+    );
+}
+
 // ── Malformed sets demote whole token to a word ──
 
 #[test]

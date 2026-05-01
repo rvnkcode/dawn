@@ -102,6 +102,47 @@ fn delete_pre_set_filter_two_tasks_both_deleted() {
 }
 
 #[test]
+fn delete_by_pre_range_two_tasks_both_deleted() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["one", "two"]);
+
+    let mut p = dawn_pty(&db, &["1-2", "delete"]);
+    p.exp_string("This command will alter 2 tasks.")
+        .expect("alter header");
+    p.exp_string("Delete task").expect("first prompt");
+    select_option(&mut p, "Yes");
+    p.exp_string("Deleting task").expect("first action");
+    p.exp_string("Delete task").expect("second prompt");
+    select_option(&mut p, "Yes");
+    p.exp_string("Deleting task").expect("second action");
+    p.exp_string("Deleted 2 tasks.").expect("footer");
+    assert_pty_exit(&mut p, 0);
+
+    assert_no_pending_tasks(&db);
+}
+
+// `1-2,3` selects 3 of 4 seeded tasks → bulk-confirm Select route.
+#[test]
+fn delete_pre_set_with_range_and_index() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["a", "b", "c", "d"]);
+
+    let mut p = dawn_pty(&db, &["1-2,3", "delete"]);
+    p.exp_string("This command will alter 3 tasks.")
+        .expect("alter header");
+    p.exp_string("Delete task").expect("first prompt");
+    select_option(&mut p, "All");
+    for _ in 0..3 {
+        p.exp_string("Deleting task").expect("action line");
+    }
+    p.exp_string("Deleted 3 tasks.").expect("footer");
+    assert_pty_exit(&mut p, 0);
+
+    let next = run_stdout(&mut common::dawn_cmd(&db));
+    assert!(next.contains("1 task"), "expected 1 remaining: {next}");
+}
+
+#[test]
 fn delete_bulk_all_path_deletes_remaining() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["a", "b", "c"]);

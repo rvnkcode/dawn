@@ -255,6 +255,35 @@ fn non_id_bare_routes_to_next_with_word_filter() {
     assert!(stdout.contains("1 task"), "missing next footer: {stdout}");
 }
 
+// Range tokens do not set has_bare_id, but a bare ID alongside a range still
+// dispatches to info; the range merges into the Info filter.
+#[test]
+fn bare_index_with_range_routes_to_info_with_merged_filter() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["one", "two", "three"]);
+    let out = common::dawn_cmd(&db)
+        .args(["1", "2-3"])
+        .output()
+        .expect("run");
+    assert!(out.status.success());
+    let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
+
+    assert!(stdout.contains("one"), "missing 'one': {stdout}");
+    assert!(stdout.contains("two"), "missing 'two': {stdout}");
+    assert!(stdout.contains("three"), "missing 'three': {stdout}");
+
+    let last_modified_count = stdout.matches("Last modified").count();
+    assert_eq!(
+        last_modified_count, 3,
+        "expected 3 info tables, got {last_modified_count}: {stdout}"
+    );
+
+    assert!(
+        !stdout.contains("3 tasks") && !stdout.contains("2 tasks"),
+        "unexpected next footer: {stdout}"
+    );
+}
+
 #[test]
 fn bare_with_nonexistent_id_and_set_filter_exits_cleanly() {
     // Regression: previously, `dawn 1,2 99` triggered both next (1,2) and info (99),

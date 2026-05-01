@@ -97,6 +97,25 @@ fn modify_pre_set_filter_two_tasks_both_updated() {
 }
 
 #[test]
+fn modify_by_pre_range_updates_two_tasks() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta"]);
+
+    let stdout = run_stdout(common::dawn_cmd(&db).args(["1-2", "modify", "renamed"]));
+    assert!(stdout.contains("This command will alter 2 tasks."));
+    assert!(stdout.contains("Modified 2 tasks."));
+
+    let next = run_stdout(&mut common::dawn_cmd(&db));
+    assert_eq!(
+        next.matches("renamed").count(),
+        2,
+        "expected both tasks renamed: {next}"
+    );
+    assert!(!next.contains("alpha"));
+    assert!(!next.contains("beta"));
+}
+
+#[test]
 fn modify_pre_filter_with_id_shaped_mod_joins_into_description() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two"]);
@@ -171,6 +190,21 @@ fn modify_promotes_set_from_mods_two_tasks() {
     common::setup_tasks(&db, &["one", "two"]);
 
     let stdout = run_stdout(common::dawn_cmd(&db).args(["modify", "1,2", "same"]));
+    assert!(stdout.contains("This command will alter 2 tasks."));
+    assert!(stdout.contains("Modified 2 tasks."));
+
+    let next = run_stdout(&mut common::dawn_cmd(&db));
+    assert_eq!(next.matches("same").count(), 2);
+    assert!(!next.contains("one"));
+    assert!(!next.contains("two"));
+}
+
+#[test]
+fn modify_promotes_range_from_mods() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["one", "two"]);
+
+    let stdout = run_stdout(common::dawn_cmd(&db).args(["modify", "1-2", "same"]));
     assert!(stdout.contains("This command will alter 2 tasks."));
     assert!(stdout.contains("Modified 2 tasks."));
 
