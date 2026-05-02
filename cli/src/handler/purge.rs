@@ -57,23 +57,21 @@ fn collect_approved_ids_for_purge<'a>(
             if Confirm::new(&prompt).with_default(false).prompt()? {
                 approved_ids.push(&task.uid);
             }
-        } else {
-            if i != 0 {
-                println!();
-            }
-            match confirm_bulk(&task.uid, &task.description, action)? {
-                ConfirmResult::Yes => approved_ids.push(&task.uid),
-                ConfirmResult::No => continue,
-                ConfirmResult::All => {
-                    for remaining in &candidates[i..] {
-                        approved_ids.push(&remaining.uid);
-                    }
-                    break;
+            continue;
+        }
+        if i != 0 {
+            println!();
+        }
+        match confirm_bulk(&task.uid, &task.description, action)? {
+            ConfirmResult::Yes => approved_ids.push(&task.uid),
+            ConfirmResult::No => continue,
+            ConfirmResult::All => {
+                for remaining in &candidates[i..] {
+                    approved_ids.push(&remaining.uid);
                 }
-                ConfirmResult::Quit => {
-                    break;
-                }
+                break;
             }
+            ConfirmResult::Quit => break,
         }
     }
     Ok(approved_ids)
