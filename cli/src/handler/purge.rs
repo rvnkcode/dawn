@@ -15,7 +15,7 @@ impl<TS: TaskService> Handler<TS> {
             return Err(CliError::NoSpecified);
         }
 
-        // filter not deleted tasks
+        // keep only deleted tasks
         let deleted: Vec<&Task> = tasks
             .iter()
             .filter(|task| task.status() == Status::Deleted)
