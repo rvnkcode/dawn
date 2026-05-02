@@ -64,7 +64,7 @@ impl Action {
             Action::Modify => "Modifying",
             Action::Complete => "Completed",
             Action::Delete => "Deleting",
-            Action::Purge => "",
+            Action::Purge => unreachable!("purge does not use print_action"),
         }
     }
 
@@ -73,7 +73,7 @@ impl Action {
             Action::Modify => "Task not modified.",
             Action::Complete => "Task not completed.",
             Action::Delete => "Task not deleted.",
-            Action::Purge => "",
+            Action::Purge => unreachable!("purge does not use process_confirmations"),
         }
     }
 }
