@@ -15,12 +15,14 @@ impl<TS: TaskService> Handler<TS> {
             return Err(CliError::NoSpecified);
         }
 
+        let action = Action::Purge;
         // keep only deleted tasks
         let deleted: Vec<&Task> = tasks
             .iter()
             .filter(|task| task.status() == Status::Deleted)
             .collect();
         if deleted.is_empty() {
+            print_result(&action, 0);
             println!(
                 "{}",
                 "No deleted tasks specified. Maybe you forgot to delete tasks first?".yellow()
@@ -28,7 +30,6 @@ impl<TS: TaskService> Handler<TS> {
             return Ok(());
         }
 
-        let action = Action::Purge;
         let approved = collect_approved_ids_for_purge(&action, &deleted, tasks.len())?;
         if approved.is_empty() {
             print_result(&action, 0);
