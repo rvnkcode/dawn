@@ -146,25 +146,6 @@ fn purge_no_filter_tty_accept_purges_only_deleted() {
     assert!(all_contains(&db, "beta"), "beta unexpectedly removed");
 }
 
-#[test]
-fn purge_empty_filter_tty_accept_with_no_deleted_prints_yellow() {
-    let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
-        .args(["add", "buy milk"])
-        .assert()
-        .success();
-
-    let mut p = dawn_pty(&db, &["purge"]);
-    p.exp_string("This command has no filter")
-        .expect("empty-filter prompt");
-    p.send_line("y").expect("send y");
-    p.exp_string("No deleted tasks specified.")
-        .expect("yellow message");
-    assert_pty_exit(&mut p, 0);
-
-    assert!(all_contains(&db, "buy milk"), "pending task removed");
-}
-
 // ── Group C: Filter resolves to nothing (`tasks.is_empty()`) ──
 
 #[test]
@@ -191,7 +172,31 @@ fn purge_no_match_returns_no_specified() {
     );
 }
 
-// ── Group D: User confirmation declines / bulk Select branches ──
+// ── Group D: Filter matches only pending (`deleted.is_empty()`) ──
+
+#[test]
+fn purge_filter_matches_only_pending_prints_yellow() {
+    let (_dir, db) = common::test_db();
+    common::dawn_cmd(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+
+    // Non-empty filter matches a pending task; deleted set is empty → yellow exit 0.
+    let out = common::dawn_cmd(&db)
+        .args(["buy", "purge"])
+        .output()
+        .expect("run");
+    assert_eq!(out.status.code(), Some(0), "expected exit 0");
+    let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
+    assert!(
+        stdout.contains("No deleted tasks specified."),
+        "missing yellow message: {stdout}"
+    );
+    assert!(all_contains(&db, "buy milk"), "pending task removed");
+}
+
+// ── Group E: User confirmation declines / bulk Select branches ──
 
 #[test]
 fn purge_user_declines_single_no_op() {
