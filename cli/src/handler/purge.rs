@@ -23,7 +23,7 @@ impl<TS: TaskService> Handler<TS> {
             .collect();
         if deleted.is_empty() {
             print_result(&action, 0);
-            println!(
+            eprintln!(
                 "{}",
                 "No deleted tasks specified. Maybe you forgot to delete tasks first?".yellow()
             );

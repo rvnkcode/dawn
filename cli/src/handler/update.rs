@@ -237,6 +237,6 @@ pub(crate) fn print_not_pending_for_ids(tasks: &[Task], modified_ids: &[&UniqueI
                 t.uid,
             )
             .yellow();
-            println!("{}", msg);
+            eprintln!("{}", msg);
         });
 }

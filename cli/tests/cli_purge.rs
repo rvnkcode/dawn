@@ -188,10 +188,10 @@ fn purge_filter_matches_only_pending_prints_yellow() {
         .output()
         .expect("run");
     assert_eq!(out.status.code(), Some(0), "expected exit 0");
-    let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
+    let stderr = String::from_utf8(out.stderr).expect("utf8 stderr");
     assert!(
-        stdout.contains("No deleted tasks specified."),
-        "missing yellow message: {stdout}"
+        stderr.contains("No deleted tasks specified."),
+        "missing yellow message: {stderr}"
     );
     assert!(all_contains(&db, "buy milk"), "pending task removed");
 }
