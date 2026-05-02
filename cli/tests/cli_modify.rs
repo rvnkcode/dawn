@@ -247,7 +247,13 @@ fn modify_completed_task_by_uid_emits_note() {
 
     common::dawn_cmd(&db).args(["1", "done"]).assert().success();
 
-    let stdout = run_stdout(common::dawn_cmd(&db).args([&uid, "modify", "renamed"]));
+    let out = common::dawn_cmd(&db)
+        .args([&uid, "modify", "renamed"])
+        .output()
+        .expect("run modify");
+    assert!(out.status.success(), "modify failed");
+    let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
+    let stderr = String::from_utf8(out.stderr).expect("utf8 stderr");
     assert!(
         stdout.contains("'renamed'"),
         "action line missing: {stdout}"
@@ -257,8 +263,8 @@ fn modify_completed_task_by_uid_emits_note() {
         "footer missing: {stdout}"
     );
     assert!(
-        stdout.contains(&format!("Note: Modified task {uid} is completed.")),
-        "missing completed note: {stdout}"
+        stderr.contains(&format!("Note: Modified task {uid} is completed.")),
+        "missing completed note on stderr: {stderr}"
     );
 
     let info_after = run_stdout(common::dawn_cmd(&db).arg(&uid));
@@ -285,7 +291,13 @@ fn modify_deleted_task_by_uid_emits_note() {
 
     delete_via_pty(&db, &uid);
 
-    let stdout = run_stdout(common::dawn_cmd(&db).args([&uid, "modify", "renamed"]));
+    let out = common::dawn_cmd(&db)
+        .args([&uid, "modify", "renamed"])
+        .output()
+        .expect("run modify");
+    assert!(out.status.success(), "modify failed");
+    let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
+    let stderr = String::from_utf8(out.stderr).expect("utf8 stderr");
     assert!(
         stdout.contains("'renamed'"),
         "action line missing: {stdout}"
@@ -295,8 +307,8 @@ fn modify_deleted_task_by_uid_emits_note() {
         "footer missing: {stdout}"
     );
     assert!(
-        stdout.contains(&format!("Note: Modified task {uid} is deleted.")),
-        "missing deleted note: {stdout}"
+        stderr.contains(&format!("Note: Modified task {uid} is deleted.")),
+        "missing deleted note on stderr: {stderr}"
     );
 
     let info_after = run_stdout(common::dawn_cmd(&db).arg(&uid));
