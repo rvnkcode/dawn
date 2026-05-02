@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use super::*;
 
 use crate::table::date_format::{DATE_FMT, format_absolute};
@@ -35,6 +37,7 @@ pub(crate) enum Action {
     Modify,
     Complete,
     Delete,
+    Purge,
 }
 
 impl Action {
@@ -43,6 +46,7 @@ impl Action {
             Action::Modify => "Modify",
             Action::Complete => "Complete",
             Action::Delete => "Delete",
+            Action::Purge => "Permanently remove",
         }
     }
 
@@ -51,6 +55,7 @@ impl Action {
             Self::Modify => "Modified",
             Self::Complete => "Completed",
             Self::Delete => "Deleted",
+            Self::Purge => "Purged",
         }
     }
 
@@ -59,6 +64,7 @@ impl Action {
             Action::Modify => "Modifying",
             Action::Complete => "Completed",
             Action::Delete => "Deleting",
+            Action::Purge => "",
         }
     }
 
@@ -67,6 +73,7 @@ impl Action {
             Action::Modify => "Task not modified.",
             Action::Complete => "Task not completed.",
             Action::Delete => "Task not deleted.",
+            Action::Purge => "",
         }
     }
 }
@@ -183,7 +190,7 @@ pub(crate) enum ConfirmResult {
 }
 
 pub(crate) fn confirm_bulk(
-    display_id: &str,
+    display_id: &impl Display,
     description: &Description,
     action: &Action,
 ) -> anyhow::Result<ConfirmResult> {

@@ -32,6 +32,7 @@ direction BT
       ~Modify
       ~Complete
       ~Delete
+      ~Purge
       -verb_present(&self) &str
       -verb_past(&self) &str
       -verb_ing(&self) &str
@@ -45,6 +46,7 @@ direction BT
       -Done(Modification)
       -Delete(Modification)
       -All(Modification)
+      -Purge(Modification)
     }
 
     class Cli {
@@ -65,6 +67,7 @@ direction BT
       ~done(&self, &raw_filters, &mods) Result~_, CliError~
       ~delete(&self, &raw_filters, &mods) Result~_, CliError~
       ~all(&self, &pre, &post) Result~_, CliError~
+      ~purge(&self, &pre, &post) Result~_, CliError~
     }
 
     class Age {

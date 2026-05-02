@@ -244,7 +244,7 @@ fn delete_single_task() {
     let id: UniqueID = "test_del0001".parse().unwrap();
     insert_task(&db, "test_del0001", "to be deleted");
 
-    db.delete_tasks(&[id]).unwrap();
+    db.delete_tasks(&[&id]).unwrap();
 
     let tasks = db.list_tasks(&Filter::default()).unwrap();
     assert!(tasks.is_empty());
@@ -259,7 +259,7 @@ fn delete_multiple_tasks() {
     insert_task(&db, "test_del0002", "target one");
     insert_task(&db, "test_del0003", "target two");
 
-    db.delete_tasks(&[id1, id2]).unwrap();
+    db.delete_tasks(&[&id1, &id2]).unwrap();
 
     let tasks = db.list_tasks(&Filter::default()).unwrap();
     assert_eq!(tasks.len(), 1);

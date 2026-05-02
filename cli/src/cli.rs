@@ -29,6 +29,8 @@ enum Command {
     Delete(Modification),
     /// All tasks
     All(Modification),
+    /// Removes the specified tasks from the data files. Causes permanent loss of data
+    Purge(Modification),
 }
 
 impl Cli {
@@ -45,6 +47,7 @@ impl Cli {
             Some(Command::Done(modification)) => handler.done(&self.filter, &modification.mods),
             Some(Command::Delete(modification)) => handler.delete(&self.filter, &modification.mods),
             Some(Command::All(modification)) => handler.all(&self.filter, &modification.mods),
+            Some(Command::Purge(modification)) => handler.purge(&self.filter, &modification.mods),
             None => handler.default(&self.filter),
         }
     }
