@@ -1,6 +1,6 @@
-use inquire::Confirm;
-
 use super::*;
+
+use inquire::Confirm;
 
 impl<TS: TaskService> Handler<TS> {
     pub(crate) fn delete(&self, raw_filters: &[String], mods: &[String]) -> Result<(), CliError> {
@@ -27,7 +27,8 @@ impl<TS: TaskService> Handler<TS> {
             completed: None,
             deleted: Some(Some(deleted)),
         };
-        let approved_ids = collect_approved_ids_for_delete(&action, &candidates, &modification)?;
+        let approved_ids =
+            collect_approved_ids_for_delete(&action, &candidates, &modification, tasks.len())?;
         if approved_ids.is_empty() {
             print_result(&action, 0);
             return Err(CliError::Partial);
@@ -63,8 +64,9 @@ fn collect_approved_ids_for_delete<'a>(
     action: &Action,
     candidates: &[&'a Task],
     modification: &TaskModification,
+    original_count: usize,
 ) -> anyhow::Result<Vec<&'a UniqueID>> {
-    let is_single = candidates.len() == 1;
+    let is_single = original_count == 1;
     process_confirmations(action, candidates, modification, |i, task| {
         let display_id = get_display_id(task);
         if is_single {

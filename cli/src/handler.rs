@@ -1,6 +1,7 @@
 mod delete;
 mod done;
 mod modify;
+mod purge;
 mod update;
 
 use crate::error::CliError;

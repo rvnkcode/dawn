@@ -35,7 +35,7 @@ where
         self.repo.update_tasks(modification, targets)
     }
 
-    fn purge(&self, targets: &[UniqueID]) -> anyhow::Result<()> {
+    fn purge(&self, targets: &[&UniqueID]) -> anyhow::Result<()> {
         self.repo.delete_tasks(targets)
     }
 }
