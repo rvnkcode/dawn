@@ -19,6 +19,8 @@
       "Bash(gh pr:*)",
       "Bash(gh api:*)",
       "Bash(echo \"exit: $?\")",
+      "WebFetch(domain:docs.rs)",
+      "WebFetch(domain:github.com)",
       "WebFetch(domain:taskwarrior.org)",
       "WebSearch"
     ]
