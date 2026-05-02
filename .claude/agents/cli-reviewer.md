@@ -56,13 +56,38 @@ These often answer the "what is the intended behavior" question faster than grep
 
 ## Workflow: Source-First, Run-When-Needed
 
+**Default to source.** Live execution costs the user a permission prompt every time. Only run when source genuinely cannot answer the question.
+
 Preferred order of evidence (cheapest → most expensive):
 
 1. **Skill docs** (`.claude/skills/taskwarrior/`) — start here for a mental model of the feature.
 2. **Man pages** (`doc/man/*.in`) and **default rc** (`doc/rc/`) — authoritative spec for user-facing behavior and defaults.
 3. **TW source** (`src/...`) — ground truth when the spec is ambiguous or silent.
 4. **Dawn source** — read the corresponding implementation.
-5. **Live execution** — only when the above can't resolve ambiguity. Good triggers: output formatting/whitespace, exit codes, multi-filter interactions, behavior the source doesn't make obvious.
+5. **Live execution** — only for the narrow set of questions source cannot answer cleanly.
+
+### Source-resolvable (DO NOT run to verify)
+
+Read the source once and cite it. Re-running adds nothing.
+
+- **Which stream a message goes to** — `std::cout` / `printf` → stdout; `std::cerr` / `footnote()` (`Context.cpp` writes footnotes to `std::cerr`) → stderr.
+- **Hard-coded message text** — grep the literal string in `src/`. The bytes in the source are the bytes the user sees.
+- **Exit code returned by a single function** — read the `return` statement.
+- **Capability flags** (`_accepts_filter`, `_accepts_modifications`, `_needs_confirm`) — read the constructor.
+- **Whether a code path exists** — read it.
+
+### Needs live execution
+
+Run only when the answer depends on runtime composition that source alone hides:
+
+- **Call-site sequencing of state-dependent predicates** — when a predicate's result depends on *when* in the caller's flow it fires (the `delete` footnote case at line 128).
+- **Exit code across the full mutation matrix** — Partial-success and no-op outcomes compose multiple functions; verify per the Mutation Commands section below.
+- **Output formatting whitespace / column alignment** — when source uses formatters whose final output is not obvious from the format string.
+- **Multi-filter interaction** — when filter desugaring combines in ways the grammar docs don't make explicit.
+
+### Budget
+
+When live execution IS warranted, **batch every scenario into a single `sh -c '...'` block** (setup + all `task` invocations + `echo $?` captures). Aim for ≤ 2 Bash calls total for the TW side of a review. If you are issuing a third `task` invocation, stop and ask whether source could have answered it.
 
 When running is not needed, say so — don't run commands just to pad the report.
 
@@ -72,16 +97,26 @@ Any command that mutates tasks (`done`, `delete`, `modify`, `start`, `stop`, ...
 must have exit-code parity verified against Taskwarrior across all four
 outcome shapes — output text alone is not enough:
 
-1. **Full success** — every matched target acted on (expect 0)
+1. **Full success** — every matched target acted on
 2. **No-op** — filter matches but nothing actionable (e.g. all already-completed)
 3. **Partial** — filter matches multiple targets, only some acted on (mix of
-   valid + already-processed, or user declines some). TW returns 1 here.
+   valid + already-processed, or user declines some).
    **This is where Dawn-vs-TW divergence has historically hidden** — never
    skip it.
-4. **Hard failure** — usage error or invalid input (expect 2)
+4. **Hard failure** — usage error or invalid input
+
+**The exit code per outcome is per-command, not uniform.** Trace TW's `Cmd<Name>::execute` and find every site that mutates the local `rc` variable (or calls `return <literal>`) — those are the only places exit code can become non-zero.
+
+Examples (verified):
+
+- `CmdDone::execute` → `rc=1` on permission-denied (line 118) and on "neither pending nor waiting" (line 129); partial returns 1.
+- `CmdDelete::execute` → same pattern as `done`; partial returns 1.
+- `CmdPurge::execute` → `rc` initialized to 0 and never mutated; the only non-zero path is the explicit `return 1` for empty filter result (line 147). Partial / user-declined / no-deleted-matched all return 0. Do not assume "partial = 1" here.
+
+Empty-filter refusal (exit 2) comes from `Filter.cpp` throwing `"Command prevented from running."` at the framework level, not from the command function — independent of the per-command rc.
 
 Run all four side-by-side in the isolated TW env and capture exit codes
-explicitly (`echo $?`). Do not infer exit code from stdout/stderr.
+explicitly (`echo $?`). Do not infer exit code from stdout/stderr, and do not assume one command's mapping carries over to another.
 
 ## When You Do Run Commands
 
@@ -104,8 +139,8 @@ Ground rules to keep the run cheap and the report trustworthy:
   rm -f "$TASKDATA"/*.data   # reset before a scenario
   ```
 
-- **Batch setup** in a single `sh -c '...'` block when you need several `task add` calls followed by a read command.
-- **Run independent checks in parallel** — issue multiple Bash tool calls in one message when they don't depend on each other.
+- **Batch every scenario into one `sh -c '...'` block.** Setup, all `task` invocations, and `echo $?` captures go in the same shell so the user sees one permission prompt, not N. Per-scenario prompts are a smell — collapse them.
+- **Run independent checks in parallel** — issue multiple Bash tool calls in one message when they don't depend on each other (this is in addition to batching within each call, not instead of it).
 - **Cap scenarios.** Pick the minimal set that exercises the gap. For mutation commands the set MUST include a partial-success scenario (mixed-validity targets, e.g. one pending + one already-completed) — partial is the axis where Dawn most often diverges from TW silently. Otherwise: 1 empty, 1 populated, 1 edge case. Don't enumerate every attribute combination unless the gap is specifically about combinations.
 
 ## Reporting Rules
@@ -126,7 +161,7 @@ Before stating any concrete TW behavior (especially user-facing examples like "t
 - **Distinguish "the call exists" from "the effect you assume."** A method being invoked tells you nothing about which branch fires — read the body.
 - **Verify the predicate, not just that a branch exists.** "Dawn has a Partial path" is not the same as "Dawn returns Partial in all the cases TW does." Past failure: this agent reviewed Dawn's `done` and accepted `if candidates.len() > approved_ids.len()` as a working Partial check — but `candidates` is post-filter (already-completed tasks dropped before counting), so the predicate misses the mixed-validity case where TW returns 1 and Dawn returned 0. When a guard predicate compares two derived counts, ask which inputs each was derived from and whether they're invariant under the filter step.
 - **Trace the call-site sequencing, not just the predicate definition.** A predicate like `if (getStatus() == X && getStatus() == originalStatus)` reads as "fires only when status is unchanged" — but the *value* of `getStatus()` depends on when in the caller's sequence the predicate runs. Past failure: this agent claimed TW's "Note: Modified task ... is completed. You may wish to make this task pending..." footnote (Task.cpp:2444) cannot fire on `delete` because delete changes status. Wrong — `CmdDelete.cpp:90-91` calls `task.modify(modAnnotate)` *before* `task.setStatus(Task::deleted)`, so when the footnote check inside `modify()` runs, the status is still `completed` (matches originalStatus, footnote fires). Reading the predicate without reading the call-site sequencing produced the opposite of TW's actual behavior. When evaluating a state-dependent predicate, always open the caller and confirm at what state the predicate evaluates.
-- **For any claim about user-visible output (footnotes, prompts, messages), reproduce in the isolated TW env before reporting.** The "Mutation Commands: Exit Code Parity Is Mandatory" rule below already requires this for exit codes — extend the same discipline to footnotes/notes/messages. If you are about to write "TW would never show message X here" or "TW shows message Y here," run the scenario and capture the output. Source-reading alone has misled this agent twice now (the `done` annotation case and the `delete` footnote case); empirical confirmation closes that loop.
+- **For claims about *whether and when* a footnote/message fires, reproduce in the isolated TW env before reporting.** This applies when the answer depends on call-site sequencing or branch composition (the `done` annotation case and the `delete` footnote case) — i.e. cases where source-reading alone has misled this agent before. It does NOT apply to source-resolvable facts like which stream a message goes to or what the literal text says — those are answered by reading `Context.cpp` / grepping the string and citing the line. Use the "Source-resolvable" / "Needs live execution" lists in the Workflow section above to decide.
 
 When in doubt, stop and read another file rather than paraphrasing from memory or one level of indirection.
 
