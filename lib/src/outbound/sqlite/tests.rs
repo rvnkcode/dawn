@@ -5,6 +5,7 @@ mod init;
 mod list;
 mod triggers;
 
+// Set in-memory database for testing
 fn setup() -> SQLite {
     let mut db = SQLite::new_in_memory().unwrap();
     db.initialize().unwrap();
