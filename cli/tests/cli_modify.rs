@@ -1,6 +1,6 @@
 mod common;
 
-use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uid, run_stdout, select_option};
+use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uuid, run_stdout, select_option};
 
 // ── Group A: Pre-filter route ──
 
@@ -30,7 +30,7 @@ fn modify_by_pre_index_updates_description() {
 }
 
 #[test]
-fn modify_by_pre_uid_updates_description() {
+fn modify_by_pre_uuid_updates_description() {
     let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "buy milk"])
@@ -38,10 +38,10 @@ fn modify_by_pre_uid_updates_description() {
         .success();
 
     let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
-    let uid = extract_uid(&info_before);
+    let uuid = extract_uuid(&info_before);
 
     common::dawn_cmd(&db)
-        .args([&uid, "modify", "new", "desc"])
+        .args([&uuid, "modify", "new", "desc"])
         .assert()
         .success()
         .stdout(format!(
@@ -49,7 +49,7 @@ fn modify_by_pre_uid_updates_description() {
             "new desc"
         ));
 
-    let info_after = run_stdout(common::dawn_cmd(&db).arg(&uid));
+    let info_after = run_stdout(common::dawn_cmd(&db).arg(&uuid));
     assert!(info_after.contains("new desc"));
     assert!(!info_after.contains("buy milk"));
 }
@@ -163,7 +163,7 @@ fn modify_promotes_single_index_from_mods() {
 }
 
 #[test]
-fn modify_promotes_uid_from_mods() {
+fn modify_promotes_uuid_from_mods() {
     let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "buy milk"])
@@ -171,15 +171,15 @@ fn modify_promotes_uid_from_mods() {
         .success();
 
     let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
-    let uid = extract_uid(&info_before);
+    let uuid = extract_uuid(&info_before);
 
     common::dawn_cmd(&db)
-        .args(["modify", &uid, "new", "desc"])
+        .args(["modify", &uuid, "new", "desc"])
         .assert()
         .success()
         .stdout("Modifying task 1 'new desc'.\nModified 1 task.\n");
 
-    let info_after = run_stdout(common::dawn_cmd(&db).arg(&uid));
+    let info_after = run_stdout(common::dawn_cmd(&db).arg(&uuid));
     assert!(info_after.contains("new desc"));
     assert!(!info_after.contains("buy milk"));
 }
@@ -235,7 +235,7 @@ fn modify_promotion_with_id_only_mods_is_noop() {
 // ── Modify on completed/deleted tasks ──
 
 #[test]
-fn modify_completed_task_by_uid_emits_note() {
+fn modify_completed_task_by_uuid_emits_note() {
     let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "buy milk"])
@@ -243,12 +243,12 @@ fn modify_completed_task_by_uid_emits_note() {
         .success();
 
     let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
-    let uid = extract_uid(&info_before);
+    let uuid = extract_uuid(&info_before);
 
     common::dawn_cmd(&db).args(["1", "done"]).assert().success();
 
     let out = common::dawn_cmd(&db)
-        .args([&uid, "modify", "renamed"])
+        .args([&uuid, "modify", "renamed"])
         .output()
         .expect("run modify");
     assert!(out.status.success(), "modify failed");
@@ -263,11 +263,11 @@ fn modify_completed_task_by_uid_emits_note() {
         "footer missing: {stdout}"
     );
     assert!(
-        stderr.contains(&format!("Note: Modified task {uid} is completed.")),
+        stderr.contains(&format!("Note: Modified task {uuid} is completed.")),
         "missing completed note on stderr: {stderr}"
     );
 
-    let info_after = run_stdout(common::dawn_cmd(&db).arg(&uid));
+    let info_after = run_stdout(common::dawn_cmd(&db).arg(&uuid));
     assert!(
         info_after.contains("renamed"),
         "description not updated: {info_after}"
@@ -279,7 +279,7 @@ fn modify_completed_task_by_uid_emits_note() {
 }
 
 #[test]
-fn modify_deleted_task_by_uid_emits_note() {
+fn modify_deleted_task_by_uuid_emits_note() {
     let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "buy milk"])
@@ -287,12 +287,12 @@ fn modify_deleted_task_by_uid_emits_note() {
         .success();
 
     let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
-    let uid = extract_uid(&info_before);
+    let uuid = extract_uuid(&info_before);
 
-    delete_via_pty(&db, &uid);
+    delete_via_pty(&db, &uuid);
 
     let out = common::dawn_cmd(&db)
-        .args([&uid, "modify", "renamed"])
+        .args([&uuid, "modify", "renamed"])
         .output()
         .expect("run modify");
     assert!(out.status.success(), "modify failed");
@@ -307,11 +307,11 @@ fn modify_deleted_task_by_uid_emits_note() {
         "footer missing: {stdout}"
     );
     assert!(
-        stderr.contains(&format!("Note: Modified task {uid} is deleted.")),
+        stderr.contains(&format!("Note: Modified task {uuid} is deleted.")),
         "missing deleted note on stderr: {stderr}"
     );
 
-    let info_after = run_stdout(common::dawn_cmd(&db).arg(&uid));
+    let info_after = run_stdout(common::dawn_cmd(&db).arg(&uuid));
     assert!(
         info_after.contains("renamed"),
         "description not updated: {info_after}"
@@ -463,32 +463,10 @@ fn modify_by_pre_out_of_bounds_range_prints_no_tasks_specified() {
 }
 
 #[test]
-fn modify_nonexistent_uid_prints_no_tasks_specified() {
+fn modify_nonexistent_uuid_prints_no_tasks_specified() {
     let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["abc1efghijkl", "modify", "foo"])
-        .assert()
-        .code(1)
-        .stderr("No tasks specified.\n");
-}
-
-// Regression: nanoid SAFE alphabet allows UIDs starting with '-'. Without
-// `allow_hyphen_values` on the pre-filter, clap rejects them as unknown flags.
-#[test]
-fn modify_by_pre_hyphen_prefixed_uid_does_not_panic_clap() {
-    let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
-        .args(["-Abc1efghijk", "modify", "foo"])
-        .assert()
-        .code(1)
-        .stderr("No tasks specified.\n");
-}
-
-#[test]
-fn modify_promotion_with_hyphen_prefixed_uid_does_not_panic_clap() {
-    let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
-        .args(["modify", "-Abc1efghijk", "foo"])
         .assert()
         .code(1)
         .stderr("No tasks specified.\n");

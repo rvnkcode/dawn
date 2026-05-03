@@ -72,7 +72,7 @@ fn build_where_clause_with_all_statuses() {
     assert!(build_where_clause(&filter).unwrap().is_none());
 }
 
-// filter.uids
+// filter.uuids
 
 #[test]
 fn repeat_vars_single() {
@@ -86,34 +86,46 @@ fn repeat_vars_multiple() {
 
 #[test]
 fn build_where_clause_with_single_uid() {
-    use crate::domain::task::UniqueID;
+    use uuid::Uuid;
 
-    let uid = UniqueID::new();
-    let uid_str = uid.to_string();
-    let filter = Filter::default().with_uids([uid]);
+    let uuid_str = Uuid::new_v4().to_string();
+    let filter = Filter::default().with_uuids([uuid_str.clone()]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(clause, "WHERE t.id IN (?)");
+    assert_eq!(clause, "WHERE t.id LIKE ?");
     assert_eq!(params.len(), 1);
-    assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
+    assert_eq!(
+        to_value(params[0].as_ref()),
+        Value::Text(format!("{uuid_str}%"))
+    );
 }
 
 #[test]
 fn build_where_clause_with_multiple_uids() {
-    use crate::domain::task::UniqueID;
+    use uuid::Uuid;
 
-    let uid1 = UniqueID::new();
-    let uid2 = UniqueID::new();
-    let uid1_str = uid1.to_string();
-    let uid2_str = uid2.to_string();
-    let filter = Filter::default().with_uids([uid1, uid2]);
+    let uuid1_str = Uuid::new_v4().to_string();
+    let uuid2_str = Uuid::new_v4().to_string();
+    let filter = Filter::default().with_uuids([uuid1_str.clone(), uuid2_str.clone()]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(clause, "WHERE t.id IN (?,?)");
+    assert_eq!(clause, "WHERE (t.id LIKE ? OR t.id LIKE ?)");
     assert_eq!(params.len(), 2);
     let values: Vec<Value> = params.iter().map(|p| to_value(p.as_ref())).collect();
-    assert!(values.contains(&Value::Text(uid1_str)));
-    assert!(values.contains(&Value::Text(uid2_str)));
+    assert!(values.contains(&Value::Text(format!("{uuid1_str}%"))));
+    assert!(values.contains(&Value::Text(format!("{uuid2_str}%"))));
+}
+
+#[test]
+fn build_where_clause_with_short_uuid_prefix() {
+    let filter = Filter::default().with_uuids(["abc12345"]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(clause, "WHERE t.id LIKE ?");
+    assert_eq!(
+        to_value(params[0].as_ref()),
+        Value::Text("abc12345%".into())
+    );
 }
 
 // filter.indices
@@ -230,33 +242,38 @@ fn build_where_clause_with_index_and_index_range() {
 }
 
 #[test]
-fn build_where_clause_with_uid_and_index_range() {
-    use crate::domain::task::{Index, IndexRange, UniqueID};
+fn build_where_clause_with_uuid_and_index_range() {
+    use crate::domain::task::{Index, IndexRange};
+    use uuid::Uuid;
 
-    let uid = UniqueID::new();
-    let uid_str = uid.to_string();
+    let uuid = Uuid::new_v4();
+    let uuid_str = uuid.to_string();
     let filter = Filter::default()
-        .with_uids([uid])
+        .with_uuids([uuid])
         .with_index_ranges([
             IndexRange::new(Index::new(1).unwrap(), Index::new(3).unwrap()).unwrap(),
         ]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(clause, "WHERE (t.id IN (?) OR tpr.row_id BETWEEN ? AND ?)");
+    assert_eq!(clause, "WHERE (t.id LIKE ? OR tpr.row_id BETWEEN ? AND ?)");
     assert_eq!(params.len(), 3);
-    assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
+    assert_eq!(
+        to_value(params[0].as_ref()),
+        Value::Text(format!("{uuid_str}%"))
+    );
     assert_eq!(to_value(params[1].as_ref()), Value::Integer(1));
     assert_eq!(to_value(params[2].as_ref()), Value::Integer(3));
 }
 
 #[test]
-fn build_where_clause_with_uid_and_index_and_index_range() {
-    use crate::domain::task::{Index, IndexRange, UniqueID};
+fn build_where_clause_with_uuid_and_index_and_index_range() {
+    use crate::domain::task::{Index, IndexRange};
+    use uuid::Uuid;
 
-    let uid = UniqueID::new();
-    let uid_str = uid.to_string();
+    let uuid = Uuid::new_v4();
+    let uuid_str = uuid.to_string();
     let filter = Filter::default()
-        .with_uids([uid])
+        .with_uuids([uuid])
         .with_indices([Index::new(7).unwrap()])
         .with_index_ranges([
             IndexRange::new(Index::new(1).unwrap(), Index::new(3).unwrap()).unwrap(),
@@ -265,10 +282,13 @@ fn build_where_clause_with_uid_and_index_and_index_range() {
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(
         clause,
-        "WHERE (t.id IN (?) OR tpr.row_id IN (?) OR tpr.row_id BETWEEN ? AND ?)"
+        "WHERE (t.id LIKE ? OR tpr.row_id IN (?) OR tpr.row_id BETWEEN ? AND ?)"
     );
     assert_eq!(params.len(), 4);
-    assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
+    assert_eq!(
+        to_value(params[0].as_ref()),
+        Value::Text(format!("{uuid_str}%"))
+    );
     assert_eq!(to_value(params[1].as_ref()), Value::Integer(7));
     assert_eq!(to_value(params[2].as_ref()), Value::Integer(1));
     assert_eq!(to_value(params[3].as_ref()), Value::Integer(3));
@@ -294,44 +314,51 @@ fn build_where_clause_with_index_range_and_status() {
     assert_eq!(to_value(params[1].as_ref()), Value::Integer(3));
 }
 
-// filter.uids + filter.indices
+// filter.uuids + filter.indices
 
 #[test]
-fn build_where_clause_with_uid_and_index() {
-    use crate::domain::task::{Index, UniqueID};
+fn build_where_clause_with_uuid_and_index() {
+    use crate::domain::task::Index;
+    use uuid::Uuid;
 
-    let uid = UniqueID::new();
-    let uid_str = uid.to_string();
+    let uuid = Uuid::new_v4();
+    let uuid_str = uuid.to_string();
     let filter = Filter::default()
-        .with_uids([uid])
+        .with_uuids([uuid])
         .with_indices([Index::new(1).unwrap()]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(clause, "WHERE (t.id IN (?) OR tpr.row_id IN (?))");
+    assert_eq!(clause, "WHERE (t.id LIKE ? OR tpr.row_id IN (?))");
     assert_eq!(params.len(), 2);
-    assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
+    assert_eq!(
+        to_value(params[0].as_ref()),
+        Value::Text(format!("{uuid_str}%"))
+    );
     assert_eq!(to_value(params[1].as_ref()), Value::Integer(1));
 }
 
 // filter IDs + status
 
 #[test]
-fn build_where_clause_with_uid_and_status() {
-    use crate::domain::task::UniqueID;
+fn build_where_clause_with_uuid_and_status() {
+    use uuid::Uuid;
 
-    let uid = UniqueID::new();
-    let uid_str = uid.to_string();
+    let uuid = Uuid::new_v4();
+    let uuid_str = uuid.to_string();
     let filter = Filter::default()
-        .with_uids([uid])
+        .with_uuids([uuid])
         .with_statuses([Status::Pending]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert!(clause.starts_with("WHERE "));
-    assert!(clause.contains("t.id IN (?)"));
+    assert!(clause.contains("t.id LIKE ?"));
     assert!(clause.contains(" AND "));
     assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
     assert_eq!(params.len(), 1);
-    assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
+    assert_eq!(
+        to_value(params[0].as_ref()),
+        Value::Text(format!("{uuid_str}%"))
+    );
 }
 
 #[test]
@@ -352,23 +379,27 @@ fn build_where_clause_with_index_and_status() {
 }
 
 #[test]
-fn build_where_clause_with_uid_and_index_and_status() {
-    use crate::domain::task::{Index, UniqueID};
+fn build_where_clause_with_uuid_and_index_and_status() {
+    use crate::domain::task::Index;
+    use uuid::Uuid;
 
-    let uid = UniqueID::new();
-    let uid_str = uid.to_string();
+    let uuid = Uuid::new_v4();
+    let uuid_str = uuid.to_string();
     let filter = Filter::default()
-        .with_uids([uid])
+        .with_uuids([uuid])
         .with_indices([Index::new(1).unwrap()])
         .with_statuses([Status::Pending]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert!(clause.starts_with("WHERE "));
-    assert!(clause.contains("(t.id IN (?) OR tpr.row_id IN (?))"));
+    assert!(clause.contains("(t.id LIKE ? OR tpr.row_id IN (?))"));
     assert!(clause.contains(" AND "));
     assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
     assert_eq!(params.len(), 2);
-    assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
+    assert_eq!(
+        to_value(params[0].as_ref()),
+        Value::Text(format!("{uuid_str}%"))
+    );
     assert_eq!(to_value(params[1].as_ref()), Value::Integer(1));
 }
 
@@ -524,19 +555,22 @@ fn build_where_clause_with_words_and_status() {
 
 #[test]
 fn build_where_clause_with_words_and_uid() {
-    use crate::domain::task::UniqueID;
+    use uuid::Uuid;
 
-    let uid = UniqueID::new();
-    let uid_str = uid.to_string();
-    let filter = Filter::default().with_uids([uid]).with_words(["hi"]);
+    let uuid = Uuid::new_v4();
+    let uuid_str = uuid.to_string();
+    let filter = Filter::default().with_uuids([uuid]).with_words(["hi"]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(
         clause,
-        r"WHERE t.id IN (?) AND t.description LIKE ? ESCAPE '\'"
+        r"WHERE t.id LIKE ? AND t.description LIKE ? ESCAPE '\'"
     );
     assert_eq!(params.len(), 2);
-    assert_eq!(to_value(params[0].as_ref()), Value::Text(uid_str));
+    assert_eq!(
+        to_value(params[0].as_ref()),
+        Value::Text(format!("{uuid_str}%"))
+    );
     assert_eq!(to_value(params[1].as_ref()), Value::Text("%hi%".into()));
 }
 
@@ -595,16 +629,16 @@ fn escape_like_escapes_percent_underscore_and_backslash() {
 
 #[test]
 fn build_update_clause_with_empty_modification() {
-    use crate::domain::task::UniqueID;
+    use uuid::Uuid;
 
-    let uid = UniqueID::new();
+    let uuid = Uuid::new_v4();
     let modification = TaskModification {
         description: None,
         completed: None,
         deleted: None,
     };
 
-    assert!(build_update_clause(&modification, &[&uid]).is_err());
+    assert!(build_update_clause(&modification, &[uuid]).is_err());
 }
 
 #[test]
@@ -622,112 +656,116 @@ fn build_update_clause_with_empty_targets() {
 
 #[test]
 fn build_update_clause_with_description() {
-    use crate::domain::task::{Description, UniqueID};
+    use crate::domain::task::Description;
+    use uuid::Uuid;
 
-    let uid = UniqueID::new();
-    let uid_str = uid.to_string();
+    let uuid = Uuid::new_v4();
+    let uuid_str = uuid.to_string();
     let modification = TaskModification {
         description: Some(Description::new("updated").unwrap()),
         completed: None,
         deleted: None,
     };
 
-    let (clause, params) = build_update_clause(&modification, &[&uid]).unwrap();
+    let (clause, params) = build_update_clause(&modification, &[uuid]).unwrap();
     assert_eq!(clause, "UPDATE task SET description = ? WHERE id IN (?)");
     assert_eq!(params.len(), 2);
     assert_eq!(to_value(params[0].as_ref()), Value::Text("updated".into()));
-    assert_eq!(to_value(params[1].as_ref()), Value::Text(uid_str));
+    assert_eq!(to_value(params[1].as_ref()), Value::Text(uuid_str));
 }
 
 #[test]
 fn build_update_clause_with_completed_set() {
-    use crate::domain::task::{Timestamp, UniqueID};
+    use crate::domain::task::Timestamp;
+    use uuid::Uuid;
 
-    let uid = UniqueID::new();
-    let uid_str = uid.to_string();
+    let uuid = Uuid::new_v4();
+    let uuid_str = uuid.to_string();
     let modification = TaskModification {
         description: None,
         completed: Some(Some(Timestamp::new(1700000000).unwrap())),
         deleted: None,
     };
 
-    let (clause, params) = build_update_clause(&modification, &[&uid]).unwrap();
+    let (clause, params) = build_update_clause(&modification, &[uuid]).unwrap();
     assert_eq!(clause, "UPDATE task SET completed = ? WHERE id IN (?)");
     assert_eq!(params.len(), 2);
     assert_eq!(to_value(params[0].as_ref()), Value::Integer(1700000000));
-    assert_eq!(to_value(params[1].as_ref()), Value::Text(uid_str));
+    assert_eq!(to_value(params[1].as_ref()), Value::Text(uuid_str));
 }
 
 #[test]
 fn build_update_clause_with_completed_cleared() {
-    use crate::domain::task::UniqueID;
+    use uuid::Uuid;
 
-    let uid = UniqueID::new();
-    let uid_str = uid.to_string();
+    let uuid = Uuid::new_v4();
+    let uuid_str = uuid.to_string();
     let modification = TaskModification {
         description: None,
         completed: Some(None),
         deleted: None,
     };
 
-    let (clause, params) = build_update_clause(&modification, &[&uid]).unwrap();
+    let (clause, params) = build_update_clause(&modification, &[uuid]).unwrap();
     assert_eq!(clause, "UPDATE task SET completed = ? WHERE id IN (?)");
     assert_eq!(params.len(), 2);
     assert_eq!(to_value(params[0].as_ref()), Value::Null);
-    assert_eq!(to_value(params[1].as_ref()), Value::Text(uid_str));
+    assert_eq!(to_value(params[1].as_ref()), Value::Text(uuid_str));
 }
 
 #[test]
 fn build_update_clause_with_deleted_set() {
-    use crate::domain::task::{Timestamp, UniqueID};
+    use crate::domain::task::Timestamp;
+    use uuid::Uuid;
 
-    let uid = UniqueID::new();
-    let uid_str = uid.to_string();
+    let uuid = Uuid::new_v4();
+    let uuid_str = uuid.to_string();
     let modification = TaskModification {
         description: None,
         completed: None,
         deleted: Some(Some(Timestamp::new(1700000000).unwrap())),
     };
 
-    let (clause, params) = build_update_clause(&modification, &[&uid]).unwrap();
+    let (clause, params) = build_update_clause(&modification, &[uuid]).unwrap();
     assert_eq!(clause, "UPDATE task SET deleted = ? WHERE id IN (?)");
     assert_eq!(params.len(), 2);
     assert_eq!(to_value(params[0].as_ref()), Value::Integer(1700000000));
-    assert_eq!(to_value(params[1].as_ref()), Value::Text(uid_str));
+    assert_eq!(to_value(params[1].as_ref()), Value::Text(uuid_str));
 }
 
 #[test]
 fn build_update_clause_with_deleted_cleared() {
-    use crate::domain::task::UniqueID;
+    use uuid::Uuid;
 
-    let uid = UniqueID::new();
-    let uid_str = uid.to_string();
+    let uuid = Uuid::new_v4();
+    let uuid_str = uuid.to_string();
     let modification = TaskModification {
         description: None,
         completed: None,
         deleted: Some(None),
     };
 
-    let (clause, params) = build_update_clause(&modification, &[&uid]).unwrap();
+    let (clause, params) = build_update_clause(&modification, &[uuid]).unwrap();
     assert_eq!(clause, "UPDATE task SET deleted = ? WHERE id IN (?)");
     assert_eq!(params.len(), 2);
     assert_eq!(to_value(params[0].as_ref()), Value::Null);
-    assert_eq!(to_value(params[1].as_ref()), Value::Text(uid_str));
+    assert_eq!(to_value(params[1].as_ref()), Value::Text(uuid_str));
 }
 
 #[test]
 fn build_update_clause_with_multiple_fields() {
-    use crate::domain::task::{Description, Timestamp, UniqueID};
+    use crate::domain::task::{Description, Timestamp};
+    use uuid::Uuid;
 
-    let uid = UniqueID::new();
-    let uid_str = uid.to_string();
+    let uuid = Uuid::new_v4();
+    let uuid_str = uuid.to_string();
     let modification = TaskModification {
         description: Some(Description::new("updated").unwrap()),
         completed: Some(Some(Timestamp::new(1700000000).unwrap())),
         deleted: None,
     };
 
-    let (clause, params) = build_update_clause(&modification, &[&uid]).unwrap();
+    let (clause, params) = build_update_clause(&modification, &[uuid]).unwrap();
     assert_eq!(
         clause,
         "UPDATE task SET description = ?, completed = ? WHERE id IN (?)"
@@ -735,27 +773,28 @@ fn build_update_clause_with_multiple_fields() {
     assert_eq!(params.len(), 3);
     assert_eq!(to_value(params[0].as_ref()), Value::Text("updated".into()));
     assert_eq!(to_value(params[1].as_ref()), Value::Integer(1700000000));
-    assert_eq!(to_value(params[2].as_ref()), Value::Text(uid_str));
+    assert_eq!(to_value(params[2].as_ref()), Value::Text(uuid_str));
 }
 
 #[test]
 fn build_update_clause_with_multiple_targets() {
-    use crate::domain::task::{Description, UniqueID};
+    use crate::domain::task::Description;
+    use uuid::Uuid;
 
-    let uid1 = UniqueID::new();
-    let uid2 = UniqueID::new();
-    let uid1_str = uid1.to_string();
-    let uid2_str = uid2.to_string();
+    let uuid1 = Uuid::new_v4();
+    let uuid2 = Uuid::new_v4();
+    let uuid1_str = uuid1.to_string();
+    let uuid2_str = uuid2.to_string();
     let modification = TaskModification {
         description: Some(Description::new("updated").unwrap()),
         completed: None,
         deleted: None,
     };
 
-    let (clause, params) = build_update_clause(&modification, &[&uid1, &uid2]).unwrap();
+    let (clause, params) = build_update_clause(&modification, &[uuid1, uuid2]).unwrap();
     assert_eq!(clause, "UPDATE task SET description = ? WHERE id IN (?,?)");
     assert_eq!(params.len(), 3);
     assert_eq!(to_value(params[0].as_ref()), Value::Text("updated".into()));
-    assert_eq!(to_value(params[1].as_ref()), Value::Text(uid1_str));
-    assert_eq!(to_value(params[2].as_ref()), Value::Text(uid2_str));
+    assert_eq!(to_value(params[1].as_ref()), Value::Text(uuid1_str));
+    assert_eq!(to_value(params[2].as_ref()), Value::Text(uuid2_str));
 }

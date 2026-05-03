@@ -1,6 +1,6 @@
 mod common;
 
-use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uid, run_stdout, select_option};
+use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uuid, run_stdout, select_option};
 
 fn assert_no_pending_tasks(db: &std::path::Path) {
     let out = common::dawn_cmd(db).output().expect("run");
@@ -39,7 +39,7 @@ fn delete_by_pre_index_deletes_task() {
 }
 
 #[test]
-fn delete_by_pre_uid_deletes_task() {
+fn delete_by_pre_uuid_deletes_task() {
     let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "buy milk"])
@@ -47,9 +47,9 @@ fn delete_by_pre_uid_deletes_task() {
         .success();
 
     let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
-    let uid = extract_uid(&info_before);
+    let uuid = extract_uuid(&info_before);
 
-    let mut p = dawn_pty(&db, &[&uid, "delete"]);
+    let mut p = dawn_pty(&db, &[&uuid, "delete"]);
     p.exp_string("Delete task 1 'buy milk'?")
         .expect("delete prompt");
     p.send_line("y").expect("send y");
@@ -183,7 +183,7 @@ fn delete_promotes_single_index_from_mods() {
 }
 
 #[test]
-fn delete_promotes_uid_from_mods() {
+fn delete_promotes_uuid_from_mods() {
     let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "buy milk"])
@@ -191,9 +191,9 @@ fn delete_promotes_uid_from_mods() {
         .success();
 
     let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
-    let uid = extract_uid(&info_before);
+    let uuid = extract_uuid(&info_before);
 
-    let mut p = dawn_pty(&db, &["delete", &uid]);
+    let mut p = dawn_pty(&db, &["delete", &uuid]);
     p.exp_string("Delete task 1 'buy milk'?")
         .expect("delete prompt");
     p.send_line("y").expect("send y");
@@ -281,12 +281,12 @@ fn delete_already_deleted_task_skipped_partial() {
         .success();
 
     let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
-    let uid = extract_uid(&info_before);
+    let uuid = extract_uuid(&info_before);
 
-    delete_via_pty(&db, &uid);
+    delete_via_pty(&db, &uuid);
 
     let out = common::dawn_cmd(&db)
-        .args([&uid, "delete"])
+        .args([&uuid, "delete"])
         .output()
         .expect("run");
     assert_eq!(out.status.code(), Some(1), "expected Partial exit 1");
@@ -313,8 +313,8 @@ fn delete_mixed_pending_and_deleted_partial() {
 
     // alpha/beta ↔ index mapping is non-deterministic — capture both UIDs
     // before the fixture deletion so the test does not depend on it.
-    let uid_first = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("1")));
-    let uid_second = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("2")));
+    let uid_first = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
+    let uid_second = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("2")));
 
     delete_via_pty(&db, &uid_first);
 

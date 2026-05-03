@@ -14,6 +14,7 @@ anyhow = "1.0.102"
 dawn = { path = "lib" }
 regex = "1.12.3"
 thiserror = "2.0.18"
+uuid = { version = "1.23.1", features = ["v4"] }
 
 [workspace.lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)'] }

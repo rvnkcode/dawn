@@ -58,8 +58,8 @@ impl InfoTable {
             value: format_with_age(&task.modified, now, &Local)?,
         });
         rows.push(InfoRow {
-            name: "UID".to_string(),
-            value: task.uid.to_string(),
+            name: "UUID".to_string(),
+            value: task.uuid.to_string(),
         });
         Ok(Self { rows })
     }
@@ -88,7 +88,7 @@ mod tests {
     fn render_includes_base_rows_for_pending_task() {
         let now = 1_000_000;
         let t = task(Some(Index::new(1).unwrap()), "buy milk", now - 30);
-        let uid = t.uid.to_string();
+        let uuid = t.uuid.to_string();
 
         let table = InfoTable::new(&t, now).unwrap();
         let output = table.render().to_string();
@@ -98,10 +98,10 @@ mod tests {
         assert!(output.contains("Status"));
         assert!(output.contains("Entered"));
         assert!(output.contains("Last modified"));
-        assert!(output.contains("UID"));
+        assert!(output.contains("UUID"));
         assert!(output.contains("buy milk"));
         assert!(output.contains("Pending"));
-        assert!(output.contains(&uid));
+        assert!(output.contains(&uuid));
         assert!(!output.contains("End"));
         assert!(!output.contains("Deleted"));
     }

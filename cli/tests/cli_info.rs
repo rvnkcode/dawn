@@ -1,6 +1,6 @@
 mod common;
 
-use common::{delete_via_pty, extract_uid, run_stdout};
+use common::{delete_via_pty, extract_uuid, run_stdout};
 
 #[test]
 fn info_single_index_renders_all_base_rows() {
@@ -19,7 +19,7 @@ fn info_single_index_renders_all_base_rows() {
         "Status",
         "Entered",
         "Last modified",
-        "UID",
+        "UUID",
     ] {
         assert!(stdout.contains(header), "missing row {header}: {stdout}");
     }
@@ -54,11 +54,11 @@ fn info_completed_task_renders_end_row_and_completed_status() {
         .success();
 
     let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
-    let uid = extract_uid(&info_before);
+    let uuid = extract_uuid(&info_before);
 
     common::dawn_cmd(&db).args(["1", "done"]).assert().success();
 
-    let out = common::dawn_cmd(&db).arg(&uid).output().expect("run");
+    let out = common::dawn_cmd(&db).arg(&uuid).output().expect("run");
     assert!(out.status.success());
     let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
     assert!(stdout.contains("End"), "missing End row: {stdout}");
@@ -81,11 +81,11 @@ fn info_deleted_task_renders_deleted_row_and_deleted_status() {
         .success();
 
     let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
-    let uid = extract_uid(&info_before);
+    let uuid = extract_uuid(&info_before);
 
-    delete_via_pty(&db, &uid);
+    delete_via_pty(&db, &uuid);
 
-    let out = common::dawn_cmd(&db).arg(&uid).output().expect("run");
+    let out = common::dawn_cmd(&db).arg(&uuid).output().expect("run");
     assert!(out.status.success());
     let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
     // "Deleted" appears twice: once as Status value, once as row label.
@@ -110,12 +110,12 @@ fn info_completed_then_deleted_task_renders_both_end_and_deleted_rows() {
         .success();
 
     let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
-    let uid = extract_uid(&info_before);
+    let uuid = extract_uuid(&info_before);
 
     common::dawn_cmd(&db).args(["1", "done"]).assert().success();
-    delete_via_pty(&db, &uid);
+    delete_via_pty(&db, &uuid);
 
-    let out = common::dawn_cmd(&db).arg(&uid).output().expect("run");
+    let out = common::dawn_cmd(&db).arg(&uuid).output().expect("run");
     assert!(out.status.success());
     let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
     assert!(stdout.contains("End"), "missing End row: {stdout}");
@@ -160,30 +160,14 @@ fn info_nonexistent_index_prints_no_matches() {
 }
 
 #[test]
-fn info_nonexistent_uid_prints_no_matches() {
+fn info_nonexistent_uuid_prints_no_matches() {
     let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "only"])
         .assert()
         .success();
     common::dawn_cmd(&db)
-        .arg("abc1efghijkl")
-        .assert()
-        .code(1)
-        .stderr("No matches.\n");
-}
-
-// Regression: nanoid SAFE alphabet allows UIDs starting with '-'. Without
-// `allow_hyphen_values` on the pre-filter, clap rejects them as unknown flags.
-#[test]
-fn info_hyphen_prefixed_uid_does_not_panic_clap() {
-    let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
-        .args(["add", "only"])
-        .assert()
-        .success();
-    common::dawn_cmd(&db)
-        .arg("-Abc1efghijk")
+        .arg("00000000-0000-0000-0000-000000000099")
         .assert()
         .code(1)
         .stderr("No matches.\n");
@@ -235,7 +219,7 @@ fn non_id_bare_routes_to_next_with_word_filter() {
         .assert()
         .success();
 
-    // "investigate" parses as neither Index nor UniqueID, so has_bare_id stays
+    // "investigate" parses as neither Index nor UUID, so has_bare_id stays
     // false and the command resolves to `next` with a words filter rather than
     // `info`. Only the matching task renders.
     let out = common::dawn_cmd(&db)

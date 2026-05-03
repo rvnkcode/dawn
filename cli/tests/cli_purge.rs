@@ -1,6 +1,6 @@
 mod common;
 
-use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uid, run_stdout, select_option};
+use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uuid, run_stdout, select_option};
 use std::path::Path;
 
 // `task all` body containment check; tolerates the empty-DB exit-1 / stderr
@@ -23,17 +23,17 @@ fn assert_all_empty(db: &Path) {
 // ── Group A: Pre-filter route (filter before subcommand) ──
 
 #[test]
-fn purge_by_pre_uid_purges_deleted_task() {
+fn purge_by_pre_uuid_purges_deleted_task() {
     let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    let uid = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("1")));
-    delete_via_pty(&db, &uid);
+    let uuid = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
+    delete_via_pty(&db, &uuid);
 
-    let mut p = dawn_pty(&db, &[&uid, "purge"]);
+    let mut p = dawn_pty(&db, &[&uuid, "purge"]);
     p.exp_string("Permanently remove task")
         .expect("single confirm prompt");
     p.exp_string("'buy milk'?").expect("description in prompt");
@@ -49,13 +49,13 @@ fn purge_by_pre_word_filter_matches_one_task() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["buy milk", "fix bug"]);
 
-    // Capture UID of "buy milk" before deleting; index↔description mapping is unstable.
+    // Capture UUID of "buy milk" before deleting; index↔description mapping is unstable.
     let info1 = run_stdout(common::dawn_cmd(&db).arg("1"));
     let info2 = run_stdout(common::dawn_cmd(&db).arg("2"));
     let buy_uid = if info1.contains("buy milk") {
-        extract_uid(&info1)
+        extract_uuid(&info1)
     } else {
-        extract_uid(&info2)
+        extract_uuid(&info2)
     };
     delete_via_pty(&db, &buy_uid);
 
@@ -75,13 +75,13 @@ fn purge_pre_set_two_uids_both_purged() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta"]);
 
-    let uid1 = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("1")));
-    let uid2 = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("2")));
-    delete_via_pty(&db, &uid1);
-    delete_via_pty(&db, &uid2);
+    let uuid1 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
+    let uuid2 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("2")));
+    delete_via_pty(&db, &uuid1);
+    delete_via_pty(&db, &uuid2);
 
     // original_count == 2 > 1 → bulk Select fires per task.
-    let target = format!("{uid1},{uid2}");
+    let target = format!("{uuid1},{uuid2}");
     let mut p = dawn_pty(&db, &[&target, "purge"]);
     p.exp_string("Permanently remove task")
         .expect("first bulk prompt");
@@ -205,10 +205,10 @@ fn purge_user_declines_single_no_op() {
         .args(["add", "buy milk"])
         .assert()
         .success();
-    let uid = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("1")));
-    delete_via_pty(&db, &uid);
+    let uuid = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
+    delete_via_pty(&db, &uuid);
 
-    let mut p = dawn_pty(&db, &[&uid, "purge"]);
+    let mut p = dawn_pty(&db, &[&uuid, "purge"]);
     p.exp_string("Permanently remove task")
         .expect("single confirm prompt");
     p.send_line("n").expect("send n");
@@ -224,12 +224,12 @@ fn purge_bulk_no_skips_one() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta"]);
 
-    let uid1 = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("1")));
-    let uid2 = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("2")));
-    delete_via_pty(&db, &uid1);
-    delete_via_pty(&db, &uid2);
+    let uuid1 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
+    let uuid2 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("2")));
+    delete_via_pty(&db, &uuid1);
+    delete_via_pty(&db, &uuid2);
 
-    let target = format!("{uid1},{uid2}");
+    let target = format!("{uuid1},{uuid2}");
     let mut p = dawn_pty(&db, &[&target, "purge"]);
     p.exp_string("Permanently remove task")
         .expect("first bulk prompt");
@@ -254,14 +254,14 @@ fn purge_bulk_quit_aborts_remaining() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
 
-    let uid1 = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("1")));
-    let uid2 = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("2")));
-    let uid3 = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("3")));
-    delete_via_pty(&db, &uid1);
-    delete_via_pty(&db, &uid2);
+    let uuid1 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
+    let uuid2 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("2")));
+    let uid3 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("3")));
+    delete_via_pty(&db, &uuid1);
+    delete_via_pty(&db, &uuid2);
     delete_via_pty(&db, &uid3);
 
-    let target = format!("{uid1},{uid2},{uid3}");
+    let target = format!("{uuid1},{uuid2},{uid3}");
     let mut p = dawn_pty(&db, &[&target, "purge"]);
     p.exp_string("Permanently remove task")
         .expect("first bulk prompt");
@@ -285,14 +285,14 @@ fn purge_bulk_all_purges_remaining() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
 
-    let uid1 = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("1")));
-    let uid2 = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("2")));
-    let uid3 = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("3")));
-    delete_via_pty(&db, &uid1);
-    delete_via_pty(&db, &uid2);
+    let uuid1 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
+    let uuid2 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("2")));
+    let uid3 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("3")));
+    delete_via_pty(&db, &uuid1);
+    delete_via_pty(&db, &uuid2);
     delete_via_pty(&db, &uid3);
 
-    let target = format!("{uid1},{uid2},{uid3}");
+    let target = format!("{uuid1},{uuid2},{uid3}");
     let mut p = dawn_pty(&db, &[&target, "purge"]);
     p.exp_string("Permanently remove task")
         .expect("first bulk prompt");

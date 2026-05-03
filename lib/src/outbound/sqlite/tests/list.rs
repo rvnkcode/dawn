@@ -1,8 +1,9 @@
 use super::setup;
 use crate::domain::task::{
-    Description, Filter, Index, IndexRange, Status, Task, Timestamp, UniqueID, port::TaskRepository,
+    Description, Filter, Index, IndexRange, Status, Task, Timestamp, port::TaskRepository,
 };
 use crate::outbound::sqlite::SQLite;
+use uuid::Uuid;
 
 fn insert_task_from(db: &SQLite, task: &Task) {
     db.conn
@@ -10,7 +11,7 @@ fn insert_task_from(db: &SQLite, task: &Task) {
             "INSERT INTO task (id, description, entry, completed, deleted, modified) \
              VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             rusqlite::params![
-                task.uid.to_string(),
+                task.uuid.to_string(),
                 task.description.to_string(),
                 task.entry.as_seconds(),
                 task.completed.as_ref().map(Timestamp::as_seconds),
@@ -37,7 +38,7 @@ fn list_tasks_returns_empty_vec_when_no_tasks() {
 fn list_tasks_orders_by_entry_then_id() {
     let db = setup();
     let earlier = Task {
-        uid: "test_llllll3".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000020".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("earlier entry").unwrap(),
         entry: Timestamp::new(500).unwrap(),
@@ -46,7 +47,7 @@ fn list_tasks_orders_by_entry_then_id() {
         modified: Timestamp::new(500).unwrap(),
     };
     let first_by_id = Task {
-        uid: "test_llllll1".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000001e".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("first by id").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -55,7 +56,7 @@ fn list_tasks_orders_by_entry_then_id() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let second_by_id = Task {
-        uid: "test_llllll2".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000001f".parse().unwrap(),
         index: Some(Index::new(3).unwrap()),
         description: Description::new("second by id").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -77,7 +78,7 @@ fn list_tasks_orders_by_entry_then_id() {
 fn list_tasks_filter_pending_only() {
     let db = setup();
     let pending = Task {
-        uid: "test_mmmmmm1".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000021".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("pending").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -86,7 +87,7 @@ fn list_tasks_filter_pending_only() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let completed = Task {
-        uid: "test_mmmmmm2".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000022".parse().unwrap(),
         index: None,
         description: Description::new("completed").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -95,7 +96,7 @@ fn list_tasks_filter_pending_only() {
         modified: Timestamp::new(2000).unwrap(),
     };
     let deleted = Task {
-        uid: "test_mmmmmm3".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000023".parse().unwrap(),
         index: None,
         description: Description::new("deleted").unwrap(),
         entry: Timestamp::new(3000).unwrap(),
@@ -117,7 +118,7 @@ fn list_tasks_filter_pending_only() {
 fn list_tasks_filter_completed_only() {
     let db = setup();
     let pending = Task {
-        uid: "test_nnnnnn1".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000024".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("pending").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -126,7 +127,7 @@ fn list_tasks_filter_completed_only() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let completed = Task {
-        uid: "test_nnnnnn2".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000025".parse().unwrap(),
         index: None,
         description: Description::new("completed").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -135,7 +136,7 @@ fn list_tasks_filter_completed_only() {
         modified: Timestamp::new(2000).unwrap(),
     };
     let deleted = Task {
-        uid: "test_nnnnnn3".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000026".parse().unwrap(),
         index: None,
         description: Description::new("deleted").unwrap(),
         entry: Timestamp::new(3000).unwrap(),
@@ -157,7 +158,7 @@ fn list_tasks_filter_completed_only() {
 fn list_tasks_filter_deleted_only() {
     let db = setup();
     let pending = Task {
-        uid: "test_oooooo1".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000027".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("pending").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -166,7 +167,7 @@ fn list_tasks_filter_deleted_only() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let completed = Task {
-        uid: "test_oooooo2".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000028".parse().unwrap(),
         index: None,
         description: Description::new("completed").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -175,7 +176,7 @@ fn list_tasks_filter_deleted_only() {
         modified: Timestamp::new(2000).unwrap(),
     };
     let deleted = Task {
-        uid: "test_oooooo3".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000029".parse().unwrap(),
         index: None,
         description: Description::new("deleted").unwrap(),
         entry: Timestamp::new(3000).unwrap(),
@@ -197,7 +198,7 @@ fn list_tasks_filter_deleted_only() {
 fn list_tasks_no_filter_returns_all() {
     let db = setup();
     let pending = Task {
-        uid: "test_pppppp1".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000002a".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("pending").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -206,7 +207,7 @@ fn list_tasks_no_filter_returns_all() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let completed = Task {
-        uid: "test_pppppp2".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000002b".parse().unwrap(),
         index: None,
         description: Description::new("completed").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -215,7 +216,7 @@ fn list_tasks_no_filter_returns_all() {
         modified: Timestamp::new(2000).unwrap(),
     };
     let deleted = Task {
-        uid: "test_pppppp3".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000002c".parse().unwrap(),
         index: None,
         description: Description::new("deleted").unwrap(),
         entry: Timestamp::new(3000).unwrap(),
@@ -237,7 +238,7 @@ fn list_tasks_no_filter_returns_all() {
 fn list_tasks_filter_two_statuses() {
     let db = setup();
     let pending = Task {
-        uid: "test_qqqqqq1".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000002d".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("pending").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -246,7 +247,7 @@ fn list_tasks_filter_two_statuses() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let completed = Task {
-        uid: "test_qqqqqq2".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000002e".parse().unwrap(),
         index: None,
         description: Description::new("completed").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -255,7 +256,7 @@ fn list_tasks_filter_two_statuses() {
         modified: Timestamp::new(2000).unwrap(),
     };
     let deleted = Task {
-        uid: "test_qqqqqq3".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000002f".parse().unwrap(),
         index: None,
         description: Description::new("deleted").unwrap(),
         entry: Timestamp::new(3000).unwrap(),
@@ -277,7 +278,7 @@ fn list_tasks_filter_two_statuses() {
 fn list_tasks_filter_all_statuses() {
     let db = setup();
     let pending = Task {
-        uid: "test_rrrrrr1".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000034".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("pending").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -286,7 +287,7 @@ fn list_tasks_filter_all_statuses() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let completed = Task {
-        uid: "test_rrrrrr2".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000035".parse().unwrap(),
         index: None,
         description: Description::new("completed").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -295,7 +296,7 @@ fn list_tasks_filter_all_statuses() {
         modified: Timestamp::new(2000).unwrap(),
     };
     let deleted = Task {
-        uid: "test_rrrrrr3".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000036".parse().unwrap(),
         index: None,
         description: Description::new("deleted").unwrap(),
         entry: Timestamp::new(3000).unwrap(),
@@ -314,13 +315,13 @@ fn list_tasks_filter_all_statuses() {
     assert_eq!(tasks, vec![pending, completed, deleted]);
 }
 
-// Filter by UID
+// Filter by UUID
 
 #[test]
 fn list_tasks_filter_single_uid() {
     let db = setup();
     let target = Task {
-        uid: "test_sssss01".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000037".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("target").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -329,7 +330,7 @@ fn list_tasks_filter_single_uid() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let other1 = Task {
-        uid: "test_sssss02".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000038".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("other 1").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -338,7 +339,7 @@ fn list_tasks_filter_single_uid() {
         modified: Timestamp::new(2000).unwrap(),
     };
     let other2 = Task {
-        uid: "test_sssss03".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000039".parse().unwrap(),
         index: Some(Index::new(3).unwrap()),
         description: Description::new("other 2").unwrap(),
         entry: Timestamp::new(3000).unwrap(),
@@ -349,7 +350,9 @@ fn list_tasks_filter_single_uid() {
     insert_task_from(&db, &target);
     insert_task_from(&db, &other1);
     insert_task_from(&db, &other2);
-    let filter = Filter::default().with_uids(["test_sssss01".parse::<UniqueID>().unwrap()]);
+    let filter = Filter::default().with_uuids(["00000000-0000-0000-0000-000000000037"
+        .parse::<Uuid>()
+        .unwrap()]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -360,7 +363,7 @@ fn list_tasks_filter_single_uid() {
 fn list_tasks_filter_multiple_uids() {
     let db = setup();
     let first = Task {
-        uid: "test_ttttt01".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000003a".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("first").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -369,7 +372,7 @@ fn list_tasks_filter_multiple_uids() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let second = Task {
-        uid: "test_ttttt02".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000003b".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("second").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -378,7 +381,7 @@ fn list_tasks_filter_multiple_uids() {
         modified: Timestamp::new(2000).unwrap(),
     };
     let excluded = Task {
-        uid: "test_ttttt03".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000003c".parse().unwrap(),
         index: Some(Index::new(3).unwrap()),
         description: Description::new("excluded").unwrap(),
         entry: Timestamp::new(3000).unwrap(),
@@ -389,9 +392,13 @@ fn list_tasks_filter_multiple_uids() {
     insert_task_from(&db, &first);
     insert_task_from(&db, &second);
     insert_task_from(&db, &excluded);
-    let filter = Filter::default().with_uids([
-        "test_ttttt01".parse::<UniqueID>().unwrap(),
-        "test_ttttt02".parse::<UniqueID>().unwrap(),
+    let filter = Filter::default().with_uuids([
+        "00000000-0000-0000-0000-00000000003a"
+            .parse::<Uuid>()
+            .unwrap(),
+        "00000000-0000-0000-0000-00000000003b"
+            .parse::<Uuid>()
+            .unwrap(),
     ]);
 
     let tasks = db.list_tasks(&filter).unwrap();
@@ -403,7 +410,7 @@ fn list_tasks_filter_multiple_uids() {
 fn list_tasks_filter_nonexistent_uid() {
     let db = setup();
     let task = Task {
-        uid: "test_vvvvv01".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000046".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("existing").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -412,8 +419,8 @@ fn list_tasks_filter_nonexistent_uid() {
         modified: Timestamp::new(1000).unwrap(),
     };
     insert_task_from(&db, &task);
-    let nonexistent: UniqueID = "test_vvvvv99".parse().unwrap();
-    let filter = Filter::default().with_uids([nonexistent]);
+    let nonexistent: Uuid = "00000000-0000-0000-0000-000000000047".parse().unwrap();
+    let filter = Filter::default().with_uuids([nonexistent]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -421,10 +428,10 @@ fn list_tasks_filter_nonexistent_uid() {
 }
 
 #[test]
-fn list_tasks_filter_uid_with_status() {
+fn list_tasks_filter_uuid_with_status() {
     let db = setup();
     let pending = Task {
-        uid: "test_uuuuu01".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000043".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("pending").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -433,7 +440,7 @@ fn list_tasks_filter_uid_with_status() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let completed = Task {
-        uid: "test_uuuuu02".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000044".parse().unwrap(),
         index: None,
         description: Description::new("completed").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -442,7 +449,7 @@ fn list_tasks_filter_uid_with_status() {
         modified: Timestamp::new(2000).unwrap(),
     };
     let other = Task {
-        uid: "test_uuuuu03".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000045".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("other pending").unwrap(),
         entry: Timestamp::new(4000).unwrap(),
@@ -454,9 +461,13 @@ fn list_tasks_filter_uid_with_status() {
     insert_task_from(&db, &completed);
     insert_task_from(&db, &other);
     let filter = Filter::default()
-        .with_uids([
-            "test_uuuuu01".parse::<UniqueID>().unwrap(),
-            "test_uuuuu02".parse::<UniqueID>().unwrap(),
+        .with_uuids([
+            "00000000-0000-0000-0000-000000000043"
+                .parse::<Uuid>()
+                .unwrap(),
+            "00000000-0000-0000-0000-000000000044"
+                .parse::<Uuid>()
+                .unwrap(),
         ])
         .with_statuses([Status::Pending]);
 
@@ -471,7 +482,7 @@ fn list_tasks_filter_uid_with_status() {
 fn list_tasks_filter_single_index() {
     let db = setup();
     let target = Task {
-        uid: "test_wwwww01".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000006c".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("target").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -480,7 +491,7 @@ fn list_tasks_filter_single_index() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let other = Task {
-        uid: "test_wwwww02".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000006d".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("other").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -501,7 +512,7 @@ fn list_tasks_filter_single_index() {
 fn list_tasks_filter_multiple_indices() {
     let db = setup();
     let first = Task {
-        uid: "test_xxxxx01".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000006e".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("first").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -510,7 +521,7 @@ fn list_tasks_filter_multiple_indices() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let second = Task {
-        uid: "test_xxxxx02".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000006f".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("second").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -519,7 +530,7 @@ fn list_tasks_filter_multiple_indices() {
         modified: Timestamp::new(2000).unwrap(),
     };
     let excluded = Task {
-        uid: "test_xxxxx03".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000070".parse().unwrap(),
         index: Some(Index::new(3).unwrap()),
         description: Description::new("excluded").unwrap(),
         entry: Timestamp::new(3000).unwrap(),
@@ -543,7 +554,7 @@ fn list_tasks_filter_index_with_completed_returns_empty() {
     insert_task_from(
         &db,
         &Task {
-            uid: "test_yyyzz01".parse().unwrap(),
+            uuid: "00000000-0000-0000-0000-000000000071".parse().unwrap(),
             index: None,
             description: Description::new("completed").unwrap(),
             entry: Timestamp::new(1000).unwrap(),
@@ -555,7 +566,7 @@ fn list_tasks_filter_index_with_completed_returns_empty() {
     insert_task_from(
         &db,
         &Task {
-            uid: "test_yyyzz02".parse().unwrap(),
+            uuid: "00000000-0000-0000-0000-000000000072".parse().unwrap(),
             index: Some(Index::new(1).unwrap()),
             description: Description::new("pending").unwrap(),
             entry: Timestamp::new(3000).unwrap(),
@@ -579,7 +590,7 @@ fn list_tasks_filter_index_with_deleted_returns_empty() {
     insert_task_from(
         &db,
         &Task {
-            uid: "test_yyyzz03".parse().unwrap(),
+            uuid: "00000000-0000-0000-0000-000000000073".parse().unwrap(),
             index: None,
             description: Description::new("deleted").unwrap(),
             entry: Timestamp::new(1000).unwrap(),
@@ -591,7 +602,7 @@ fn list_tasks_filter_index_with_deleted_returns_empty() {
     insert_task_from(
         &db,
         &Task {
-            uid: "test_yyyzz04".parse().unwrap(),
+            uuid: "00000000-0000-0000-0000-000000000074".parse().unwrap(),
             index: Some(Index::new(1).unwrap()),
             description: Description::new("pending").unwrap(),
             entry: Timestamp::new(3000).unwrap(),
@@ -613,7 +624,7 @@ fn list_tasks_filter_index_with_deleted_returns_empty() {
 fn list_tasks_filter_nonexistent_index() {
     let db = setup();
     let task = Task {
-        uid: "test_zzzzz01".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000075".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("existing").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -631,12 +642,12 @@ fn list_tasks_filter_nonexistent_index() {
 
 // Filter by Index Range
 
-fn five_pending(prefix: &str) -> [Task; 5] {
+fn five_pending(base: u128) -> [Task; 5] {
     std::array::from_fn(|i| {
         let n = i + 1;
         let secs = (n as i64) * 1000;
         Task {
-            uid: format!("{prefix}{n:02}").parse().unwrap(),
+            uuid: Uuid::from_u128(base + n as u128),
             index: Some(Index::new(n).unwrap()),
             description: Description::new(&format!("task {n}")).unwrap(),
             entry: Timestamp::new(secs).unwrap(),
@@ -650,7 +661,7 @@ fn five_pending(prefix: &str) -> [Task; 5] {
 #[test]
 fn list_tasks_filter_index_range() {
     let db = setup();
-    let [t1, t2, t3, t4, t5] = five_pending("test_rng_a");
+    let [t1, t2, t3, t4, t5] = five_pending(0x30 << 8);
     for t in [&t1, &t2, &t3, &t4, &t5] {
         insert_task_from(&db, t);
     }
@@ -668,7 +679,7 @@ fn list_tasks_filter_index_range() {
 #[test]
 fn list_tasks_filter_index_range_oversized_upper_returns_existing() {
     let db = setup();
-    let [t1, t2, t3, t4, t5] = five_pending("test_rng_b");
+    let [t1, t2, t3, t4, t5] = five_pending(0x31 << 8);
     for t in [&t1, &t2, &t3, &t4, &t5] {
         insert_task_from(&db, t);
     }
@@ -686,7 +697,7 @@ fn list_tasks_filter_index_range_oversized_upper_returns_existing() {
 #[test]
 fn list_tasks_filter_index_range_combined_with_index() {
     let db = setup();
-    let [t1, t2, _t3, t4, _t5] = five_pending("test_rng_c");
+    let [t1, t2, _t3, t4, _t5] = five_pending(0x32 << 8);
     for t in [&t1, &t2, &_t3, &t4, &_t5] {
         insert_task_from(&db, t);
     }
@@ -704,7 +715,7 @@ fn list_tasks_filter_index_range_combined_with_index() {
 #[test]
 fn list_tasks_filter_swapped_index_range_normalizes() {
     let db = setup();
-    let [_t1, _t2, t3, t4, t5] = five_pending("test_rng_d");
+    let [_t1, _t2, t3, t4, t5] = five_pending(0x33 << 8);
     for t in [&_t1, &_t2, &t3, &t4, &t5] {
         insert_task_from(&db, t);
     }
@@ -719,22 +730,22 @@ fn list_tasks_filter_swapped_index_range_normalizes() {
     assert_eq!(tasks, vec![t3, t4, t5]);
 }
 
-// Filter by UID + Index
+// Filter by UUID + Index
 
 #[test]
-fn list_tasks_filter_uid_and_index() {
+fn list_tasks_filter_uuid_and_index() {
     let db = setup();
     let by_uid = Task {
-        uid: "test_aaaab01".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000002".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
-        description: Description::new("matched by uid").unwrap(),
+        description: Description::new("matched by uuid").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
         completed: None,
         deleted: None,
         modified: Timestamp::new(1000).unwrap(),
     };
     let by_index = Task {
-        uid: "test_aaaab02".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000003".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("matched by index").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -743,7 +754,7 @@ fn list_tasks_filter_uid_and_index() {
         modified: Timestamp::new(2000).unwrap(),
     };
     let excluded = Task {
-        uid: "test_aaaab03".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000004".parse().unwrap(),
         index: Some(Index::new(3).unwrap()),
         description: Description::new("excluded").unwrap(),
         entry: Timestamp::new(3000).unwrap(),
@@ -755,7 +766,9 @@ fn list_tasks_filter_uid_and_index() {
     insert_task_from(&db, &by_index);
     insert_task_from(&db, &excluded);
     let filter = Filter::default()
-        .with_uids(["test_aaaab01".parse::<UniqueID>().unwrap()])
+        .with_uuids(["00000000-0000-0000-0000-000000000002"
+            .parse::<Uuid>()
+            .unwrap()])
         .with_indices([Index::new(2).unwrap()]);
 
     let tasks = db.list_tasks(&filter).unwrap();
@@ -769,7 +782,7 @@ fn list_tasks_filter_uid_and_index() {
 fn list_tasks_filter_word_long_match() {
     let db = setup();
     let milk = Task {
-        uid: "test_wlng001".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000057".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("buy milk").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -778,7 +791,7 @@ fn list_tasks_filter_word_long_match() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let eggs = Task {
-        uid: "test_wlng002".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000058".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("buy eggs").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -787,7 +800,7 @@ fn list_tasks_filter_word_long_match() {
         modified: Timestamp::new(2000).unwrap(),
     };
     let mom = Task {
-        uid: "test_wlng003".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000059".parse().unwrap(),
         index: Some(Index::new(3).unwrap()),
         description: Description::new("call mom").unwrap(),
         entry: Timestamp::new(3000).unwrap(),
@@ -809,7 +822,7 @@ fn list_tasks_filter_word_long_match() {
 fn list_tasks_filter_word_long_case_insensitive() {
     let db = setup();
     let task = Task {
-        uid: "test_wlng004".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000005a".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("Buy MILK today").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -829,7 +842,7 @@ fn list_tasks_filter_word_long_case_insensitive() {
 fn list_tasks_filter_word_substring_match() {
     let db = setup();
     let task = Task {
-        uid: "test_wlng005".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000005b".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("refactoring code").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -851,7 +864,7 @@ fn list_tasks_filter_word_no_match_returns_empty() {
     insert_task_from(
         &db,
         &Task {
-            uid: "test_wlng006".parse().unwrap(),
+            uuid: "00000000-0000-0000-0000-00000000005c".parse().unwrap(),
             index: Some(Index::new(1).unwrap()),
             description: Description::new("buy milk").unwrap(),
             entry: Timestamp::new(1000).unwrap(),
@@ -871,7 +884,7 @@ fn list_tasks_filter_word_no_match_returns_empty() {
 fn list_tasks_filter_word_short_match() {
     let db = setup();
     let target = Task {
-        uid: "test_wsht001".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000065".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("hi there").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -880,7 +893,7 @@ fn list_tasks_filter_word_short_match() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let other = Task {
-        uid: "test_wsht002".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000066".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("go home").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -901,7 +914,7 @@ fn list_tasks_filter_word_short_match() {
 fn list_tasks_filter_word_short_case_insensitive() {
     let db = setup();
     let task = Task {
-        uid: "test_wsht003".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000067".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("HI there").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -921,7 +934,7 @@ fn list_tasks_filter_word_short_case_insensitive() {
 fn list_tasks_filter_multiple_words_all_match() {
     let db = setup();
     let both = Task {
-        uid: "test_wmlt001".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000005d".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("buy milk and eggs").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -930,7 +943,7 @@ fn list_tasks_filter_multiple_words_all_match() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let bread = Task {
-        uid: "test_wmlt002".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000005e".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("buy bread").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -953,7 +966,7 @@ fn list_tasks_filter_multiple_words_partial_match_returns_empty() {
     insert_task_from(
         &db,
         &Task {
-            uid: "test_wmlt003".parse().unwrap(),
+            uuid: "00000000-0000-0000-0000-00000000005f".parse().unwrap(),
             index: Some(Index::new(1).unwrap()),
             description: Description::new("buy milk").unwrap(),
             entry: Timestamp::new(1000).unwrap(),
@@ -973,7 +986,7 @@ fn list_tasks_filter_multiple_words_partial_match_returns_empty() {
 fn list_tasks_filter_mixed_long_and_short_words() {
     let db = setup();
     let both = Task {
-        uid: "test_wmlt004".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000060".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("hi there world").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -982,7 +995,7 @@ fn list_tasks_filter_mixed_long_and_short_words() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let only_short = Task {
-        uid: "test_wmlt005".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000061".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("hi nothing").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -991,7 +1004,7 @@ fn list_tasks_filter_mixed_long_and_short_words() {
         modified: Timestamp::new(2000).unwrap(),
     };
     let only_long = Task {
-        uid: "test_wmlt006".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000062".parse().unwrap(),
         index: Some(Index::new(3).unwrap()),
         description: Description::new("world only").unwrap(),
         entry: Timestamp::new(3000).unwrap(),
@@ -1013,7 +1026,7 @@ fn list_tasks_filter_mixed_long_and_short_words() {
 fn list_tasks_filter_word_korean_long() {
     let db = setup();
     let korean = Task {
-        uid: "test_wkor001".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000053".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("한글로 작성된 작업").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -1022,7 +1035,7 @@ fn list_tasks_filter_word_korean_long() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let english = Task {
-        uid: "test_wkor002".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000054".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("english task").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -1043,7 +1056,7 @@ fn list_tasks_filter_word_korean_long() {
 fn list_tasks_filter_word_korean_short() {
     let db = setup();
     let korean = Task {
-        uid: "test_wkor003".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000055".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("한글 작업").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -1052,7 +1065,7 @@ fn list_tasks_filter_word_korean_short() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let english = Task {
-        uid: "test_wkor004".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000056".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("english task").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -1073,7 +1086,7 @@ fn list_tasks_filter_word_korean_short() {
 fn list_tasks_filter_word_japanese_long() {
     let db = setup();
     let japanese = Task {
-        uid: "test_wjpn001".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000004d".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("買い物に行く").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -1082,7 +1095,7 @@ fn list_tasks_filter_word_japanese_long() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let english = Task {
-        uid: "test_wjpn002".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000004e".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("english task").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -1103,7 +1116,7 @@ fn list_tasks_filter_word_japanese_long() {
 fn list_tasks_filter_word_japanese_short() {
     let db = setup();
     let japanese = Task {
-        uid: "test_wjpn003".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000004f".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("買い物").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -1112,7 +1125,7 @@ fn list_tasks_filter_word_japanese_short() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let english = Task {
-        uid: "test_wjpn004".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000050".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("english task").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -1133,7 +1146,7 @@ fn list_tasks_filter_word_japanese_short() {
 fn list_tasks_filter_word_japanese_hiragana_katakana() {
     let db = setup();
     let hiragana = Task {
-        uid: "test_wjpn005".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000051".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("ひらがなのテスト").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -1142,7 +1155,7 @@ fn list_tasks_filter_word_japanese_hiragana_katakana() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let katakana_only = Task {
-        uid: "test_wjpn006".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000052".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("カタカナのみ").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -1163,7 +1176,7 @@ fn list_tasks_filter_word_japanese_hiragana_katakana() {
 fn list_tasks_filter_word_with_like_metacharacter() {
     let db = setup();
     let percent = Task {
-        uid: "test_wmta001".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000063".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("50% off").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -1172,7 +1185,7 @@ fn list_tasks_filter_word_with_like_metacharacter() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let plain = Task {
-        uid: "test_wmta002".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000064".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("abc off").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -1193,7 +1206,7 @@ fn list_tasks_filter_word_with_like_metacharacter() {
 fn list_tasks_filter_word_with_status() {
     let db = setup();
     let pending = Task {
-        uid: "test_wsts001".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000068".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("buy milk").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -1202,7 +1215,7 @@ fn list_tasks_filter_word_with_status() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let completed = Task {
-        uid: "test_wsts002".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000069".parse().unwrap(),
         index: None,
         description: Description::new("buy milk later").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -1225,7 +1238,7 @@ fn list_tasks_filter_word_with_status() {
 fn list_tasks_filter_word_with_uid() {
     let db = setup();
     let target = Task {
-        uid: "test_wuid001".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000006a".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("buy milk").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -1234,7 +1247,7 @@ fn list_tasks_filter_word_with_uid() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let other = Task {
-        uid: "test_wuid002".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000006b".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("buy milk too").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -1245,7 +1258,9 @@ fn list_tasks_filter_word_with_uid() {
     insert_task_from(&db, &target);
     insert_task_from(&db, &other);
     let filter = Filter::default()
-        .with_uids(["test_wuid001".parse::<UniqueID>().unwrap()])
+        .with_uuids(["00000000-0000-0000-0000-00000000006a"
+            .parse::<Uuid>()
+            .unwrap()])
         .with_words(["milk"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
@@ -1257,7 +1272,7 @@ fn list_tasks_filter_word_with_uid() {
 fn list_tasks_filter_word_with_index() {
     let db = setup();
     let target = Task {
-        uid: "test_widx001".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000048".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("buy milk").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -1266,7 +1281,7 @@ fn list_tasks_filter_word_with_index() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let other_word = Task {
-        uid: "test_widx002".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-000000000049".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("buy bread").unwrap(),
         entry: Timestamp::new(2000).unwrap(),
@@ -1275,7 +1290,7 @@ fn list_tasks_filter_word_with_index() {
         modified: Timestamp::new(2000).unwrap(),
     };
     let other_index = Task {
-        uid: "test_widx003".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000004a".parse().unwrap(),
         index: Some(Index::new(3).unwrap()),
         description: Description::new("buy milk too").unwrap(),
         entry: Timestamp::new(3000).unwrap(),
@@ -1299,7 +1314,7 @@ fn list_tasks_filter_word_with_index() {
 fn list_tasks_filter_word_with_index_short() {
     let db = setup();
     let target = Task {
-        uid: "test_widx004".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000004b".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("hi there").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -1308,7 +1323,7 @@ fn list_tasks_filter_word_with_index_short() {
         modified: Timestamp::new(1000).unwrap(),
     };
     let other = Task {
-        uid: "test_widx005".parse().unwrap(),
+        uuid: "00000000-0000-0000-0000-00000000004c".parse().unwrap(),
         index: Some(Index::new(2).unwrap()),
         description: Description::new("hi friend").unwrap(),
         entry: Timestamp::new(2000).unwrap(),

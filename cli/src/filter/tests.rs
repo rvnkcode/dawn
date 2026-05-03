@@ -4,8 +4,8 @@ fn raw(terms: &[&str]) -> Vec<String> {
     terms.iter().map(|s| s.to_string()).collect()
 }
 
-fn uid(s: &str) -> UniqueID {
-    s.parse().unwrap()
+fn uuid(s: &str) -> String {
+    s.to_string()
 }
 
 fn idx(n: usize) -> Index {
@@ -23,10 +23,68 @@ fn range(a: usize, b: usize) -> IndexRange {
 // ── Bare (single token, no comma) → Info ──
 
 #[test]
-fn single_uid_bare_yields_info() {
+fn single_uuid_bare_yields_info() {
     assert_eq!(
-        parse_default(&raw(&["abcdefghi-_0"])),
-        DefaultCommand::Info(Filter::default().with_uids([uid("abcdefghi-_0")])),
+        parse_default(&raw(&["550e8400-e29b-41d4-a716-446655440000"])),
+        DefaultCommand::Info(
+            Filter::default().with_uuids([uuid("550e8400-e29b-41d4-a716-446655440000")])
+        ),
+    );
+}
+
+// ── Taskwarrior parity: 8+ char hex prefix matches as UUID ──
+
+#[test]
+fn eight_char_hex_prefix_yields_info_as_uid() {
+    assert_eq!(
+        parse_default(&raw(&["550e8400"])),
+        DefaultCommand::Info(Filter::default().with_uuids([uuid("550e8400")])),
+    );
+}
+
+#[test]
+fn nine_char_uuid_with_hyphen_yields_info_as_uid() {
+    assert_eq!(
+        parse_default(&raw(&["550e8400-"])),
+        DefaultCommand::Info(Filter::default().with_uuids([uuid("550e8400-")])),
+    );
+}
+
+#[test]
+fn thirteen_char_first_two_groups_yields_info_as_uid() {
+    assert_eq!(
+        parse_default(&raw(&["550e8400-e29b"])),
+        DefaultCommand::Info(Filter::default().with_uuids([uuid("550e8400-e29b")])),
+    );
+}
+
+#[test]
+fn seven_char_hex_falls_to_word() {
+    // Below TW's 8-char minimum → not a UUID.
+    assert_eq!(
+        parse_default(&raw(&["550e840"])),
+        DefaultCommand::Next(Filter::default().with_words(["550e840"])),
+    );
+}
+
+#[test]
+fn malformed_uuid_with_oversized_group_falls_to_word() {
+    // Second group overruns 4-char limit → invalid prefix shape.
+    assert_eq!(
+        parse_default(&raw(&["550e8400-e29b12"])),
+        DefaultCommand::Next(Filter::default().with_words(["550e8400-e29b12"])),
+    );
+}
+
+#[test]
+fn uid_prefix_in_set_treated_as_uid() {
+    assert_eq!(
+        parse_default(&raw(&["1,550e8400"])),
+        DefaultCommand::Next(
+            Filter::default()
+                .with_indices([idx(1)])
+                .with_uuids([uuid("550e8400")]),
+        ),
     );
 }
 
@@ -35,14 +93,6 @@ fn single_index_bare_yields_info() {
     assert_eq!(
         parse_default(&raw(&["42"])),
         DefaultCommand::Info(Filter::default().with_indices([idx(42)])),
-    );
-}
-
-#[test]
-fn twelve_digit_numeric_parses_as_uid() {
-    assert_eq!(
-        parse_default(&raw(&["123456789012"])),
-        DefaultCommand::Info(Filter::default().with_uids([uid("123456789012")])),
     );
 }
 
@@ -65,13 +115,13 @@ fn comma_separated_indices_yield_next() {
 }
 
 #[test]
-fn set_with_index_and_uid_yields_next() {
+fn set_with_index_and_uuid_yields_next() {
     assert_eq!(
-        parse_default(&raw(&["1,abcdefghi-_0"])),
+        parse_default(&raw(&["1,550e8400-e29b-41d4-a716-446655440000"])),
         DefaultCommand::Next(
             Filter::default()
                 .with_indices([idx(1)])
-                .with_uids([uid("abcdefghi-_0")]),
+                .with_uuids([uuid("550e8400-e29b-41d4-a716-446655440000")]),
         ),
     );
 }
@@ -286,41 +336,6 @@ fn set_with_zero_segment_demoted_to_word() {
     );
 }
 
-// ── 12-letter heuristic: word-shaped fragments are demoted to words ──
-
-#[test]
-fn twelve_letter_lowercase_collected_as_word() {
-    assert_eq!(
-        parse_default(&raw(&["breakthrough"])),
-        DefaultCommand::Next(Filter::default().with_words(["breakthrough"])),
-    );
-}
-
-#[test]
-fn twelve_letter_title_case_collected_as_word() {
-    assert_eq!(
-        parse_default(&raw(&["Acknowledged"])),
-        DefaultCommand::Next(Filter::default().with_words(["Acknowledged"])),
-    );
-}
-
-#[test]
-fn twelve_letter_all_uppercase_unaffected_by_heuristic() {
-    // ALL CAPS is intentionally outside the heuristic — treated as UID.
-    assert_eq!(
-        parse_default(&raw(&["BREAKTHROUGH"])),
-        DefaultCommand::Info(Filter::default().with_uids([uid("BREAKTHROUGH")])),
-    );
-}
-
-#[test]
-fn uid_with_digit_unaffected_by_heuristic() {
-    assert_eq!(
-        parse_default(&raw(&["abc1efghijkl"])),
-        DefaultCommand::Info(Filter::default().with_uids([uid("abc1efghijkl")])),
-    );
-}
-
 // ── Leading-zero numbers: Taskwarrior parity (007 is text, not 7) ──
 
 #[test]
@@ -347,31 +362,7 @@ fn set_with_leading_zero_segment_demoted_to_word() {
     );
 }
 
-#[test]
-fn set_with_word_shaped_segment_treated_as_uid() {
-    // Comma form is an explicit "this is an ID list" signal, so the word
-    // heuristic is intentionally skipped inside sets. "breakthrough" is
-    // parsed as a UID alongside index 1.
-    assert_eq!(
-        parse_default(&raw(&["breakthrough,1"])),
-        DefaultCommand::Next(
-            Filter::default()
-                .with_indices([idx(1)])
-                .with_uids([uid("breakthrough")]),
-        ),
-    );
-}
-
 // ── Index ranges ──
-
-#[test]
-fn twelve_char_digit_hyphen_token_parses_as_uid_not_range() {
-    // Boundary: matches both UID_PATTERN and RANGE_RE — UID wins.
-    assert_eq!(
-        parse_default(&raw(&["12345-678901"])),
-        DefaultCommand::Info(Filter::default().with_uids([uid("12345-678901")])),
-    );
-}
 
 #[test]
 fn bare_range_yields_next() {
@@ -460,10 +451,10 @@ fn range_in_set_with_indices() {
 #[test]
 fn range_in_set_with_uid() {
     assert_eq!(
-        parse_default(&raw(&["abcdefghi-_0,5-10"])),
+        parse_default(&raw(&["550e8400-e29b-41d4-a716-446655440000,5-10"])),
         DefaultCommand::Next(
             Filter::default()
-                .with_uids([uid("abcdefghi-_0")])
+                .with_uuids([uuid("550e8400-e29b-41d4-a716-446655440000")])
                 .with_index_ranges([range(5, 10)]),
         ),
     );
@@ -598,9 +589,12 @@ fn mutation_blank_pre_strings_treated_as_empty() {
 #[test]
 fn mutation_whitespace_only_pre_promotes_uid() {
     assert_eq!(
-        parse_mutation(&raw(&["", "  "]), &raw(&["abcdefghi-_0", "new"])),
+        parse_mutation(
+            &raw(&["", "  "]),
+            &raw(&["550e8400-e29b-41d4-a716-446655440000", "new"])
+        ),
         (
-            Filter::default().with_uids([uid("abcdefghi-_0")]),
+            Filter::default().with_uuids([uuid("550e8400-e29b-41d4-a716-446655440000")]),
             Some(desc("new")),
         ),
     );
@@ -722,11 +716,14 @@ fn report_both_empty_yields_empty_filter() {
 }
 
 #[test]
-fn report_uid_in_pre_word_in_post() {
+fn report_uuid_in_pre_word_in_post() {
     assert_eq!(
-        parse_report(&raw(&["abcdefghi-_0"]), &raw(&["search"])),
+        parse_report(
+            &raw(&["550e8400-e29b-41d4-a716-446655440000"]),
+            &raw(&["search"])
+        ),
         Filter::default()
-            .with_uids([uid("abcdefghi-_0")])
+            .with_uuids([uuid("550e8400-e29b-41d4-a716-446655440000")])
             .with_words(["search"]),
     );
 }

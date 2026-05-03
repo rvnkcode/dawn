@@ -86,12 +86,12 @@ pub(crate) fn print_result(action: &Action, count: usize) {
     }
 }
 
-pub(crate) fn collect_approved_ids<'a>(
+pub(crate) fn collect_approved_ids(
     action: &Action,
-    candidates: &[&'a Task],
+    candidates: &[&Task],
     modification: &TaskModification,
     original_count: usize,
-) -> anyhow::Result<Vec<&'a UniqueID>> {
+) -> anyhow::Result<Vec<Uuid>> {
     let needs_confirm = original_count >= BULK_CONFIRM_THRESHOLD;
     process_confirmations(action, candidates, modification, |i, task| {
         if !needs_confirm {
@@ -105,27 +105,27 @@ pub(crate) fn collect_approved_ids<'a>(
     })
 }
 
-pub(crate) fn process_confirmations<'a, F>(
+pub(crate) fn process_confirmations<F>(
     action: &Action,
-    candidates: &[&'a Task],
+    candidates: &[&Task],
     modification: &TaskModification,
     mut confirm: F,
-) -> anyhow::Result<Vec<&'a UniqueID>>
+) -> anyhow::Result<Vec<Uuid>>
 where
     F: FnMut(usize, &Task) -> anyhow::Result<ConfirmResult>,
 {
-    let mut approved: Vec<&UniqueID> = Vec::new();
+    let mut approved: Vec<Uuid> = Vec::new();
     for (i, task) in candidates.iter().enumerate() {
         match confirm(i, task)? {
             ConfirmResult::Yes => {
                 print_action(action, task, modification);
-                approved.push(&task.uid);
+                approved.push(task.uuid);
             }
             ConfirmResult::No => println!("{}", action.not_done_msg()),
             ConfirmResult::All => {
                 for remaining in &candidates[i..] {
                     print_action(action, remaining, modification);
-                    approved.push(&remaining.uid);
+                    approved.push(remaining.uuid);
                 }
                 break;
             }
@@ -141,7 +141,7 @@ where
 pub(crate) fn get_display_id(task: &Task) -> String {
     match &task.index {
         Some(index) => index.to_string(),
-        None => task.uid.to_string(),
+        None => task.uuid.to_string(),
     }
 }
 
@@ -221,10 +221,10 @@ pub(crate) fn print_action(action: &Action, task: &Task, modification: &TaskModi
     println!("{} task {} '{}'.", action.verb_ing(), display_id, desc);
 }
 
-pub(crate) fn print_not_pending_for_ids(tasks: &[Task], modified_ids: &[&UniqueID]) {
+pub(crate) fn print_not_pending_for_ids(tasks: &[Task], modified_ids: &[Uuid]) {
     tasks
         .iter()
-        .filter(|t| modified_ids.contains(&&t.uid))
+        .filter(|t| modified_ids.contains(&t.uuid))
         .filter(|t| t.completed.is_some() || t.deleted.is_some())
         .for_each(|t| {
             let status = t.status();
@@ -232,9 +232,9 @@ pub(crate) fn print_not_pending_for_ids(tasks: &[Task], modified_ids: &[&UniqueI
                 "Note: Modified task {} is {}. \
                  You may wish to make this task pending with: \
                  task {} modify --status pending",
-                t.uid,
+                t.uuid,
                 status.to_string().to_lowercase(),
-                t.uid,
+                t.uuid,
             )
             .yellow();
             eprintln!("{}", msg);

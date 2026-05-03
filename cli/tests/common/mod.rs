@@ -69,7 +69,7 @@ pub fn test_db() -> (TempDir, PathBuf) {
 }
 
 // Tasks share `entry` seconds, so the Index↔description mapping is not stable
-// (tiebreaker is the random UID lex order). Tests must not assume that the
+// (tiebreaker is the random UUID lex order). Tests must not assume that the
 // i-th description receives Index i; filter on all seeded indices, or assert
 // on counts rather than on which description maps to which index.
 pub fn setup_tasks(db: &Path, descriptions: &[&str]) {
@@ -78,21 +78,18 @@ pub fn setup_tasks(db: &Path, descriptions: &[&str]) {
     }
 }
 
-// extract UID from `info` output
-pub fn extract_uid(stdout: &str) -> String {
+// extract UUID from `info` output
+pub fn extract_uuid(stdout: &str) -> String {
     for line in stdout.lines() {
         let trimmed = line.trim_start();
-        if let Some(rest) = trimmed.strip_prefix("UID")
+        if let Some(rest) = trimmed.strip_prefix("UUID")
             && let Some(token) = rest.split_whitespace().next()
-            && token.len() == 12
-            && token
-                .bytes()
-                .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+            && uuid::Uuid::parse_str(token).is_ok()
         {
             return token.to_string();
         }
     }
-    panic!("UID row not found in info output:\n{stdout}");
+    panic!("UUID row not found in info output:\n{stdout}");
 }
 
 pub fn run_stdout(cmd: &mut Command) -> String {

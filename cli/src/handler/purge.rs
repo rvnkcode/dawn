@@ -42,33 +42,33 @@ impl<TS: TaskService> Handler<TS> {
     }
 }
 
-fn collect_approved_ids_for_purge<'a>(
+fn collect_approved_ids_for_purge(
     action: &Action,
-    candidates: &[&'a Task],
+    candidates: &[&Task],
     original_count: usize,
-) -> anyhow::Result<Vec<&'a UniqueID>> {
+) -> anyhow::Result<Vec<Uuid>> {
     let is_single = original_count == 1;
     let mut approved_ids = Vec::new();
     for (i, task) in candidates.iter().enumerate() {
         if is_single {
             let prompt = format!(
                 "Permanently remove task {} '{}'?",
-                task.uid, task.description
+                task.uuid, task.description
             );
             if Confirm::new(&prompt).with_default(false).prompt()? {
-                approved_ids.push(&task.uid);
+                approved_ids.push(task.uuid);
             }
             continue;
         }
         if i != 0 {
             println!();
         }
-        match confirm_bulk(&task.uid, &task.description, action)? {
-            ConfirmResult::Yes => approved_ids.push(&task.uid),
+        match confirm_bulk(&task.uuid, &task.description, action)? {
+            ConfirmResult::Yes => approved_ids.push(task.uuid),
             ConfirmResult::No => continue,
             ConfirmResult::All => {
                 for remaining in &candidates[i..] {
-                    approved_ids.push(&remaining.uid);
+                    approved_ids.push(remaining.uuid);
                 }
                 break;
             }

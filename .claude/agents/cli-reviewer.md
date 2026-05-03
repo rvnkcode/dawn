@@ -169,6 +169,6 @@ When in doubt, stop and read another file rather than paraphrasing from memory o
 
 1. **Taskwarrior reference behavior** — source citations and/or captured output
 2. **Dawn current implementation** — file:line references and captured output if run
-3. **Intentional deviations** — Dawn-specific choices that are *not* bugs (e.g. nanoid UID vs UUID, Clap idioms)
+3. **Intentional deviations** — Dawn-specific choices that are *not* bugs (e.g. Clap idioms)
 4. **Gaps** — confirmed differences, each tagged `[source]`, `[man]`, `[skill]`, `[runtime]`, or `[unverified]`
 5. **Prioritized recommendations** — what to fix first, what can wait, what's blocked on other milestones

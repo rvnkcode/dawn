@@ -1,6 +1,6 @@
 mod common;
 
-use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uid, run_stdout, select_option};
+use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uuid, run_stdout, select_option};
 
 fn assert_no_pending_tasks(db: &std::path::Path) {
     let out = common::dawn_cmd(db).output().expect("run");
@@ -36,7 +36,7 @@ fn done_by_pre_index_completes_task() {
 }
 
 #[test]
-fn done_by_pre_uid_completes_task() {
+fn done_by_pre_uuid_completes_task() {
     let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "buy milk"])
@@ -44,10 +44,10 @@ fn done_by_pre_uid_completes_task() {
         .success();
 
     let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
-    let uid = extract_uid(&info_before);
+    let uuid = extract_uuid(&info_before);
 
     common::dawn_cmd(&db)
-        .args([&uid, "done"])
+        .args([&uuid, "done"])
         .assert()
         .success()
         .stdout("Completed task 1 'buy milk'.\nCompleted 1 task.\n");
@@ -118,7 +118,7 @@ fn done_promotes_single_index_from_mods() {
 }
 
 #[test]
-fn done_promotes_uid_from_mods() {
+fn done_promotes_uuid_from_mods() {
     let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "buy milk"])
@@ -126,10 +126,10 @@ fn done_promotes_uid_from_mods() {
         .success();
 
     let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
-    let uid = extract_uid(&info_before);
+    let uuid = extract_uuid(&info_before);
 
     common::dawn_cmd(&db)
-        .args(["done", &uid])
+        .args(["done", &uuid])
         .assert()
         .success()
         .stdout("Completed task 1 'buy milk'.\nCompleted 1 task.\n");
@@ -205,12 +205,12 @@ fn done_already_completed_task_skipped_partial() {
         .success();
 
     let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
-    let uid = extract_uid(&info_before);
+    let uuid = extract_uuid(&info_before);
 
     common::dawn_cmd(&db).args(["1", "done"]).assert().success();
 
     let out = common::dawn_cmd(&db)
-        .args([&uid, "done"])
+        .args([&uuid, "done"])
         .output()
         .expect("run");
     assert_eq!(out.status.code(), Some(1), "expected Partial exit 1");
@@ -235,12 +235,12 @@ fn done_already_deleted_task_skipped_partial() {
         .success();
 
     let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
-    let uid = extract_uid(&info_before);
+    let uuid = extract_uuid(&info_before);
 
-    delete_via_pty(&db, &uid);
+    delete_via_pty(&db, &uuid);
 
     let out = common::dawn_cmd(&db)
-        .args([&uid, "done"])
+        .args([&uuid, "done"])
         .output()
         .expect("run");
     assert_eq!(out.status.code(), Some(1), "expected Partial exit 1");
@@ -268,8 +268,8 @@ fn done_mixed_pending_and_completed_partial() {
 
     // alpha/beta ↔ index mapping is non-deterministic — capture both UIDs
     // before the fixture completion so the test does not depend on it.
-    let uid_first = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("1")));
-    let uid_second = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("2")));
+    let uid_first = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
+    let uid_second = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("2")));
 
     common::dawn_cmd(&db)
         .args([&uid_first, "done"])

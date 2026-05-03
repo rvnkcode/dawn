@@ -1,15 +1,15 @@
 use super::{get_modified, insert_task, reset_modified, setup};
 use crate::domain::task::{
-    Description, Filter, Status, TaskCreation, TaskModification, Timestamp, UniqueID,
-    port::TaskRepository,
+    Description, Filter, Status, TaskCreation, TaskModification, Timestamp, port::TaskRepository,
 };
+use uuid::Uuid;
 
 // Create Task
 
 #[test]
 fn create_task_inserts_row() {
     let db = setup();
-    let id = UniqueID::new();
+    let id = Uuid::new_v4();
     let req = TaskCreation {
         description: Description::new("buy milk").unwrap(),
     };
@@ -31,7 +31,7 @@ fn create_task_inserts_row() {
 #[test]
 fn create_task_duplicate_id_returns_error() {
     let db = setup();
-    let id = UniqueID::new();
+    let id = Uuid::new_v4();
     let req = TaskCreation {
         description: Description::new("first task").unwrap(),
     };
@@ -69,9 +69,9 @@ fn count_pending_returns_zero_when_no_tasks() {
 #[test]
 fn count_pending_returns_count_of_pending_tasks() {
     let db = setup();
-    insert_task(&db, "test_cnt0001", "task one");
-    insert_task(&db, "test_cnt0002", "task two");
-    insert_task(&db, "test_cnt0003", "task three");
+    insert_task(&db, "00000000-0000-0000-0000-000000000007", "task one");
+    insert_task(&db, "00000000-0000-0000-0000-000000000008", "task two");
+    insert_task(&db, "00000000-0000-0000-0000-000000000009", "task three");
 
     let count = db.count_pending().unwrap();
 
@@ -81,22 +81,22 @@ fn count_pending_returns_count_of_pending_tasks() {
 #[test]
 fn count_pending_excludes_deleted_and_completed_tasks() {
     let db = setup();
-    insert_task(&db, "test_cnt0004", "pending one");
-    insert_task(&db, "test_cnt0005", "pending two");
-    insert_task(&db, "test_cnt0006", "pending three");
-    insert_task(&db, "test_cnt0007", "to complete");
-    insert_task(&db, "test_cnt0008", "to delete");
+    insert_task(&db, "00000000-0000-0000-0000-00000000000a", "pending one");
+    insert_task(&db, "00000000-0000-0000-0000-00000000000b", "pending two");
+    insert_task(&db, "00000000-0000-0000-0000-00000000000c", "pending three");
+    insert_task(&db, "00000000-0000-0000-0000-00000000000d", "to complete");
+    insert_task(&db, "00000000-0000-0000-0000-00000000000e", "to delete");
 
     db.conn
         .execute(
             "UPDATE task SET completed = unixepoch() WHERE id = ?1",
-            rusqlite::params!["test_cnt0007"],
+            rusqlite::params!["00000000-0000-0000-0000-00000000000d"],
         )
         .unwrap();
     db.conn
         .execute(
             "UPDATE task SET deleted = unixepoch() WHERE id = ?1",
-            rusqlite::params!["test_cnt0008"],
+            rusqlite::params!["00000000-0000-0000-0000-00000000000e"],
         )
         .unwrap();
 
@@ -110,15 +110,15 @@ fn count_pending_excludes_deleted_and_completed_tasks() {
 #[test]
 fn update_tasks_changes_description() {
     let db = setup();
-    let id: UniqueID = "test_upd0001".parse().unwrap();
-    insert_task(&db, "test_upd0001", "original");
+    let id: Uuid = "00000000-0000-0000-0000-00000000003d".parse().unwrap();
+    insert_task(&db, "00000000-0000-0000-0000-00000000003d", "original");
 
     let modification = TaskModification {
         description: Some(Description::new("updated").unwrap()),
         completed: None,
         deleted: None,
     };
-    db.update_tasks(&modification, &[&id]).unwrap();
+    db.update_tasks(&modification, &[id]).unwrap();
 
     let tasks = db.list_tasks(&Filter::default()).unwrap();
     assert_eq!(tasks[0].description, Description::new("updated").unwrap());
@@ -127,15 +127,15 @@ fn update_tasks_changes_description() {
 #[test]
 fn update_tasks_sets_completed() {
     let db = setup();
-    let id: UniqueID = "test_upd0002".parse().unwrap();
-    insert_task(&db, "test_upd0002", "pending task");
+    let id: Uuid = "00000000-0000-0000-0000-00000000003e".parse().unwrap();
+    insert_task(&db, "00000000-0000-0000-0000-00000000003e", "pending task");
 
     let modification = TaskModification {
         description: None,
         completed: Some(Some(Timestamp::new(1700000000).unwrap())),
         deleted: None,
     };
-    db.update_tasks(&modification, &[&id]).unwrap();
+    db.update_tasks(&modification, &[id]).unwrap();
 
     let tasks = db
         .list_tasks(&Filter::default().with_statuses([Status::Completed]))
@@ -150,12 +150,16 @@ fn update_tasks_sets_completed() {
 #[test]
 fn update_tasks_clears_completed() {
     let db = setup();
-    let id: UniqueID = "test_upd0003".parse().unwrap();
-    insert_task(&db, "test_upd0003", "completed task");
+    let id: Uuid = "00000000-0000-0000-0000-00000000003f".parse().unwrap();
+    insert_task(
+        &db,
+        "00000000-0000-0000-0000-00000000003f",
+        "completed task",
+    );
     db.conn
         .execute(
             "UPDATE task SET completed = 1700000000 WHERE id = ?1",
-            rusqlite::params!["test_upd0003"],
+            rusqlite::params!["00000000-0000-0000-0000-00000000003f"],
         )
         .unwrap();
 
@@ -164,7 +168,7 @@ fn update_tasks_clears_completed() {
         completed: Some(None),
         deleted: None,
     };
-    db.update_tasks(&modification, &[&id]).unwrap();
+    db.update_tasks(&modification, &[id]).unwrap();
 
     let tasks = db
         .list_tasks(&Filter::default().with_statuses([Status::Pending]))
@@ -176,15 +180,15 @@ fn update_tasks_clears_completed() {
 #[test]
 fn update_tasks_sets_deleted() {
     let db = setup();
-    let id: UniqueID = "test_upd0006".parse().unwrap();
-    insert_task(&db, "test_upd0006", "pending task");
+    let id: Uuid = "00000000-0000-0000-0000-000000000041".parse().unwrap();
+    insert_task(&db, "00000000-0000-0000-0000-000000000041", "pending task");
 
     let modification = TaskModification {
         description: None,
         completed: None,
         deleted: Some(Some(Timestamp::new(1700000000).unwrap())),
     };
-    db.update_tasks(&modification, &[&id]).unwrap();
+    db.update_tasks(&modification, &[id]).unwrap();
 
     let tasks = db
         .list_tasks(&Filter::default().with_statuses([Status::Deleted]))
@@ -196,12 +200,12 @@ fn update_tasks_sets_deleted() {
 #[test]
 fn update_tasks_clears_deleted() {
     let db = setup();
-    let id: UniqueID = "test_upd0007".parse().unwrap();
-    insert_task(&db, "test_upd0007", "deleted task");
+    let id: Uuid = "00000000-0000-0000-0000-000000000042".parse().unwrap();
+    insert_task(&db, "00000000-0000-0000-0000-000000000042", "deleted task");
     db.conn
         .execute(
             "UPDATE task SET deleted = 1700000000 WHERE id = ?1",
-            rusqlite::params!["test_upd0007"],
+            rusqlite::params!["00000000-0000-0000-0000-000000000042"],
         )
         .unwrap();
 
@@ -210,7 +214,7 @@ fn update_tasks_clears_deleted() {
         completed: None,
         deleted: Some(None),
     };
-    db.update_tasks(&modification, &[&id]).unwrap();
+    db.update_tasks(&modification, &[id]).unwrap();
 
     let tasks = db
         .list_tasks(&Filter::default().with_statuses([Status::Pending]))
@@ -222,18 +226,18 @@ fn update_tasks_clears_deleted() {
 #[test]
 fn update_tasks_fires_modified_trigger() {
     let db = setup();
-    let id: UniqueID = "test_upd0005".parse().unwrap();
-    insert_task(&db, "test_upd0005", "original");
-    reset_modified(&db, "test_upd0005");
+    let id: Uuid = "00000000-0000-0000-0000-000000000040".parse().unwrap();
+    insert_task(&db, "00000000-0000-0000-0000-000000000040", "original");
+    reset_modified(&db, "00000000-0000-0000-0000-000000000040");
 
     let modification = TaskModification {
         description: Some(Description::new("changed").unwrap()),
         completed: None,
         deleted: None,
     };
-    db.update_tasks(&modification, &[&id]).unwrap();
+    db.update_tasks(&modification, &[id]).unwrap();
 
-    assert!(get_modified(&db, "test_upd0005") > 0);
+    assert!(get_modified(&db, "00000000-0000-0000-0000-000000000040") > 0);
 }
 
 // Delete Tasks
@@ -241,10 +245,10 @@ fn update_tasks_fires_modified_trigger() {
 #[test]
 fn delete_single_task() {
     let db = setup();
-    let id: UniqueID = "test_del0001".parse().unwrap();
-    insert_task(&db, "test_del0001", "to be deleted");
+    let id: Uuid = "00000000-0000-0000-0000-000000000010".parse().unwrap();
+    insert_task(&db, "00000000-0000-0000-0000-000000000010", "to be deleted");
 
-    db.delete_tasks(&[&id]).unwrap();
+    db.delete_tasks(&[id]).unwrap();
 
     let tasks = db.list_tasks(&Filter::default()).unwrap();
     assert!(tasks.is_empty());
@@ -253,13 +257,13 @@ fn delete_single_task() {
 #[test]
 fn delete_multiple_tasks() {
     let db = setup();
-    let id1: UniqueID = "test_del0002".parse().unwrap();
-    let id2: UniqueID = "test_del0003".parse().unwrap();
-    insert_task(&db, "test_del0001", "survivor");
-    insert_task(&db, "test_del0002", "target one");
-    insert_task(&db, "test_del0003", "target two");
+    let id1: Uuid = "00000000-0000-0000-0000-000000000011".parse().unwrap();
+    let id2: Uuid = "00000000-0000-0000-0000-000000000012".parse().unwrap();
+    insert_task(&db, "00000000-0000-0000-0000-000000000010", "survivor");
+    insert_task(&db, "00000000-0000-0000-0000-000000000011", "target one");
+    insert_task(&db, "00000000-0000-0000-0000-000000000012", "target two");
 
-    db.delete_tasks(&[&id1, &id2]).unwrap();
+    db.delete_tasks(&[id1, id2]).unwrap();
 
     let tasks = db.list_tasks(&Filter::default()).unwrap();
     assert_eq!(tasks.len(), 1);
