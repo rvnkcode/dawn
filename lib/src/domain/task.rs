@@ -10,6 +10,8 @@ pub mod port;
 pub mod service;
 pub mod timestamp;
 pub use timestamp::Timestamp;
+pub mod uuid_prefix;
+pub use uuid_prefix::UuidPrefix;
 
 use std::fmt::{self, Display, Formatter};
 use uuid::Uuid;

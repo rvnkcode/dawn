@@ -1,6 +1,7 @@
 use super::setup;
 use crate::domain::task::{
-    Description, Filter, Index, IndexRange, Status, Task, Timestamp, port::TaskRepository,
+    Description, Filter, Index, IndexRange, Status, Task, Timestamp, UuidPrefix,
+    port::TaskRepository,
 };
 use crate::outbound::sqlite::SQLite;
 use uuid::Uuid;
@@ -350,9 +351,11 @@ fn list_tasks_filter_single_uid() {
     insert_task_from(&db, &target);
     insert_task_from(&db, &other1);
     insert_task_from(&db, &other2);
-    let filter = Filter::default().with_uuids(["00000000-0000-0000-0000-000000000037"
-        .parse::<Uuid>()
-        .unwrap()]);
+    let filter = Filter::default().with_uuids([UuidPrefix::from(
+        "00000000-0000-0000-0000-000000000037"
+            .parse::<Uuid>()
+            .unwrap(),
+    )]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -393,12 +396,16 @@ fn list_tasks_filter_multiple_uids() {
     insert_task_from(&db, &second);
     insert_task_from(&db, &excluded);
     let filter = Filter::default().with_uuids([
-        "00000000-0000-0000-0000-00000000003a"
-            .parse::<Uuid>()
-            .unwrap(),
-        "00000000-0000-0000-0000-00000000003b"
-            .parse::<Uuid>()
-            .unwrap(),
+        UuidPrefix::from(
+            "00000000-0000-0000-0000-00000000003a"
+                .parse::<Uuid>()
+                .unwrap(),
+        ),
+        UuidPrefix::from(
+            "00000000-0000-0000-0000-00000000003b"
+                .parse::<Uuid>()
+                .unwrap(),
+        ),
     ]);
 
     let tasks = db.list_tasks(&filter).unwrap();
@@ -420,7 +427,7 @@ fn list_tasks_filter_nonexistent_uid() {
     };
     insert_task_from(&db, &task);
     let nonexistent: Uuid = "00000000-0000-0000-0000-000000000047".parse().unwrap();
-    let filter = Filter::default().with_uuids([nonexistent]);
+    let filter = Filter::default().with_uuids([UuidPrefix::from(nonexistent)]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -462,12 +469,16 @@ fn list_tasks_filter_uuid_with_status() {
     insert_task_from(&db, &other);
     let filter = Filter::default()
         .with_uuids([
-            "00000000-0000-0000-0000-000000000043"
-                .parse::<Uuid>()
-                .unwrap(),
-            "00000000-0000-0000-0000-000000000044"
-                .parse::<Uuid>()
-                .unwrap(),
+            UuidPrefix::from(
+                "00000000-0000-0000-0000-000000000043"
+                    .parse::<Uuid>()
+                    .unwrap(),
+            ),
+            UuidPrefix::from(
+                "00000000-0000-0000-0000-000000000044"
+                    .parse::<Uuid>()
+                    .unwrap(),
+            ),
         ])
         .with_statuses([Status::Pending]);
 
@@ -766,9 +777,11 @@ fn list_tasks_filter_uuid_and_index() {
     insert_task_from(&db, &by_index);
     insert_task_from(&db, &excluded);
     let filter = Filter::default()
-        .with_uuids(["00000000-0000-0000-0000-000000000002"
-            .parse::<Uuid>()
-            .unwrap()])
+        .with_uuids([UuidPrefix::from(
+            "00000000-0000-0000-0000-000000000002"
+                .parse::<Uuid>()
+                .unwrap(),
+        )])
         .with_indices([Index::new(2).unwrap()]);
 
     let tasks = db.list_tasks(&filter).unwrap();
@@ -1258,9 +1271,11 @@ fn list_tasks_filter_word_with_uid() {
     insert_task_from(&db, &target);
     insert_task_from(&db, &other);
     let filter = Filter::default()
-        .with_uuids(["00000000-0000-0000-0000-00000000006a"
-            .parse::<Uuid>()
-            .unwrap()])
+        .with_uuids([UuidPrefix::from(
+            "00000000-0000-0000-0000-00000000006a"
+                .parse::<Uuid>()
+                .unwrap(),
+        )])
         .with_words(["milk"]);
 
     let tasks = db.list_tasks(&filter).unwrap();

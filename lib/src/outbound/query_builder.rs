@@ -37,6 +37,7 @@ fn build_id_clause(filter: &Filter) -> anyhow::Result<Option<Clause>> {
 
     // Each uuid is a Taskwarrior-style prefix (8-36 chars); match via LIKE so that
     // 8-char short forms still hit the full UUID stored in the column.
+    // No LIKE escape needed: UuidPrefix charset [0-9a-f-] excludes %, _, \.
     let uuids = filter.uuids();
     if !uuids.is_empty() {
         let likes: Vec<&str> = std::iter::repeat_n("t.id LIKE ?", uuids.len()).collect();

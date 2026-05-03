@@ -466,7 +466,7 @@ fn modify_by_pre_out_of_bounds_range_prints_no_tasks_specified() {
 fn modify_nonexistent_uuid_prints_no_tasks_specified() {
     let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
-        .args(["abc1efghijkl", "modify", "foo"])
+        .args(["00000000-0000-0000-0000-000000000099", "modify", "foo"])
         .assert()
         .code(1)
         .stderr("No tasks specified.\n");
