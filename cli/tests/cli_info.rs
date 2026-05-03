@@ -5,11 +5,11 @@ use common::{delete_via_pty, extract_uuid, run_stdout};
 #[test]
 fn info_single_index_renders_all_base_rows() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
-    let out = common::dawn_cmd(&db).arg("1").output().expect("run");
+    let out = common::execute_dawn(&db).arg("1").output().expect("run");
     assert!(out.status.success());
     let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
     let stderr = String::from_utf8(out.stderr).expect("utf8 stderr");
@@ -31,11 +31,11 @@ fn info_single_index_renders_all_base_rows() {
 #[test]
 fn info_omits_end_and_deleted_rows_for_pending() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
-    let out = common::dawn_cmd(&db).arg("1").output().expect("run");
+    let out = common::execute_dawn(&db).arg("1").output().expect("run");
     assert!(out.status.success());
     let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
     assert!(!stdout.contains("End"), "unexpected End row: {stdout}");
@@ -48,17 +48,20 @@ fn info_omits_end_and_deleted_rows_for_pending() {
 #[test]
 fn info_completed_task_renders_end_row_and_completed_status() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let info_before = run_stdout(common::execute_dawn(&db).arg("1"));
     let uuid = extract_uuid(&info_before);
 
-    common::dawn_cmd(&db).args(["1", "done"]).assert().success();
+    common::execute_dawn(&db)
+        .args(["1", "done"])
+        .assert()
+        .success();
 
-    let out = common::dawn_cmd(&db).arg(&uuid).output().expect("run");
+    let out = common::execute_dawn(&db).arg(&uuid).output().expect("run");
     assert!(out.status.success());
     let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
     assert!(stdout.contains("End"), "missing End row: {stdout}");
@@ -75,17 +78,17 @@ fn info_completed_task_renders_end_row_and_completed_status() {
 #[test]
 fn info_deleted_task_renders_deleted_row_and_deleted_status() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let info_before = run_stdout(common::execute_dawn(&db).arg("1"));
     let uuid = extract_uuid(&info_before);
 
     delete_via_pty(&db, &uuid);
 
-    let out = common::dawn_cmd(&db).arg(&uuid).output().expect("run");
+    let out = common::execute_dawn(&db).arg(&uuid).output().expect("run");
     assert!(out.status.success());
     let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
     // "Deleted" appears twice: once as Status value, once as row label.
@@ -104,18 +107,21 @@ fn info_deleted_task_renders_deleted_row_and_deleted_status() {
 #[test]
 fn info_completed_then_deleted_task_renders_both_end_and_deleted_rows() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let info_before = run_stdout(common::execute_dawn(&db).arg("1"));
     let uuid = extract_uuid(&info_before);
 
-    common::dawn_cmd(&db).args(["1", "done"]).assert().success();
+    common::execute_dawn(&db)
+        .args(["1", "done"])
+        .assert()
+        .success();
     delete_via_pty(&db, &uuid);
 
-    let out = common::dawn_cmd(&db).arg(&uuid).output().expect("run");
+    let out = common::execute_dawn(&db).arg(&uuid).output().expect("run");
     assert!(out.status.success());
     let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
     assert!(stdout.contains("End"), "missing End row: {stdout}");
@@ -135,7 +141,7 @@ fn info_completed_then_deleted_task_renders_both_end_and_deleted_rows() {
 fn info_multiple_bare_args_renders_each_task() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two"]);
-    let out = common::dawn_cmd(&db)
+    let out = common::execute_dawn(&db)
         .args(["1", "2"])
         .output()
         .expect("run");
@@ -148,11 +154,11 @@ fn info_multiple_bare_args_renders_each_task() {
 #[test]
 fn info_nonexistent_index_prints_no_matches() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "only"])
         .assert()
         .success();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .arg("99")
         .assert()
         .code(1)
@@ -162,11 +168,11 @@ fn info_nonexistent_index_prints_no_matches() {
 #[test]
 fn info_nonexistent_uuid_prints_no_matches() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "only"])
         .assert()
         .success();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .arg("00000000-0000-0000-0000-000000000099")
         .assert()
         .code(1)
@@ -179,7 +185,7 @@ fn info_nonexistent_uuid_prints_no_matches() {
 fn mixed_set_and_bare_resolves_to_info_with_merged_ids() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two", "three"]);
-    let out = common::dawn_cmd(&db)
+    let out = common::execute_dawn(&db)
         .args(["1,2", "3"])
         .output()
         .expect("run");
@@ -210,11 +216,11 @@ fn mixed_set_and_bare_resolves_to_info_with_merged_ids() {
 #[test]
 fn non_id_bare_routes_to_next_with_word_filter() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "investigate flaky build"])
         .assert()
         .success();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
@@ -222,7 +228,7 @@ fn non_id_bare_routes_to_next_with_word_filter() {
     // "investigate" parses as neither Index nor UUID, so has_bare_id stays
     // false and the command resolves to `next` with a words filter rather than
     // `info`. Only the matching task renders.
-    let out = common::dawn_cmd(&db)
+    let out = common::execute_dawn(&db)
         .arg("investigate")
         .output()
         .expect("run");
@@ -245,7 +251,7 @@ fn non_id_bare_routes_to_next_with_word_filter() {
 fn bare_index_with_range_routes_to_info_with_merged_filter() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two", "three"]);
-    let out = common::dawn_cmd(&db)
+    let out = common::execute_dawn(&db)
         .args(["1", "2-3"])
         .output()
         .expect("run");
@@ -276,7 +282,7 @@ fn bare_with_nonexistent_id_and_set_filter_exits_cleanly() {
     // call with merged filter {1, 2, 99}. Tasks 1 and 2 exist, so info succeeds.
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two"]);
-    let out = common::dawn_cmd(&db)
+    let out = common::execute_dawn(&db)
         .args(["1,2", "99"])
         .output()
         .expect("run");

@@ -7,18 +7,18 @@ use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uuid, run_stdout
 #[test]
 fn modify_by_pre_index_updates_description() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["1", "modify", "pick", "up", "milk"])
         .assert()
         .success()
         .stdout("Modifying task 1 'pick up milk'.\nModified 1 task.\n");
 
-    let info = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let info = run_stdout(common::execute_dawn(&db).arg("1"));
     assert!(
         info.contains("pick up milk"),
         "info missing new description: {info}"
@@ -32,15 +32,15 @@ fn modify_by_pre_index_updates_description() {
 #[test]
 fn modify_by_pre_uuid_updates_description() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let info_before = run_stdout(common::execute_dawn(&db).arg("1"));
     let uuid = extract_uuid(&info_before);
 
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args([&uuid, "modify", "new", "desc"])
         .assert()
         .success()
@@ -49,7 +49,7 @@ fn modify_by_pre_uuid_updates_description() {
             "new desc"
         ));
 
-    let info_after = run_stdout(common::dawn_cmd(&db).arg(&uuid));
+    let info_after = run_stdout(common::execute_dawn(&db).arg(&uuid));
     assert!(info_after.contains("new desc"));
     assert!(!info_after.contains("buy milk"));
 }
@@ -59,10 +59,11 @@ fn modify_by_pre_word_filter_matches_one_task() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["buy milk", "fix bug"]);
 
-    let stdout = run_stdout(common::dawn_cmd(&db).args(["buy", "modify", "pick", "up", "milk"]));
+    let stdout =
+        run_stdout(common::execute_dawn(&db).args(["buy", "modify", "pick", "up", "milk"]));
     assert!(stdout.contains("Modified 1 task."));
 
-    let next = run_stdout(&mut common::dawn_cmd(&db));
+    let next = run_stdout(&mut common::execute_dawn(&db));
     assert!(
         next.contains("pick up milk"),
         "next missing modified task: {next}"
@@ -82,11 +83,11 @@ fn modify_pre_set_filter_two_tasks_both_updated() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two"]);
 
-    let stdout = run_stdout(common::dawn_cmd(&db).args(["1,2", "modify", "same"]));
+    let stdout = run_stdout(common::execute_dawn(&db).args(["1,2", "modify", "same"]));
     assert!(stdout.contains("This command will alter 2 tasks."));
     assert!(stdout.contains("Modified 2 tasks."));
 
-    let next = run_stdout(&mut common::dawn_cmd(&db));
+    let next = run_stdout(&mut common::execute_dawn(&db));
     assert_eq!(
         next.matches("same").count(),
         2,
@@ -101,11 +102,11 @@ fn modify_by_pre_range_updates_two_tasks() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta"]);
 
-    let stdout = run_stdout(common::dawn_cmd(&db).args(["1-2", "modify", "renamed"]));
+    let stdout = run_stdout(common::execute_dawn(&db).args(["1-2", "modify", "renamed"]));
     assert!(stdout.contains("This command will alter 2 tasks."));
     assert!(stdout.contains("Modified 2 tasks."));
 
-    let next = run_stdout(&mut common::dawn_cmd(&db));
+    let next = run_stdout(&mut common::execute_dawn(&db));
     assert_eq!(
         next.matches("renamed").count(),
         2,
@@ -120,7 +121,7 @@ fn modify_pre_filter_with_id_shaped_mod_joins_into_description() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two"]);
 
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["1", "modify", "2", "foo"])
         .assert()
         .success()
@@ -131,7 +132,7 @@ fn modify_pre_filter_with_id_shaped_mod_joins_into_description() {
     // was modified to "2 foo") rather than treated as a filter for index 2.
     // If "2" had been a filter, both tasks would be modified and "one"/"two"
     // would both disappear.
-    let next = run_stdout(&mut common::dawn_cmd(&db));
+    let next = run_stdout(&mut common::execute_dawn(&db));
     assert!(next.contains("2 foo"), "task 1 not renamed: {next}");
     let untouched_remains = next.contains("one") || next.contains("two");
     assert!(
@@ -146,18 +147,18 @@ fn modify_pre_filter_with_id_shaped_mod_joins_into_description() {
 #[test]
 fn modify_promotes_single_index_from_mods() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["modify", "1", "pick", "up", "milk"])
         .assert()
         .success()
         .stdout("Modifying task 1 'pick up milk'.\nModified 1 task.\n");
 
-    let info = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let info = run_stdout(common::execute_dawn(&db).arg("1"));
     assert!(info.contains("pick up milk"));
     assert!(!info.contains("buy milk"));
 }
@@ -165,21 +166,21 @@ fn modify_promotes_single_index_from_mods() {
 #[test]
 fn modify_promotes_uuid_from_mods() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let info_before = run_stdout(common::execute_dawn(&db).arg("1"));
     let uuid = extract_uuid(&info_before);
 
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["modify", &uuid, "new", "desc"])
         .assert()
         .success()
         .stdout("Modifying task 1 'new desc'.\nModified 1 task.\n");
 
-    let info_after = run_stdout(common::dawn_cmd(&db).arg(&uuid));
+    let info_after = run_stdout(common::execute_dawn(&db).arg(&uuid));
     assert!(info_after.contains("new desc"));
     assert!(!info_after.contains("buy milk"));
 }
@@ -189,11 +190,11 @@ fn modify_promotes_set_from_mods_two_tasks() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two"]);
 
-    let stdout = run_stdout(common::dawn_cmd(&db).args(["modify", "1,2", "same"]));
+    let stdout = run_stdout(common::execute_dawn(&db).args(["modify", "1,2", "same"]));
     assert!(stdout.contains("This command will alter 2 tasks."));
     assert!(stdout.contains("Modified 2 tasks."));
 
-    let next = run_stdout(&mut common::dawn_cmd(&db));
+    let next = run_stdout(&mut common::execute_dawn(&db));
     assert_eq!(next.matches("same").count(), 2);
     assert!(!next.contains("one"));
     assert!(!next.contains("two"));
@@ -204,11 +205,11 @@ fn modify_promotes_range_from_mods() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two"]);
 
-    let stdout = run_stdout(common::dawn_cmd(&db).args(["modify", "1-2", "same"]));
+    let stdout = run_stdout(common::execute_dawn(&db).args(["modify", "1-2", "same"]));
     assert!(stdout.contains("This command will alter 2 tasks."));
     assert!(stdout.contains("Modified 2 tasks."));
 
-    let next = run_stdout(&mut common::dawn_cmd(&db));
+    let next = run_stdout(&mut common::execute_dawn(&db));
     assert_eq!(next.matches("same").count(), 2);
     assert!(!next.contains("one"));
     assert!(!next.contains("two"));
@@ -217,18 +218,18 @@ fn modify_promotes_range_from_mods() {
 #[test]
 fn modify_promotion_with_id_only_mods_is_noop() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "one"])
         .assert()
         .success();
 
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["modify", "1"])
         .assert()
         .success()
         .stdout("Modified 0 tasks.\n");
 
-    let info = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let info = run_stdout(common::execute_dawn(&db).arg("1"));
     assert!(info.contains("one"));
 }
 
@@ -237,17 +238,20 @@ fn modify_promotion_with_id_only_mods_is_noop() {
 #[test]
 fn modify_completed_task_by_uuid_emits_note() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let info_before = run_stdout(common::execute_dawn(&db).arg("1"));
     let uuid = extract_uuid(&info_before);
 
-    common::dawn_cmd(&db).args(["1", "done"]).assert().success();
+    common::execute_dawn(&db)
+        .args(["1", "done"])
+        .assert()
+        .success();
 
-    let out = common::dawn_cmd(&db)
+    let out = common::execute_dawn(&db)
         .args([&uuid, "modify", "renamed"])
         .output()
         .expect("run modify");
@@ -267,7 +271,7 @@ fn modify_completed_task_by_uuid_emits_note() {
         "missing completed note on stderr: {stderr}"
     );
 
-    let info_after = run_stdout(common::dawn_cmd(&db).arg(&uuid));
+    let info_after = run_stdout(common::execute_dawn(&db).arg(&uuid));
     assert!(
         info_after.contains("renamed"),
         "description not updated: {info_after}"
@@ -281,17 +285,17 @@ fn modify_completed_task_by_uuid_emits_note() {
 #[test]
 fn modify_deleted_task_by_uuid_emits_note() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let info_before = run_stdout(common::execute_dawn(&db).arg("1"));
     let uuid = extract_uuid(&info_before);
 
     delete_via_pty(&db, &uuid);
 
-    let out = common::dawn_cmd(&db)
+    let out = common::execute_dawn(&db)
         .args([&uuid, "modify", "renamed"])
         .output()
         .expect("run modify");
@@ -311,7 +315,7 @@ fn modify_deleted_task_by_uuid_emits_note() {
         "missing deleted note on stderr: {stderr}"
     );
 
-    let info_after = run_stdout(common::dawn_cmd(&db).arg(&uuid));
+    let info_after = run_stdout(common::execute_dawn(&db).arg(&uuid));
     assert!(
         info_after.contains("renamed"),
         "description not updated: {info_after}"
@@ -327,7 +331,7 @@ fn modify_deleted_task_by_uuid_emits_note() {
 #[test]
 fn modify_no_filter_tty_decline_aborts() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
@@ -340,7 +344,7 @@ fn modify_no_filter_tty_decline_aborts() {
         .expect("abort msg");
     assert_pty_exit(&mut p, 2);
 
-    let info = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let info = run_stdout(common::execute_dawn(&db).arg("1"));
     assert!(
         info.contains("buy milk"),
         "task unexpectedly changed: {info}"
@@ -368,7 +372,7 @@ fn modify_no_filter_tty_accept_modifies_all() {
     p.exp_string("Modified 2 tasks.").expect("footer");
     assert_pty_exit(&mut p, 0);
 
-    let next = run_stdout(&mut common::dawn_cmd(&db));
+    let next = run_stdout(&mut common::execute_dawn(&db));
     assert_eq!(
         next.matches("renamed").count(),
         2,
@@ -383,48 +387,48 @@ fn modify_no_filter_tty_accept_modifies_all() {
 #[test]
 fn modify_with_pre_filter_but_empty_mods_is_noop() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "one"])
         .assert()
         .success();
 
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["1", "modify"])
         .assert()
         .success()
         .stdout("Modified 0 tasks.\n");
 
-    let info = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let info = run_stdout(common::execute_dawn(&db).arg("1"));
     assert!(info.contains("one"));
 }
 
 #[test]
 fn modify_with_whitespace_only_mods_is_noop() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "one"])
         .assert()
         .success();
 
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["1", "modify", "   "])
         .assert()
         .success()
         .stdout("Modified 0 tasks.\n");
 
-    let info = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let info = run_stdout(common::execute_dawn(&db).arg("1"));
     assert!(info.contains("one"));
 }
 
 #[test]
 fn modify_to_same_description_is_noop() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["1", "modify", "buy", "milk"])
         .assert()
         .success()
@@ -436,7 +440,7 @@ fn modify_to_same_description_is_noop() {
 #[test]
 fn modify_nonexistent_index_prints_no_tasks_specified() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["99", "modify", "foo"])
         .assert()
         .code(1)
@@ -447,17 +451,17 @@ fn modify_nonexistent_index_prints_no_tasks_specified() {
 #[test]
 fn modify_by_pre_out_of_bounds_range_prints_no_tasks_specified() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "only"])
         .assert()
         .success();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["99-100", "modify", "renamed"])
         .assert()
         .code(1)
         .stderr("No tasks specified.\n");
 
-    let next = run_stdout(&mut common::dawn_cmd(&db));
+    let next = run_stdout(&mut common::execute_dawn(&db));
     assert!(next.contains("only"), "task was mutated: {next}");
     assert!(!next.contains("renamed"), "renamed leaked: {next}");
 }
@@ -465,7 +469,7 @@ fn modify_by_pre_out_of_bounds_range_prints_no_tasks_specified() {
 #[test]
 fn modify_nonexistent_uuid_prints_no_tasks_specified() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["00000000-0000-0000-0000-000000000099", "modify", "foo"])
         .assert()
         .code(1)
@@ -492,7 +496,7 @@ fn modify_bulk_three_tasks_all_modified() {
     p.exp_string("Modified 3 tasks.").expect("footer");
     assert_pty_exit(&mut p, 0);
 
-    let next = run_stdout(&mut common::dawn_cmd(&db));
+    let next = run_stdout(&mut common::execute_dawn(&db));
     assert_eq!(
         next.matches("renamed").count(),
         3,
@@ -527,7 +531,7 @@ fn modify_bulk_no_skips_one_partial() {
     p.exp_string("Modified 2 tasks.").expect("footer");
     assert_pty_exit(&mut p, 1);
 
-    let next = run_stdout(&mut common::dawn_cmd(&db));
+    let next = run_stdout(&mut common::execute_dawn(&db));
     assert_eq!(
         next.matches("renamed").count(),
         2,
@@ -558,7 +562,7 @@ fn modify_bulk_quit_aborts_remaining() {
     p.exp_string("Modified 1 task.").expect("footer");
     assert_pty_exit(&mut p, 1);
 
-    let next = run_stdout(&mut common::dawn_cmd(&db));
+    let next = run_stdout(&mut common::execute_dawn(&db));
     assert_eq!(
         next.matches("renamed").count(),
         1,

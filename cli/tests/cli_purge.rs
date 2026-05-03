@@ -7,12 +7,18 @@ use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uuid, run_stdout
 // `task all` body containment check; tolerates the empty-DB exit-1 / stderr
 // "No matches." case by returning false rather than panicking.
 fn all_contains(db: &Path, description: &str) -> bool {
-    let out = common::dawn_cmd(db).arg("all").output().expect("run all");
+    let out = common::execute_dawn(db)
+        .arg("all")
+        .output()
+        .expect("run all");
     String::from_utf8_lossy(&out.stdout).contains(description)
 }
 
 fn assert_all_empty(db: &Path) {
-    let out = common::dawn_cmd(db).arg("all").output().expect("run all");
+    let out = common::execute_dawn(db)
+        .arg("all")
+        .output()
+        .expect("run all");
     assert_eq!(out.status.code(), Some(1), "expected empty all → exit 1");
     let stderr = String::from_utf8(out.stderr).expect("utf8 stderr");
     assert!(
@@ -26,12 +32,12 @@ fn assert_all_empty(db: &Path) {
 #[test]
 fn purge_by_pre_uuid_purges_deleted_task() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    let uuid = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
+    let uuid = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
     delete_via_pty(&db, &uuid);
 
     let mut p = dawn_pty(&db, &[&uuid, "purge"]);
@@ -51,8 +57,8 @@ fn purge_by_pre_word_filter_matches_one_task() {
     common::setup_tasks(&db, &["buy milk", "fix bug"]);
 
     // Capture UUID of "buy milk" before deleting; index↔description mapping is unstable.
-    let info1 = run_stdout(common::dawn_cmd(&db).arg("1"));
-    let info2 = run_stdout(common::dawn_cmd(&db).arg("2"));
+    let info1 = run_stdout(common::execute_dawn(&db).arg("1"));
+    let info2 = run_stdout(common::execute_dawn(&db).arg("2"));
     let buy_uid = if info1.contains("buy milk") {
         extract_uuid(&info1)
     } else {
@@ -76,8 +82,8 @@ fn purge_pre_set_two_uids_both_purged() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta"]);
 
-    let uuid1 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
-    let uuid2 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("2")));
+    let uuid1 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    let uuid2 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
     delete_via_pty(&db, &uuid1);
     delete_via_pty(&db, &uuid2);
 
@@ -102,7 +108,7 @@ fn purge_pre_set_two_uids_both_purged() {
 #[test]
 fn purge_no_filter_tty_decline_aborts() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
@@ -152,12 +158,12 @@ fn purge_no_filter_tty_accept_purges_only_deleted() {
 #[test]
 fn purge_no_match_returns_no_specified() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    let out = common::dawn_cmd(&db)
+    let out = common::execute_dawn(&db)
         .args(["nonexistentword", "purge"])
         .output()
         .expect("run");
@@ -178,13 +184,13 @@ fn purge_no_match_returns_no_specified() {
 #[test]
 fn purge_filter_matches_only_pending_prints_yellow() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
     // Non-empty filter matches a pending task; deleted set is empty → yellow exit 0.
-    let out = common::dawn_cmd(&db)
+    let out = common::execute_dawn(&db)
         .args(["buy", "purge"])
         .output()
         .expect("run");
@@ -202,11 +208,11 @@ fn purge_filter_matches_only_pending_prints_yellow() {
 #[test]
 fn purge_user_declines_single_no_op() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
-    let uuid = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
+    let uuid = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
     delete_via_pty(&db, &uuid);
 
     let mut p = dawn_pty(&db, &[&uuid, "purge"]);
@@ -225,8 +231,8 @@ fn purge_bulk_no_skips_one() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta"]);
 
-    let uuid1 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
-    let uuid2 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("2")));
+    let uuid1 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    let uuid2 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
     delete_via_pty(&db, &uuid1);
     delete_via_pty(&db, &uuid2);
 
@@ -255,9 +261,9 @@ fn purge_bulk_quit_aborts_remaining() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
 
-    let uuid1 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
-    let uuid2 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("2")));
-    let uuid3 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("3")));
+    let uuid1 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    let uuid2 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
+    let uuid3 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("3")));
     delete_via_pty(&db, &uuid1);
     delete_via_pty(&db, &uuid2);
     delete_via_pty(&db, &uuid3);
@@ -286,9 +292,9 @@ fn purge_bulk_all_purges_remaining() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
 
-    let uuid1 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
-    let uuid2 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("2")));
-    let uuid3 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("3")));
+    let uuid1 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    let uuid2 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
+    let uuid3 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("3")));
     delete_via_pty(&db, &uuid1);
     delete_via_pty(&db, &uuid2);
     delete_via_pty(&db, &uuid3);

@@ -3,7 +3,7 @@ mod common;
 use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uuid, run_stdout, select_option};
 
 fn assert_no_pending_tasks(db: &std::path::Path) {
-    let out = common::dawn_cmd(db).output().expect("run");
+    let out = common::execute_dawn(db).output().expect("run");
     assert_eq!(
         out.status.code(),
         Some(1),
@@ -21,7 +21,7 @@ fn assert_no_pending_tasks(db: &std::path::Path) {
 #[test]
 fn delete_by_pre_index_deletes_task() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
@@ -41,12 +41,12 @@ fn delete_by_pre_index_deletes_task() {
 #[test]
 fn delete_by_pre_uuid_deletes_task() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let info_before = run_stdout(common::execute_dawn(&db).arg("1"));
     let uuid = extract_uuid(&info_before);
 
     let mut p = dawn_pty(&db, &[&uuid, "delete"]);
@@ -70,7 +70,7 @@ fn delete_by_pre_word_filter_matches_one_task() {
     p.exp_string("Deleted 1 task.").expect("footer");
     assert_pty_exit(&mut p, 0);
 
-    let next = run_stdout(&mut common::dawn_cmd(&db));
+    let next = run_stdout(&mut common::execute_dawn(&db));
     assert!(
         next.contains("fix bug"),
         "next missing untouched task: {next}"
@@ -138,7 +138,7 @@ fn delete_pre_set_with_range_and_index() {
     p.exp_string("Deleted 3 tasks.").expect("footer");
     assert_pty_exit(&mut p, 0);
 
-    let next = run_stdout(&mut common::dawn_cmd(&db));
+    let next = run_stdout(&mut common::execute_dawn(&db));
     assert!(next.contains("1 task"), "expected 1 remaining: {next}");
 }
 
@@ -167,7 +167,7 @@ fn delete_bulk_all_path_deletes_remaining() {
 #[test]
 fn delete_promotes_single_index_from_mods() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
@@ -185,12 +185,12 @@ fn delete_promotes_single_index_from_mods() {
 #[test]
 fn delete_promotes_uuid_from_mods() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let info_before = run_stdout(common::execute_dawn(&db).arg("1"));
     let uuid = extract_uuid(&info_before);
 
     let mut p = dawn_pty(&db, &["delete", &uuid]);
@@ -228,7 +228,7 @@ fn delete_promotes_set_from_mods_two_tasks() {
 #[test]
 fn delete_no_filter_tty_decline_aborts() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
@@ -241,7 +241,7 @@ fn delete_no_filter_tty_decline_aborts() {
         .expect("abort msg");
     assert_pty_exit(&mut p, 2);
 
-    let next = run_stdout(&mut common::dawn_cmd(&db));
+    let next = run_stdout(&mut common::execute_dawn(&db));
     assert!(
         next.contains("buy milk"),
         "task unexpectedly deleted: {next}"
@@ -275,17 +275,17 @@ fn delete_no_filter_tty_accept_deletes_all() {
 #[test]
 fn delete_already_deleted_task_skipped_partial() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    let info_before = run_stdout(common::dawn_cmd(&db).arg("1"));
+    let info_before = run_stdout(common::execute_dawn(&db).arg("1"));
     let uuid = extract_uuid(&info_before);
 
     delete_via_pty(&db, &uuid);
 
-    let out = common::dawn_cmd(&db)
+    let out = common::execute_dawn(&db)
         .args([&uuid, "delete"])
         .output()
         .expect("run");
@@ -313,8 +313,8 @@ fn delete_mixed_pending_and_deleted_partial() {
 
     // alpha/beta ↔ index mapping is non-deterministic — capture both UIDs
     // before the fixture deletion so the test does not depend on it.
-    let uid_first = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
-    let uid_second = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("2")));
+    let uid_first = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    let uid_second = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
 
     delete_via_pty(&db, &uid_first);
 
@@ -337,7 +337,7 @@ fn delete_mixed_pending_and_deleted_partial() {
 #[test]
 fn delete_user_declines_partial() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
@@ -350,7 +350,7 @@ fn delete_user_declines_partial() {
     p.exp_string("Deleted 0 tasks.").expect("footer");
     assert_pty_exit(&mut p, 1);
 
-    let next = run_stdout(&mut common::dawn_cmd(&db));
+    let next = run_stdout(&mut common::execute_dawn(&db));
     assert!(
         next.contains("buy milk"),
         "declined task missing from next: {next}"
@@ -374,7 +374,7 @@ fn delete_bulk_no_skips_one_partial() {
     p.exp_string("Deleted 1 task.").expect("footer");
     assert_pty_exit(&mut p, 1);
 
-    let next = run_stdout(&mut common::dawn_cmd(&db));
+    let next = run_stdout(&mut common::execute_dawn(&db));
     assert!(next.contains("1 task"), "expected 1 remaining: {next}");
 }
 
@@ -395,6 +395,6 @@ fn delete_bulk_quit_aborts_remaining() {
     p.exp_string("Deleted 1 task.").expect("footer");
     assert_pty_exit(&mut p, 1);
 
-    let next = run_stdout(&mut common::dawn_cmd(&db));
+    let next = run_stdout(&mut common::execute_dawn(&db));
     assert!(next.contains("1 task"), "expected 1 remaining: {next}");
 }
