@@ -35,7 +35,7 @@ fn single_uuid_bare_yields_info() {
 // ── Taskwarrior parity: 8+ char hex prefix matches as UUID ──
 
 #[test]
-fn eight_char_hex_prefix_yields_info_as_uid() {
+fn eight_char_hex_prefix_yields_info_as_uuid() {
     assert_eq!(
         parse_default(&raw(&["550e8400"])),
         DefaultCommand::Info(Filter::default().with_uuids([uuid("550e8400")])),
@@ -43,7 +43,7 @@ fn eight_char_hex_prefix_yields_info_as_uid() {
 }
 
 #[test]
-fn nine_char_uuid_with_hyphen_yields_info_as_uid() {
+fn nine_char_uuid_with_hyphen_yields_info_as_uuid() {
     assert_eq!(
         parse_default(&raw(&["550e8400-"])),
         DefaultCommand::Info(Filter::default().with_uuids([uuid("550e8400-")])),
@@ -51,7 +51,7 @@ fn nine_char_uuid_with_hyphen_yields_info_as_uid() {
 }
 
 #[test]
-fn thirteen_char_first_two_groups_yields_info_as_uid() {
+fn thirteen_char_first_two_groups_yields_info_as_uuid() {
     assert_eq!(
         parse_default(&raw(&["550e8400-e29b"])),
         DefaultCommand::Info(Filter::default().with_uuids([uuid("550e8400-e29b")])),
@@ -77,7 +77,7 @@ fn malformed_uuid_with_oversized_group_falls_to_word() {
 }
 
 #[test]
-fn uid_prefix_in_set_treated_as_uid() {
+fn uuid_prefix_in_set_treated_as_uuid() {
     assert_eq!(
         parse_default(&raw(&["1,550e8400"])),
         DefaultCommand::Next(
@@ -449,7 +449,7 @@ fn range_in_set_with_indices() {
 }
 
 #[test]
-fn range_in_set_with_uid() {
+fn range_in_set_with_uuid() {
     assert_eq!(
         parse_default(&raw(&["550e8400-e29b-41d4-a716-446655440000,5-10"])),
         DefaultCommand::Next(
@@ -587,7 +587,7 @@ fn mutation_blank_pre_strings_treated_as_empty() {
 }
 
 #[test]
-fn mutation_whitespace_only_pre_promotes_uid() {
+fn mutation_whitespace_only_pre_promotes_uuid() {
     assert_eq!(
         parse_mutation(
             &raw(&["", "  "]),
