@@ -39,7 +39,7 @@ impl Cli {
         Self::parse()
     }
 
-    pub fn handle_command(&self, task_service: impl TaskService) -> Result<(), CliError> {
+    pub fn run(&self, task_service: impl TaskService) -> Result<(), CliError> {
         let handler = Handler::new(task_service);
         match &self.command {
             Some(Command::Add(creation)) => handler.add(&self.filter, &creation.description),

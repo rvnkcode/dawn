@@ -18,5 +18,5 @@ fn run(cli: Cli) -> Result<(), CliError> {
     let mut db = SQLite::new().map_err(anyhow::Error::from)?;
     db.initialize().map_err(anyhow::Error::from)?;
     let task_service = Service::new(db);
-    cli.handle_command(task_service)
+    cli.run(task_service)
 }
