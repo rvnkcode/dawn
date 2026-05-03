@@ -1,6 +1,7 @@
-use crate::domain::task::{Filter, Status, TaskModification, UniqueID};
+use crate::domain::task::{Filter, Status, TaskModification};
 use anyhow::Context;
 use rusqlite::ToSql;
+use uuid::Uuid;
 
 const ALL_STATUSES: usize = 3;
 
@@ -34,11 +35,20 @@ fn build_id_clause(filter: &Filter) -> anyhow::Result<Option<Clause>> {
     let mut fragments: Vec<String> = Vec::new();
     let mut params: Vec<Box<dyn ToSql>> = Vec::new();
 
-    let uids = filter.uids();
-    if !uids.is_empty() {
-        fragments.push(format!("t.id IN ({})", repeat_vars(uids.len())));
-        for uid in uids {
-            params.push(Box::new(uid.to_string()) as Box<dyn ToSql>);
+    // Each uuid is a Taskwarrior-style prefix (8-36 chars); match via LIKE so that
+    // 8-char short forms still hit the full UUID stored in the column.
+    let uuids = filter.uuids();
+    if !uuids.is_empty() {
+        let likes: Vec<&str> = std::iter::repeat_n("t.id LIKE ?", uuids.len()).collect();
+        let joined = likes.join(" OR ");
+        let clause = if uuids.len() == 1 {
+            joined
+        } else {
+            format!("({joined})")
+        };
+        fragments.push(clause);
+        for uuid in uuids {
+            params.push(Box::new(format!("{uuid}%")) as Box<dyn ToSql>);
         }
     }
 
@@ -155,7 +165,7 @@ fn build_words_clause(filter: &Filter) -> Option<Clause> {
 
 pub(crate) fn build_update_clause(
     modification: &TaskModification,
-    targets: &[&UniqueID],
+    targets: &[Uuid],
 ) -> anyhow::Result<Clause> {
     if modification.is_empty() {
         return Err(anyhow::anyhow!("no modification specified"));
@@ -196,7 +206,7 @@ pub(crate) fn build_update_clause(
         .chain(
             targets
                 .iter()
-                .map(|uid| Box::new(uid.to_string()) as Box<dyn ToSql>),
+                .map(|uuid| Box::new(uuid.to_string()) as Box<dyn ToSql>),
         )
         .collect();
 

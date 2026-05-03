@@ -60,12 +60,12 @@ fn filter_non_deleted_tasks(tasks: &[Task]) -> Vec<&Task> {
     non_deleted
 }
 
-fn collect_approved_ids_for_delete<'a>(
+fn collect_approved_ids_for_delete(
     action: &Action,
-    candidates: &[&'a Task],
+    candidates: &[&Task],
     modification: &TaskModification,
     original_count: usize,
-) -> anyhow::Result<Vec<&'a UniqueID>> {
+) -> anyhow::Result<Vec<Uuid>> {
     let is_single = original_count == 1;
     process_confirmations(action, candidates, modification, |i, task| {
         let display_id = get_display_id(task);

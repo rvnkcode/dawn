@@ -9,10 +9,10 @@ use crate::filter::{self, DefaultCommand};
 use crate::table::{AllRow, BaseTable, InfoTable, NextRow, base::TableRow};
 use chrono::{Local, Utc};
 use dawn::domain::task::{
-    Description, Filter, Status, Task, TaskCreation, TaskModification, Timestamp, UniqueID,
-    port::TaskService,
+    Description, Filter, Status, Task, TaskCreation, TaskModification, Timestamp, port::TaskService,
 };
 use tabled::Tabled;
+use uuid::Uuid;
 
 // Re-export for submodules
 pub(crate) use update::*;

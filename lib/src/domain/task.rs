@@ -10,10 +10,9 @@ pub mod port;
 pub mod service;
 pub mod timestamp;
 pub use timestamp::Timestamp;
-pub mod unique_id;
-pub use unique_id::UniqueID;
 
 use std::fmt::{self, Display, Formatter};
+use uuid::Uuid;
 
 pub struct TaskCreation {
     pub description: Description,
@@ -34,7 +33,7 @@ impl TaskModification {
 
 #[derive(Debug, PartialEq)]
 pub struct Task {
-    pub uid: UniqueID,
+    pub uuid: Uuid,
     pub index: Option<Index>,
     pub description: Description,
     pub entry: Timestamp,
@@ -60,7 +59,6 @@ pub enum Status {
     Pending,
     Completed,
     Deleted,
-    // TODO: Cancelled
 }
 
 impl Display for Status {
@@ -77,9 +75,10 @@ impl Display for Status {
 mod tests {
     use super::*;
 
+    // Create test task with completed or deleted status
     fn task_with(completed: Option<Timestamp>, deleted: Option<Timestamp>) -> Task {
         Task {
-            uid: UniqueID::new(),
+            uuid: Uuid::new_v4(),
             index: None,
             description: Description::new("test").unwrap(),
             entry: Timestamp::new(1700000000).unwrap(),

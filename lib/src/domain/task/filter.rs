@@ -1,9 +1,11 @@
-use crate::domain::task::{Index, IndexRange, Status, UniqueID};
+use crate::domain::task::{Index, IndexRange, Status};
 use std::collections::HashSet;
 
 #[derive(Debug, Default, PartialEq)]
 pub struct Filter {
-    uids: HashSet<UniqueID>,
+    // Stored as raw strings to support Taskwarrior-style 8+ char prefix matching;
+    // a full 36-char UUID is just the maximum-length prefix.
+    uuids: HashSet<String>,
     indices: HashSet<Index>,
     index_ranges: HashSet<IndexRange>,
     statuses: HashSet<Status>,
@@ -11,8 +13,8 @@ pub struct Filter {
 }
 
 impl Filter {
-    pub fn with_uids(mut self, uids: impl IntoIterator<Item = UniqueID>) -> Self {
-        self.uids.extend(uids);
+    pub fn with_uuids<S: Into<String>>(mut self, uuids: impl IntoIterator<Item = S>) -> Self {
+        self.uuids.extend(uuids.into_iter().map(Into::into));
         self
     }
 
@@ -42,8 +44,8 @@ impl Filter {
         self
     }
 
-    pub fn uids(&self) -> &HashSet<UniqueID> {
-        &self.uids
+    pub fn uuids(&self) -> &HashSet<String> {
+        &self.uuids
     }
 
     pub fn indices(&self) -> &HashSet<Index> {
@@ -63,7 +65,7 @@ impl Filter {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.uids.is_empty()
+        self.uuids.is_empty()
             && self.indices.is_empty()
             && self.index_ranges.is_empty()
             && self.statuses.is_empty()
@@ -75,8 +77,8 @@ impl Filter {
 mod tests {
     use super::*;
 
-    fn uid(s: &str) -> UniqueID {
-        s.parse().expect(s)
+    fn uuid(n: u128) -> String {
+        uuid::Uuid::from_u128(n).to_string()
     }
 
     fn range(from: usize, to: usize) -> IndexRange {
@@ -87,23 +89,23 @@ mod tests {
 
     #[test]
     fn with_uids_single() {
-        let filter = Filter::default().with_uids([uid("abcdefghijkl")]);
-        assert_eq!(filter.uids().len(), 1);
-        assert!(filter.uids().contains(&uid("abcdefghijkl")));
+        let filter = Filter::default().with_uuids([uuid(1)]);
+        assert_eq!(filter.uuids().len(), 1);
+        assert!(filter.uuids().contains(&uuid(1)));
     }
 
     #[test]
     fn with_uids_multiple() {
-        let filter = Filter::default().with_uids([uid("abcdefghijkl"), uid("mnopqrstuvwx")]);
-        assert_eq!(filter.uids().len(), 2);
-        assert!(filter.uids().contains(&uid("abcdefghijkl")));
-        assert!(filter.uids().contains(&uid("mnopqrstuvwx")));
+        let filter = Filter::default().with_uuids([uuid(1), uuid(2)]);
+        assert_eq!(filter.uuids().len(), 2);
+        assert!(filter.uuids().contains(&uuid(1)));
+        assert!(filter.uuids().contains(&uuid(2)));
     }
 
     #[test]
     fn with_uids_deduplicates() {
-        let filter = Filter::default().with_uids([uid("abcdefghijkl"), uid("abcdefghijkl")]);
-        assert_eq!(filter.uids().len(), 1);
+        let filter = Filter::default().with_uuids([uuid(1), uuid(1)]);
+        assert_eq!(filter.uuids().len(), 1);
     }
 
     // Indices
@@ -187,7 +189,7 @@ mod tests {
 
     #[test]
     fn is_empty_with_uids_only() {
-        let filter = Filter::default().with_uids([uid("abcdefghijkl")]);
+        let filter = Filter::default().with_uuids([uuid(1)]);
         assert!(!filter.is_empty());
     }
 
@@ -218,7 +220,7 @@ mod tests {
     #[test]
     fn is_empty_with_all() {
         let filter = Filter::default()
-            .with_uids([uid("abcdefghijkl")])
+            .with_uuids([uuid(1)])
             .with_statuses([Status::Pending])
             .with_indices([Index::new(1).unwrap()]);
         assert!(!filter.is_empty());
@@ -229,11 +231,11 @@ mod tests {
     #[test]
     fn with_uids_extends() {
         let filter = Filter::default()
-            .with_uids([uid("abcdefghijkl")])
-            .with_uids([uid("mnopqrstuvwx")]);
-        assert_eq!(filter.uids().len(), 2);
-        assert!(filter.uids().contains(&uid("abcdefghijkl")));
-        assert!(filter.uids().contains(&uid("mnopqrstuvwx")));
+            .with_uuids([uuid(1)])
+            .with_uuids([uuid(2)]);
+        assert_eq!(filter.uuids().len(), 2);
+        assert!(filter.uuids().contains(&uuid(1)));
+        assert!(filter.uuids().contains(&uuid(2)));
     }
 
     #[test]

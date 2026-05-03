@@ -1,6 +1,6 @@
 mod common;
 
-use common::{delete_via_pty, extract_uid, run_stdout};
+use common::{delete_via_pty, extract_uuid, run_stdout};
 
 // Returns the status letter (P/C/D) found in the body row containing `description`.
 // Body rows start with the ID column (numeric for pending, "-" for completed/deleted)
@@ -117,8 +117,8 @@ fn all_renders_deleted_with_dash_id() {
         .args(["add", "buy milk"])
         .assert()
         .success();
-    let uid = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("1")));
-    delete_via_pty(&db, &uid);
+    let uuid = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
+    delete_via_pty(&db, &uuid);
 
     let stdout = run_stdout(common::dawn_cmd(&db).arg("all"));
     assert_eq!(status_for(&stdout, "buy milk"), 'D');
@@ -137,9 +137,9 @@ fn all_shows_pending_completed_and_deleted_together() {
 
     // Capture two UIDs by index before mutating state. After `done`/`delete`
     // the pending indices renumber, so anything past this point must address
-    // tasks by UID.
-    let uid_first = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("1")));
-    let uid_second = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("2")));
+    // tasks by UUID.
+    let uid_first = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
+    let uid_second = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("2")));
 
     common::dawn_cmd(&db)
         .args([&uid_first, "done"])
@@ -171,7 +171,7 @@ fn all_shows_pending_completed_and_deleted_together() {
 // always contains the substring "one", which would yield a false positive
 // against `stdout.contains("one")` in the post-filter row count below.
 // Pick descriptions that share no substring with any AllRow header
-// (ID, St, UID, Age, Done, Description).
+// (ID, St, UUID, Age, Done, Description).
 #[test]
 fn all_pre_index_filters_to_one_task() {
     let (_dir, db) = common::test_db();
@@ -339,17 +339,17 @@ fn all_word_filter_matches_across_statuses() {
 }
 
 #[test]
-fn all_uid_filter_matches_deleted_task() {
+fn all_uuid_filter_matches_deleted_task() {
     let (_dir, db) = common::test_db();
     common::dawn_cmd(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
-    let uid = extract_uid(&run_stdout(common::dawn_cmd(&db).arg("1")));
-    delete_via_pty(&db, &uid);
+    let uuid = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
+    delete_via_pty(&db, &uuid);
 
-    // Index is gone after deletion — UID is the only handle.
-    let stdout = run_stdout(common::dawn_cmd(&db).args(["all", &uid]));
+    // Index is gone after deletion — UUID is the only handle.
+    let stdout = run_stdout(common::dawn_cmd(&db).args(["all", &uuid]));
     assert!(
         stdout.contains("buy milk"),
         "deleted task missing: {stdout}"

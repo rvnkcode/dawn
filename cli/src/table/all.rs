@@ -1,6 +1,7 @@
 use crate::table::{Age, base::TableRow};
-use dawn::domain::task::{Description, Index, Status, Task, UniqueID};
+use dawn::domain::task::{Description, Index, Status, Task};
 use tabled::Tabled;
+use uuid::Uuid;
 
 #[derive(Tabled, Debug)]
 #[tabled(rename_all = "PascalCase")]
@@ -9,8 +10,8 @@ pub(crate) struct AllRow {
     id: Option<Index>,
     #[tabled(rename = "St", display("display_status"))]
     status: Status,
-    #[tabled(rename = "UID")]
-    uid: UniqueID,
+    #[tabled(rename = "UUID")]
+    uuid: Uuid,
     age: Age,
     #[tabled(display("display_done"))]
     done: Option<Age>,
@@ -45,7 +46,7 @@ impl TableRow for AllRow {
         Ok(Self {
             id: task.index,
             status,
-            uid: task.uid,
+            uuid: task.uuid,
             age: Age::new(&task.entry, now)?,
             done: task
                 .completed
@@ -71,7 +72,7 @@ mod tests {
     fn new_renders_pending_task_with_index() {
         let now = 1_000_000;
         let task = task(Some(Index::new(1).unwrap()), "buy milk", now - 30);
-        let uid = task.uid.to_string();
+        let uuid = task.uuid.to_string();
 
         let row = AllRow::new(task, now).unwrap();
 
@@ -80,7 +81,7 @@ mod tests {
             vec![
                 "1".to_string(),
                 "P".to_string(),
-                uid,
+                uuid,
                 "30s".to_string(),
                 String::new(),
                 "buy milk".to_string(),

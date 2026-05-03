@@ -1,7 +1,8 @@
 use crate::domain::task::{
-    Filter, Task, TaskCreation, TaskModification, UniqueID,
+    Filter, Task, TaskCreation, TaskModification,
     port::{TaskRepository, TaskService},
 };
+use uuid::Uuid;
 
 // Generic type 'R' should implement 'TaskRepository' trait
 pub struct Service<R: TaskRepository> {
@@ -19,7 +20,7 @@ where
     R: TaskRepository,
 {
     fn add(&self, req: &TaskCreation) -> anyhow::Result<()> {
-        let id = UniqueID::new();
+        let id = Uuid::new_v4();
         self.repo.create_task(&id, req)
     }
 
@@ -31,11 +32,11 @@ where
         self.repo.list_tasks(filter)
     }
 
-    fn modify(&self, modification: &TaskModification, targets: &[&UniqueID]) -> anyhow::Result<()> {
+    fn modify(&self, modification: &TaskModification, targets: &[Uuid]) -> anyhow::Result<()> {
         self.repo.update_tasks(modification, targets)
     }
 
-    fn purge(&self, targets: &[&UniqueID]) -> anyhow::Result<()> {
+    fn purge(&self, targets: &[Uuid]) -> anyhow::Result<()> {
         self.repo.delete_tasks(targets)
     }
 }

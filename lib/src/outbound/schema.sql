@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS task (
-    id TEXT PRIMARY KEY CHECK (length(id) = 12),
+    id TEXT PRIMARY KEY CHECK (length(id) = 36),
     description TEXT NOT NULL,
     entry INTEGER NOT NULL DEFAULT (unixepoch()),
     completed INTEGER,
@@ -35,7 +35,6 @@ WHERE deleted IS NULL AND completed IS NULL;
 CREATE VIRTUAL TABLE IF NOT EXISTS task_fts USING fts5 (
     id,
     description,
-    -- comment out next line when running sqlfluff lint of format
     tokenize = 'trigram remove_diacritics 1'
 );
 

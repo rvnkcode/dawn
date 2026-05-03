@@ -1,6 +1,6 @@
 use crate::{
     domain::task::{
-        Description, Filter, Index, Task, TaskCreation, TaskModification, Timestamp, UniqueID,
+        Description, Filter, Index, Task, TaskCreation, TaskModification, Timestamp,
         port::TaskRepository,
     },
     outbound::query_builder,
@@ -9,6 +9,7 @@ use rusqlite::{Connection, params_from_iter};
 use std::cmp::Ordering;
 #[cfg(not(coverage))]
 use std::path::{Path, PathBuf};
+use uuid::Uuid;
 
 const DB_VERSION: u8 = 1;
 
@@ -106,7 +107,7 @@ fn get_db_path() -> Result<PathBuf, SQLiteError> {
 }
 
 impl TaskRepository for SQLite {
-    fn create_task(&self, id: &UniqueID, req: &TaskCreation) -> anyhow::Result<()> {
+    fn create_task(&self, id: &Uuid, req: &TaskCreation) -> anyhow::Result<()> {
         self.conn.execute(
             "INSERT INTO task (id, description) VALUES (?, ?)",
             [id.to_string(), req.description.to_string()],
@@ -159,7 +160,7 @@ impl TaskRepository for SQLite {
                 let (id_str, row_id, description_str, entry, completed, deleted, modified) =
                     result?;
                 Ok(Task {
-                    uid: id_str.parse::<UniqueID>()?,
+                    uuid: Uuid::parse_str(&id_str)?,
                     index: match row_id {
                         Some(id) => Some(Index::new(id.try_into()?)?),
                         None => None,
@@ -178,14 +179,14 @@ impl TaskRepository for SQLite {
     fn update_tasks(
         &self,
         modification: &TaskModification,
-        targets: &[&UniqueID],
+        targets: &[Uuid],
     ) -> anyhow::Result<()> {
         let (query, params) = query_builder::build_update_clause(modification, targets)?;
         self.conn.execute(&query, params_from_iter(params.iter()))?;
         Ok(())
     }
 
-    fn delete_tasks(&self, targets: &[&UniqueID]) -> anyhow::Result<()> {
+    fn delete_tasks(&self, targets: &[Uuid]) -> anyhow::Result<()> {
         if targets.is_empty() {
             return Err(anyhow::anyhow!("no target IDs provided for deletion"));
         }
