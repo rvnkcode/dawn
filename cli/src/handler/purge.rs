@@ -1,7 +1,7 @@
-use super::*;
-
 use colored::Colorize;
 use inquire::Confirm;
+
+use super::*;
 
 impl<TS: TaskService> Handler<TS> {
     pub(crate) fn purge(&self, pre: &[String], post: &[String]) -> Result<(), CliError> {

@@ -1,9 +1,9 @@
-use dawn::domain::task::uuid_prefix::UUID_PREFIX_PATTERN;
-use dawn::domain::task::{Description, Filter, Index, IndexRange, UuidPrefix};
+use std::{collections::HashSet, str::FromStr, sync::LazyLock};
+
+use dawn::domain::task::{
+    Description, Filter, Index, IndexRange, UuidPrefix, uuid_prefix::UUID_PREFIX_PATTERN,
+};
 use regex::Regex;
-use std::collections::HashSet;
-use std::str::FromStr;
-use std::sync::LazyLock;
 
 // Taskwarrior parity: indices reject leading zeros (e.g. "007" is text, not 7).
 const INDEX_PATTERN: &str = r"[1-9]\d*";

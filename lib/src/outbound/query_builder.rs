@@ -1,7 +1,8 @@
-use crate::domain::task::{Filter, Status, TaskModification};
 use anyhow::Context;
 use rusqlite::ToSql;
 use uuid::Uuid;
+
+use crate::domain::task::{Filter, Status, TaskModification};
 
 const ALL_STATUSES: usize = 3;
 

@@ -3,6 +3,7 @@ use std::{
     num::IntErrorKind,
     str::FromStr,
 };
+
 use thiserror::Error;
 
 #[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]

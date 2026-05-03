@@ -1,17 +1,17 @@
+use clap::{Parser, Subcommand};
+use dawn::domain::task::port::TaskService;
+
 use crate::{
     arg::{Creation, Modification},
     error::CliError,
     handler::Handler,
 };
-use clap::{Parser, Subcommand};
-use dawn::domain::task::port::TaskService;
 
 #[derive(Parser)]
 #[command(about = "A command line todo manager.", long_about = None, subcommand_precedence_over_arg = true, version)]
 pub struct Cli {
     #[arg(allow_hyphen_values = true)]
     filter: Vec<String>,
-
     #[command(subcommand)]
     command: Option<Command>,
 }

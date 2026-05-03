@@ -1,5 +1,6 @@
-use crate::domain::task::{Filter, Task, TaskCreation, TaskModification};
 use uuid::Uuid;
+
+use crate::domain::task::{Filter, Task, TaskCreation, TaskModification};
 
 pub trait TaskService {
     fn add(&self, req: &TaskCreation) -> anyhow::Result<()>;

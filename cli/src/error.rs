@@ -1,5 +1,6 @@
-use colored::Colorize;
 use std::process::ExitCode;
+
+use colored::Colorize;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CliError {

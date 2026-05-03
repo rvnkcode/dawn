@@ -1,6 +1,7 @@
-use crate::table::{Age, base::TableRow};
 use dawn::domain::task::{Description, Index, Task};
 use tabled::Tabled;
+
+use crate::table::{Age, base::TableRow};
 
 #[derive(Tabled, Debug)]
 #[tabled(rename_all = "PascalCase")]
@@ -29,9 +30,10 @@ pub(crate) enum NextRowError {
 
 #[cfg(test)]
 mod tests {
+    use tabled::Tabled;
+
     use super::*;
     use crate::test_helper::task;
-    use tabled::Tabled;
 
     #[test]
     fn new_succeeds_with_valid_task() {

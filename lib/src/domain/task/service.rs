@@ -1,8 +1,9 @@
+use uuid::Uuid;
+
 use crate::domain::task::{
     Filter, Task, TaskCreation, TaskModification,
     port::{TaskRepository, TaskService},
 };
-use uuid::Uuid;
 
 // Generic type 'R' should implement 'TaskRepository' trait
 pub struct Service<R: TaskRepository> {

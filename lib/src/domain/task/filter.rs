@@ -1,5 +1,6 @@
-use crate::domain::task::{Index, IndexRange, Status, UuidPrefix};
 use std::collections::HashSet;
+
+use crate::domain::task::{Index, IndexRange, Status, UuidPrefix};
 
 #[derive(Debug, Default, PartialEq)]
 pub struct Filter {

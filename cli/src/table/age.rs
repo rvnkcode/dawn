@@ -1,6 +1,7 @@
+use std::fmt::{self, Display, Formatter};
+
 use chrono::{DateTime, Datelike, Timelike, Utc};
 use dawn::domain::task::Timestamp;
-use std::fmt::{self, Display, Formatter};
 use thiserror::Error;
 
 const MINUTE: i64 = 60;
@@ -81,8 +82,9 @@ fn calendar_ym_diff(from: DateTime<Utc>, to: DateTime<Utc>) -> (i32, u32) {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use chrono::TimeZone;
+
+    use super::*;
 
     fn ts(secs: i64) -> Timestamp {
         Timestamp::new(secs).unwrap()

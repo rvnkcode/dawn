@@ -2,6 +2,7 @@ use std::{
     fmt::{self, Display, Formatter},
     str::FromStr,
 };
+
 use thiserror::Error;
 
 #[derive(Clone, Debug, PartialEq)]

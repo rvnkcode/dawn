@@ -1,4 +1,5 @@
 use std::fmt::{self, Display, Formatter};
+
 use thiserror::Error;
 
 #[derive(Debug, PartialEq)]

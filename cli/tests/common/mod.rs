@@ -1,9 +1,12 @@
 #![allow(dead_code)]
 
-use assert_cmd::Command;
-use rexpect::process::WaitStatus;
-use rexpect::session::{PtySession, spawn_command};
 use std::path::{Path, PathBuf};
+
+use assert_cmd::Command;
+use rexpect::{
+    process::WaitStatus,
+    session::{PtySession, spawn_command},
+};
 use tempfile::TempDir;
 
 const PTY_TIMEOUT_MS: u64 = 5000;

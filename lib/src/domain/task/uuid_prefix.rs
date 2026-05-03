@@ -1,9 +1,10 @@
-use regex::Regex;
 use std::{
     fmt::{self, Display, Formatter},
     str::FromStr,
     sync::LazyLock,
 };
+
+use regex::Regex;
 use thiserror::Error;
 use uuid::Uuid;
 
