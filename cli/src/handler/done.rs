@@ -1,4 +1,10 @@
-use super::*;
+use super::{
+    update::{
+        Action, collect_approved_ids, confirm_empty_filter, get_display_id, print_result,
+        validate_tasks,
+    },
+    *,
+};
 
 impl<TS: TaskService> Handler<TS> {
     pub(crate) fn done(&self, raw_filters: &[String], mods: &[String]) -> Result<(), CliError> {
