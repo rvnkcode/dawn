@@ -1,6 +1,7 @@
+use rusqlite::types::{ToSqlOutput, Value, ValueRef};
+
 use super::*;
 use crate::domain::task::UuidPrefix;
-use rusqlite::types::{ToSqlOutput, Value, ValueRef};
 
 fn to_value(param: &dyn ToSql) -> Value {
     match param.to_sql().unwrap() {
@@ -247,8 +248,9 @@ fn build_where_clause_with_index_and_index_range() {
 
 #[test]
 fn build_where_clause_with_uuid_and_index_range() {
-    use crate::domain::task::{Index, IndexRange};
     use uuid::Uuid;
+
+    use crate::domain::task::{Index, IndexRange};
 
     let uuid = Uuid::new_v4();
     let uuid_str = uuid.to_string();
@@ -271,8 +273,9 @@ fn build_where_clause_with_uuid_and_index_range() {
 
 #[test]
 fn build_where_clause_with_uuid_and_index_and_index_range() {
-    use crate::domain::task::{Index, IndexRange};
     use uuid::Uuid;
+
+    use crate::domain::task::{Index, IndexRange};
 
     let uuid = Uuid::new_v4();
     let uuid_str = uuid.to_string();
@@ -322,8 +325,9 @@ fn build_where_clause_with_index_range_and_status() {
 
 #[test]
 fn build_where_clause_with_uuid_and_index() {
-    use crate::domain::task::Index;
     use uuid::Uuid;
+
+    use crate::domain::task::Index;
 
     let uuid = Uuid::new_v4();
     let uuid_str = uuid.to_string();
@@ -384,8 +388,9 @@ fn build_where_clause_with_index_and_status() {
 
 #[test]
 fn build_where_clause_with_uuid_and_index_and_status() {
-    use crate::domain::task::Index;
     use uuid::Uuid;
+
+    use crate::domain::task::Index;
 
     let uuid = Uuid::new_v4();
     let uuid_str = uuid.to_string();
@@ -662,8 +667,9 @@ fn build_update_clause_with_empty_targets() {
 
 #[test]
 fn build_update_clause_with_description() {
-    use crate::domain::task::Description;
     use uuid::Uuid;
+
+    use crate::domain::task::Description;
 
     let uuid = Uuid::new_v4();
     let uuid_str = uuid.to_string();
@@ -682,8 +688,9 @@ fn build_update_clause_with_description() {
 
 #[test]
 fn build_update_clause_with_completed_set() {
-    use crate::domain::task::Timestamp;
     use uuid::Uuid;
+
+    use crate::domain::task::Timestamp;
 
     let uuid = Uuid::new_v4();
     let uuid_str = uuid.to_string();
@@ -721,8 +728,9 @@ fn build_update_clause_with_completed_cleared() {
 
 #[test]
 fn build_update_clause_with_deleted_set() {
-    use crate::domain::task::Timestamp;
     use uuid::Uuid;
+
+    use crate::domain::task::Timestamp;
 
     let uuid = Uuid::new_v4();
     let uuid_str = uuid.to_string();
@@ -760,8 +768,9 @@ fn build_update_clause_with_deleted_cleared() {
 
 #[test]
 fn build_update_clause_with_multiple_fields() {
-    use crate::domain::task::{Description, Timestamp};
     use uuid::Uuid;
+
+    use crate::domain::task::{Description, Timestamp};
 
     let uuid = Uuid::new_v4();
     let uuid_str = uuid.to_string();
@@ -784,8 +793,9 @@ fn build_update_clause_with_multiple_fields() {
 
 #[test]
 fn build_update_clause_with_multiple_targets() {
-    use crate::domain::task::Description;
     use uuid::Uuid;
+
+    use crate::domain::task::Description;
 
     let uuid1 = Uuid::new_v4();
     let uuid2 = Uuid::new_v4();

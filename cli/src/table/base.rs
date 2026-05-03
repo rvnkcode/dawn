@@ -46,9 +46,10 @@ impl<R: TableRow + Tabled> BaseTable<R> {
 
 #[cfg(test)]
 mod tests {
+    use dawn::domain::task::Index;
+
     use super::*;
     use crate::{table::NextRow, test_helper::task};
-    use dawn::domain::task::Index;
 
     #[test]
     fn render_includes_headers_and_row_data() {

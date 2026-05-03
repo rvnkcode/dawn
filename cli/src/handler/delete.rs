@@ -1,6 +1,6 @@
-use super::*;
-
 use inquire::Confirm;
+
+use super::*;
 
 impl<TS: TaskService> Handler<TS> {
     pub(crate) fn delete(&self, raw_filters: &[String], mods: &[String]) -> Result<(), CliError> {

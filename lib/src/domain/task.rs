@@ -11,10 +11,10 @@ pub mod service;
 pub mod timestamp;
 pub use timestamp::Timestamp;
 pub mod uuid_prefix;
-pub use uuid_prefix::UuidPrefix;
-
 use std::fmt::{self, Display, Formatter};
+
 use uuid::Uuid;
+pub use uuid_prefix::UuidPrefix;
 
 pub struct TaskCreation {
     pub description: Description,

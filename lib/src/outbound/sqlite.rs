@@ -1,3 +1,10 @@
+use std::cmp::Ordering;
+#[cfg(not(coverage))]
+use std::path::{Path, PathBuf};
+
+use rusqlite::{Connection, params_from_iter};
+use uuid::Uuid;
+
 use crate::{
     domain::task::{
         Description, Filter, Index, Task, TaskCreation, TaskModification, Timestamp,
@@ -5,11 +12,6 @@ use crate::{
     },
     outbound::query_builder,
 };
-use rusqlite::{Connection, params_from_iter};
-use std::cmp::Ordering;
-#[cfg(not(coverage))]
-use std::path::{Path, PathBuf};
-use uuid::Uuid;
 
 const DB_VERSION: u8 = 1;
 

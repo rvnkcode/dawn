@@ -4,18 +4,20 @@ mod modify;
 mod purge;
 mod update;
 
-use crate::error::CliError;
-use crate::filter::{self, DefaultCommand};
-use crate::table::{AllRow, BaseTable, InfoTable, NextRow, base::TableRow};
 use chrono::{Local, Utc};
 use dawn::domain::task::{
     Description, Filter, Status, Task, TaskCreation, TaskModification, Timestamp, port::TaskService,
 };
 use tabled::Tabled;
-use uuid::Uuid;
-
 // Re-export for submodules
 pub(crate) use update::*;
+use uuid::Uuid;
+
+use crate::{
+    error::CliError,
+    filter::{self, DefaultCommand},
+    table::{AllRow, BaseTable, InfoTable, NextRow, base::TableRow},
+};
 
 pub(crate) struct Handler<TS: TaskService> {
     task_service: TS,

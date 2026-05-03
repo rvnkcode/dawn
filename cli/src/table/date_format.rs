@@ -1,6 +1,10 @@
-use crate::table::age::{Age, AgeError};
-use chrono::{DateTime, TimeZone, format::DelayedFormat, format::StrftimeItems};
+use chrono::{
+    DateTime, TimeZone,
+    format::{DelayedFormat, StrftimeItems},
+};
 use dawn::domain::task::Timestamp;
+
+use crate::table::age::{Age, AgeError};
 
 pub(crate) const DATETIME_FMT: &str = "%Y-%m-%d %H:%M:%S";
 pub(crate) const DATE_FMT: &str = "%Y-%m-%d";
@@ -35,8 +39,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use chrono::{FixedOffset, Utc};
+
+    use super::*;
 
     fn ts(secs: i64) -> Timestamp {
         Timestamp::new(secs).unwrap()

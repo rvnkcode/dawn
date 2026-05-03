@@ -1,10 +1,13 @@
-use super::setup;
-use crate::domain::task::{
-    Description, Filter, Index, IndexRange, Status, Task, Timestamp, UuidPrefix,
-    port::TaskRepository,
-};
-use crate::outbound::sqlite::SQLite;
 use uuid::Uuid;
+
+use super::setup;
+use crate::{
+    domain::task::{
+        Description, Filter, Index, IndexRange, Status, Task, Timestamp, UuidPrefix,
+        port::TaskRepository,
+    },
+    outbound::sqlite::SQLite,
+};
 
 fn insert_task_from(db: &SQLite, task: &Task) {
     db.conn

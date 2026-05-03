@@ -1,4 +1,3 @@
-use crate::table::date_format::{DATETIME_FMT, format_absolute, format_with_age};
 use chrono::Local;
 use colored::control::SHOULD_COLORIZE;
 use dawn::domain::task::Task;
@@ -6,6 +5,8 @@ use tabled::{
     Table, Tabled,
     settings::{Color, Padding, Style, object::Rows, themes::Colorization},
 };
+
+use crate::table::date_format::{DATETIME_FMT, format_absolute, format_with_age};
 
 #[derive(Tabled)]
 #[tabled(rename_all = "PascalCase")]
@@ -80,9 +81,10 @@ impl InfoTable {
 
 #[cfg(test)]
 mod tests {
+    use dawn::domain::task::{Index, Timestamp};
+
     use super::*;
     use crate::test_helper::task;
-    use dawn::domain::task::{Index, Timestamp};
 
     #[test]
     fn render_includes_base_rows_for_pending_task() {

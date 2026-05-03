@@ -1,10 +1,10 @@
 use std::fmt::Display;
 
-use super::*;
-
-use crate::table::date_format::{DATE_FMT, format_absolute};
 use colored::Colorize;
 use inquire::{Confirm, Select};
+
+use super::*;
+use crate::table::date_format::{DATE_FMT, format_absolute};
 
 // Threshold for requiring individual confirmation on bulk modify operations
 const BULK_CONFIRM_THRESHOLD: usize = 3;

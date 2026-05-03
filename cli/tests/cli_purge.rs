@@ -1,7 +1,8 @@
 mod common;
 
-use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uuid, run_stdout, select_option};
 use std::path::Path;
+
+use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uuid, run_stdout, select_option};
 
 // `task all` body containment check; tolerates the empty-DB exit-1 / stderr
 // "No matches." case by returning false rather than panicking.

@@ -1,7 +1,8 @@
-use crate::table::{Age, base::TableRow};
 use dawn::domain::task::{Description, Index, Status, Task};
 use tabled::Tabled;
 use uuid::Uuid;
+
+use crate::table::{Age, base::TableRow};
 
 #[derive(Tabled, Debug)]
 #[tabled(rename_all = "PascalCase")]
@@ -59,10 +60,11 @@ impl TableRow for AllRow {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::test_helper::task;
     use dawn::domain::task::Timestamp;
     use tabled::Tabled;
+
+    use super::*;
+    use crate::test_helper::task;
 
     fn fields(row: &AllRow) -> Vec<String> {
         row.fields().iter().map(|c| c.to_string()).collect()

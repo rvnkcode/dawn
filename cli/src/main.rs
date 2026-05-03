@@ -1,6 +1,7 @@
+use std::process::ExitCode;
+
 use dawn::{domain::task::service::Service, outbound::SQLite};
 use dawn_cli::{Cli, CliError};
-use std::process::ExitCode;
 
 fn main() -> ExitCode {
     let cli = Cli::new();
