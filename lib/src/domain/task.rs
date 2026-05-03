@@ -1,19 +1,21 @@
 pub mod description;
-pub use description::Description;
 pub mod filter;
-pub use filter::Filter;
 pub mod index;
-pub use index::Index;
 pub mod index_range;
-pub use index_range::IndexRange;
 pub mod port;
 pub mod service;
 pub mod timestamp;
-pub use timestamp::Timestamp;
 pub mod uuid_prefix;
+
 use std::fmt::{self, Display, Formatter};
 
 use uuid::Uuid;
+
+pub use description::Description;
+pub use filter::Filter;
+pub use index::Index;
+pub use index_range::IndexRange;
+pub use timestamp::Timestamp;
 pub use uuid_prefix::UuidPrefix;
 
 pub struct TaskCreation {
