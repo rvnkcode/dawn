@@ -487,6 +487,36 @@ fn list_tasks_filter_uuid_with_status() {
     assert_eq!(tasks, vec![pending]);
 }
 
+#[test]
+fn list_tasks_filter_short_uuid_prefix() {
+    let db = setup();
+    let target = Task {
+        uuid: "550e8400-e29b-41d4-a716-446655440000".parse().unwrap(),
+        index: Some(Index::new(1).unwrap()),
+        description: Description::new("target").unwrap(),
+        entry: Timestamp::new(1000).unwrap(),
+        completed: None,
+        deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
+    };
+    let decoy = Task {
+        uuid: "deadbeef-0000-0000-0000-000000000000".parse().unwrap(),
+        index: Some(Index::new(2).unwrap()),
+        description: Description::new("decoy").unwrap(),
+        entry: Timestamp::new(2000).unwrap(),
+        completed: None,
+        deleted: None,
+        modified: Timestamp::new(2000).unwrap(),
+    };
+    insert_task_from(&db, &target);
+    insert_task_from(&db, &decoy);
+    let filter = Filter::default().with_uuids([UuidPrefix::parse("550e8400").unwrap()]);
+
+    let tasks = db.list_tasks(&filter).unwrap();
+
+    assert_eq!(tasks, vec![target]);
+}
+
 // Filter by Index
 
 #[test]
