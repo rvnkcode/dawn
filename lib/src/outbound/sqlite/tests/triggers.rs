@@ -1,3 +1,5 @@
+use rusqlite::params;
+
 use super::{get_modified, insert_task, reset_modified, setup};
 
 // Trigger: modified timestamp
@@ -12,7 +14,7 @@ fn update_modified_when_description_changes() {
     db.conn
         .execute(
             "UPDATE task SET description = 'updated' WHERE id = ?1",
-            rusqlite::params![id],
+            params![id],
         )
         .unwrap();
 
@@ -29,7 +31,7 @@ fn update_modified_when_completed_changes() {
     db.conn
         .execute(
             "UPDATE task SET completed = unixepoch() WHERE id = ?1",
-            rusqlite::params![id],
+            params![id],
         )
         .unwrap();
 
@@ -46,7 +48,7 @@ fn update_modified_when_deleted_changes() {
     db.conn
         .execute(
             "UPDATE task SET deleted = unixepoch() WHERE id = ?1",
-            rusqlite::params![id],
+            params![id],
         )
         .unwrap();
 
@@ -57,13 +59,13 @@ fn update_modified_when_deleted_changes() {
 fn update_modified_when_entry_changes() {
     let db = setup();
     let id = "00000000-0000-0000-0000-000000000006";
-    insert_task(&db, id, "task to redate");
+    insert_task(&db, id, "task to re-date");
     reset_modified(&db, id);
 
     db.conn
         .execute(
             "UPDATE task SET entry = 1700000000 WHERE id = ?1",
-            rusqlite::params![id],
+            params![id],
         )
         .unwrap();
 
@@ -80,7 +82,7 @@ fn not_update_modified_when_same_value() {
     db.conn
         .execute(
             "UPDATE task SET description = 'unchanged' WHERE id = ?1",
-            rusqlite::params![id],
+            params![id],
         )
         .unwrap();
 
@@ -124,13 +126,13 @@ fn exclude_deleted_and_completed_tasks_from_row_ids() {
     db.conn
         .execute(
             "UPDATE task SET deleted = unixepoch() WHERE id = ?1",
-            rusqlite::params!["00000000-0000-0000-0000-000000000017"],
+            params!["00000000-0000-0000-0000-000000000017"],
         )
         .unwrap();
     db.conn
         .execute(
             "UPDATE task SET completed = unixepoch() WHERE id = ?1",
-            rusqlite::params!["00000000-0000-0000-0000-000000000019"],
+            params!["00000000-0000-0000-0000-000000000019"],
         )
         .unwrap();
 
@@ -182,7 +184,7 @@ fn sync_update_to_fts() {
     db.conn
         .execute(
             "UPDATE task SET description = 'replacement text' WHERE id = ?1",
-            rusqlite::params![id],
+            params![id],
         )
         .unwrap();
 
@@ -214,7 +216,7 @@ fn sync_delete_to_fts() {
     insert_task(&db, id, "ephemeral task");
 
     db.conn
-        .execute("DELETE FROM task WHERE id = ?1", rusqlite::params![id])
+        .execute("DELETE FROM task WHERE id = ?1", params![id])
         .unwrap();
 
     let count: i64 = db

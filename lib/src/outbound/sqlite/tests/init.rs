@@ -18,6 +18,7 @@ fn skip_migration_when_version_matches() {
     let result = db.initialize();
 
     assert!(result.is_ok());
+    assert_eq!(db.get_user_version().unwrap(), 1);
 }
 
 #[test]

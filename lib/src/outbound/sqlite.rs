@@ -17,6 +17,14 @@ pub struct SQLite {
     conn: Connection,
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum SQLiteError {
+    #[error("database initialization error: {0}")]
+    InitializationError(String),
+    #[error(transparent)]
+    RusqliteError(#[from] rusqlite::Error),
+}
+
 impl SQLite {
     // Excluded from coverage because it depends on the filesystem
     #[cfg(not(coverage))]
@@ -32,14 +40,7 @@ impl SQLite {
         Ok(Self { conn })
     }
 
-    fn get_user_version(&self) -> Result<u8, SQLiteError> {
-        let user_version = self
-            .conn
-            .pragma_query_value(None, "user_version", |row| row.get(0))?;
-        Ok(user_version)
-    }
-
-    // mut self because of transaction
+    // mut self to use transaction
     pub fn initialize(&mut self) -> Result<(), SQLiteError> {
         let user_version = self.get_user_version()?;
         match user_version.cmp(&DB_VERSION) {
@@ -59,29 +60,13 @@ impl SQLite {
         }
         Ok(())
     }
-}
 
-#[derive(Debug, thiserror::Error)]
-pub enum SQLiteError {
-    #[error("database initialization error: {0}")]
-    InitializationError(String),
-    #[error(transparent)]
-    RusqliteError(#[from] rusqlite::Error),
-}
-
-// Excluded from coverage because it depends on the filesystem
-#[cfg(not(coverage))]
-fn ensure_parent_dir(path: &Path) -> Result<(), SQLiteError> {
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| {
-            SQLiteError::InitializationError(format!(
-                "could not create directory '{}': {}",
-                parent.display(),
-                e
-            ))
-        })?;
+    fn get_user_version(&self) -> Result<u8, SQLiteError> {
+        let user_version = self
+            .conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))?;
+        Ok(user_version)
     }
-    Ok(())
 }
 
 // Excluded from coverage because it depends on the filesystem
@@ -104,6 +89,21 @@ fn get_db_path() -> Result<PathBuf, SQLiteError> {
     let path = dawn_dir.join("dawn.db");
     ensure_parent_dir(&path)?;
     Ok(path)
+}
+
+// Excluded from coverage because it depends on the filesystem
+#[cfg(not(coverage))]
+fn ensure_parent_dir(path: &Path) -> Result<(), SQLiteError> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| {
+            SQLiteError::InitializationError(format!(
+                "failed to create directory '{}': {}",
+                parent.display(),
+                e
+            ))
+        })?;
+    }
+    Ok(())
 }
 
 impl TaskRepository for SQLite {
