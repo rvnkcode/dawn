@@ -1,4 +1,5 @@
 use super::*;
+use crate::domain::task::UuidPrefix;
 use rusqlite::types::{ToSqlOutput, Value, ValueRef};
 
 fn to_value(param: &dyn ToSql) -> Value {
@@ -89,7 +90,7 @@ fn build_where_clause_with_single_uid() {
     use uuid::Uuid;
 
     let uuid_str = Uuid::new_v4().to_string();
-    let filter = Filter::default().with_uuids([uuid_str.clone()]);
+    let filter = Filter::default().with_uuids([UuidPrefix::parse(&uuid_str).unwrap()]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(clause, "WHERE t.id LIKE ?");
@@ -106,7 +107,10 @@ fn build_where_clause_with_multiple_uids() {
 
     let uuid1_str = Uuid::new_v4().to_string();
     let uuid2_str = Uuid::new_v4().to_string();
-    let filter = Filter::default().with_uuids([uuid1_str.clone(), uuid2_str.clone()]);
+    let filter = Filter::default().with_uuids([
+        UuidPrefix::parse(&uuid1_str).unwrap(),
+        UuidPrefix::parse(&uuid2_str).unwrap(),
+    ]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(clause, "WHERE (t.id LIKE ? OR t.id LIKE ?)");
@@ -118,7 +122,7 @@ fn build_where_clause_with_multiple_uids() {
 
 #[test]
 fn build_where_clause_with_short_uuid_prefix() {
-    let filter = Filter::default().with_uuids(["abc12345"]);
+    let filter = Filter::default().with_uuids([UuidPrefix::parse("abc12345").unwrap()]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(clause, "WHERE t.id LIKE ?");
@@ -249,7 +253,7 @@ fn build_where_clause_with_uuid_and_index_range() {
     let uuid = Uuid::new_v4();
     let uuid_str = uuid.to_string();
     let filter = Filter::default()
-        .with_uuids([uuid])
+        .with_uuids([UuidPrefix::from(uuid)])
         .with_index_ranges([
             IndexRange::new(Index::new(1).unwrap(), Index::new(3).unwrap()).unwrap(),
         ]);
@@ -273,7 +277,7 @@ fn build_where_clause_with_uuid_and_index_and_index_range() {
     let uuid = Uuid::new_v4();
     let uuid_str = uuid.to_string();
     let filter = Filter::default()
-        .with_uuids([uuid])
+        .with_uuids([UuidPrefix::from(uuid)])
         .with_indices([Index::new(7).unwrap()])
         .with_index_ranges([
             IndexRange::new(Index::new(1).unwrap(), Index::new(3).unwrap()).unwrap(),
@@ -324,7 +328,7 @@ fn build_where_clause_with_uuid_and_index() {
     let uuid = Uuid::new_v4();
     let uuid_str = uuid.to_string();
     let filter = Filter::default()
-        .with_uuids([uuid])
+        .with_uuids([UuidPrefix::from(uuid)])
         .with_indices([Index::new(1).unwrap()]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
@@ -346,7 +350,7 @@ fn build_where_clause_with_uuid_and_status() {
     let uuid = Uuid::new_v4();
     let uuid_str = uuid.to_string();
     let filter = Filter::default()
-        .with_uuids([uuid])
+        .with_uuids([UuidPrefix::from(uuid)])
         .with_statuses([Status::Pending]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
@@ -386,7 +390,7 @@ fn build_where_clause_with_uuid_and_index_and_status() {
     let uuid = Uuid::new_v4();
     let uuid_str = uuid.to_string();
     let filter = Filter::default()
-        .with_uuids([uuid])
+        .with_uuids([UuidPrefix::from(uuid)])
         .with_indices([Index::new(1).unwrap()])
         .with_statuses([Status::Pending]);
 
@@ -559,7 +563,9 @@ fn build_where_clause_with_words_and_uid() {
 
     let uuid = Uuid::new_v4();
     let uuid_str = uuid.to_string();
-    let filter = Filter::default().with_uuids([uuid]).with_words(["hi"]);
+    let filter = Filter::default()
+        .with_uuids([UuidPrefix::from(uuid)])
+        .with_words(["hi"]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert_eq!(

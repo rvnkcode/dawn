@@ -1,4 +1,5 @@
-use dawn::domain::task::{Description, Filter, Index, IndexRange};
+use dawn::domain::task::uuid_prefix::UUID_PREFIX_PATTERN;
+use dawn::domain::task::{Description, Filter, Index, IndexRange, UuidPrefix};
 use regex::Regex;
 use std::collections::HashSet;
 use std::str::FromStr;
@@ -7,16 +8,9 @@ use std::sync::LazyLock;
 // Taskwarrior parity: indices reject leading zeros (e.g. "007" is text, not 7).
 const INDEX_PATTERN: &str = r"[1-9]\d*";
 const RANGE_PATTERN: &str = r"[1-9]\d*-[1-9]\d*";
-// Taskwarrior parity: 8-char minimum, hyphens at fixed positions, up to full 36 chars.
-// Prefix matches via SQL LIKE; see Lexer::isUUID in TW source.
-const UUID_PATTERN: &str =
-    r"[0-9a-f]{8}(?:-[0-9a-f]{0,4}(?:-[0-9a-f]{0,4}(?:-[0-9a-f]{0,4}(?:-[0-9a-f]{0,12})?)?)?)?";
 
 static INDEX_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(&format!(r"^{INDEX_PATTERN}$")).unwrap());
-
-static UUID_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(&format!(r"^{UUID_PATTERN}$")).unwrap());
 
 // e.g. 1-10
 static RANGE_RE: LazyLock<Regex> =
@@ -24,7 +18,7 @@ static RANGE_RE: LazyLock<Regex> =
 
 // e.g. 1,2-5,550e8400-e29b-41d4-a716-446655440000
 static SET_RE: LazyLock<Regex> = LazyLock::new(|| {
-    let id_segment = format!(r"(?:{UUID_PATTERN}|{INDEX_PATTERN}|{RANGE_PATTERN})");
+    let id_segment = format!(r"(?:{UUID_PREFIX_PATTERN}|{INDEX_PATTERN}|{RANGE_PATTERN})");
     Regex::new(&format!(r"^{id_segment}(?:,{id_segment})+$")).unwrap()
 });
 
@@ -100,7 +94,7 @@ fn promote_ids_from_post(post: &[String]) -> (Filter, Option<Description>) {
 
 #[derive(Default)]
 struct Parsed {
-    uuids: HashSet<String>,
+    uuids: HashSet<UuidPrefix>,
     indices: HashSet<Index>,
     index_ranges: HashSet<IndexRange>,
     words: Vec<String>,
@@ -118,8 +112,8 @@ fn process_terms<S: AsRef<str>>(raw_terms: impl IntoIterator<Item = S>) -> Parse
 
         if SET_RE.is_match(fragment) {
             for seg in fragment.split(',') {
-                if UUID_RE.is_match(seg) {
-                    out.uuids.insert(seg.to_string());
+                if let Ok(prefix) = UuidPrefix::parse(seg) {
+                    out.uuids.insert(prefix);
                 } else if let Ok(i) = Index::from_str(seg) {
                     out.indices.insert(i);
                 } else if RANGE_RE.is_match(seg) {
@@ -129,8 +123,8 @@ fn process_terms<S: AsRef<str>>(raw_terms: impl IntoIterator<Item = S>) -> Parse
             continue;
         }
 
-        if UUID_RE.is_match(fragment) {
-            out.uuids.insert(fragment.to_string());
+        if let Ok(prefix) = UuidPrefix::parse(fragment) {
+            out.uuids.insert(prefix);
             out.has_bare_id = true;
             continue;
         }

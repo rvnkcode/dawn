@@ -256,12 +256,12 @@ fn purge_bulk_quit_aborts_remaining() {
 
     let uuid1 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
     let uuid2 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("2")));
-    let uid3 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("3")));
+    let uuid3 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("3")));
     delete_via_pty(&db, &uuid1);
     delete_via_pty(&db, &uuid2);
-    delete_via_pty(&db, &uid3);
+    delete_via_pty(&db, &uuid3);
 
-    let target = format!("{uuid1},{uuid2},{uid3}");
+    let target = format!("{uuid1},{uuid2},{uuid3}");
     let mut p = dawn_pty(&db, &[&target, "purge"]);
     p.exp_string("Permanently remove task")
         .expect("first bulk prompt");
@@ -287,12 +287,12 @@ fn purge_bulk_all_purges_remaining() {
 
     let uuid1 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
     let uuid2 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("2")));
-    let uid3 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("3")));
+    let uuid3 = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("3")));
     delete_via_pty(&db, &uuid1);
     delete_via_pty(&db, &uuid2);
-    delete_via_pty(&db, &uid3);
+    delete_via_pty(&db, &uuid3);
 
-    let target = format!("{uuid1},{uuid2},{uid3}");
+    let target = format!("{uuid1},{uuid2},{uuid3}");
     let mut p = dawn_pty(&db, &[&target, "purge"]);
     p.exp_string("Permanently remove task")
         .expect("first bulk prompt");

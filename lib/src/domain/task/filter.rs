@@ -1,11 +1,9 @@
-use crate::domain::task::{Index, IndexRange, Status};
+use crate::domain::task::{Index, IndexRange, Status, UuidPrefix};
 use std::collections::HashSet;
 
 #[derive(Debug, Default, PartialEq)]
 pub struct Filter {
-    // Stored as raw strings to support Taskwarrior-style 8+ char prefix matching;
-    // a full 36-char UUID is just the maximum-length prefix.
-    uuids: HashSet<String>,
+    uuids: HashSet<UuidPrefix>,
     indices: HashSet<Index>,
     index_ranges: HashSet<IndexRange>,
     statuses: HashSet<Status>,
@@ -13,8 +11,8 @@ pub struct Filter {
 }
 
 impl Filter {
-    pub fn with_uuids<S: Into<String>>(mut self, uuids: impl IntoIterator<Item = S>) -> Self {
-        self.uuids.extend(uuids.into_iter().map(Into::into));
+    pub fn with_uuids(mut self, uuids: impl IntoIterator<Item = UuidPrefix>) -> Self {
+        self.uuids.extend(uuids);
         self
     }
 
@@ -44,7 +42,7 @@ impl Filter {
         self
     }
 
-    pub fn uuids(&self) -> &HashSet<String> {
+    pub fn uuids(&self) -> &HashSet<UuidPrefix> {
         &self.uuids
     }
 
@@ -77,8 +75,8 @@ impl Filter {
 mod tests {
     use super::*;
 
-    fn uuid(n: u128) -> String {
-        uuid::Uuid::from_u128(n).to_string()
+    fn uuid(n: u128) -> UuidPrefix {
+        UuidPrefix::from(uuid::Uuid::from_u128(n))
     }
 
     fn range(from: usize, to: usize) -> IndexRange {

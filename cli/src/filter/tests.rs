@@ -4,8 +4,8 @@ fn raw(terms: &[&str]) -> Vec<String> {
     terms.iter().map(|s| s.to_string()).collect()
 }
 
-fn uuid(s: &str) -> String {
-    s.to_string()
+fn uuid(s: &str) -> UuidPrefix {
+    UuidPrefix::parse(s).unwrap()
 }
 
 fn idx(n: usize) -> Index {
