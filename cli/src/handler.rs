@@ -1,3 +1,4 @@
+mod add;
 mod delete;
 mod done;
 mod modify;
@@ -6,7 +7,7 @@ mod update;
 
 use chrono::{Local, Utc};
 use dawn::domain::task::{
-    Description, Filter, Status, Task, TaskCreation, TaskModification, Timestamp, port::TaskService,
+    Description, Filter, Status, Task, TaskModification, Timestamp, port::TaskService,
 };
 use tabled::Tabled;
 use uuid::Uuid;
@@ -24,20 +25,6 @@ pub(crate) struct Handler<TS: TaskService> {
 impl<TS: TaskService> Handler<TS> {
     pub(crate) fn new(task_service: TS) -> Self {
         Self { task_service }
-    }
-
-    pub(crate) fn add(&self, filter: &[String], words: &[String]) -> Result<(), CliError> {
-        let all: Vec<&str> = filter
-            .iter()
-            .chain(words.iter())
-            .map(|s| s.trim())
-            .filter(|s| !s.is_empty())
-            .collect();
-        let description = Description::new(&all.join(" ")).map_err(CliError::usage)?;
-        self.task_service.add(&TaskCreation { description })?;
-        let count = self.task_service.count_pending()?;
-        println!("Created task {count}.");
-        Ok(())
     }
 
     pub(crate) fn all(&self, pre: &[String], post: &[String]) -> Result<(), CliError> {
