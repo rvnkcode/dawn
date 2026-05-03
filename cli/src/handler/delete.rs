@@ -1,6 +1,12 @@
 use inquire::Confirm;
 
-use super::*;
+use super::{
+    update::{
+        Action, ConfirmResult, confirm_bulk, confirm_empty_filter, get_display_id,
+        print_not_pending_for_ids, print_result, process_confirmations, validate_tasks,
+    },
+    *,
+};
 
 impl<TS: TaskService> Handler<TS> {
     pub(crate) fn delete(&self, raw_filters: &[String], mods: &[String]) -> Result<(), CliError> {

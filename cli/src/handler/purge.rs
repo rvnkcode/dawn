@@ -1,7 +1,10 @@
 use colored::Colorize;
 use inquire::Confirm;
 
-use super::*;
+use super::{
+    update::{Action, ConfirmResult, confirm_bulk, confirm_empty_filter, print_result},
+    *,
+};
 
 impl<TS: TaskService> Handler<TS> {
     pub(crate) fn purge(&self, pre: &[String], post: &[String]) -> Result<(), CliError> {
