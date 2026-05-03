@@ -14,6 +14,7 @@ fn main() -> ExitCode {
 }
 
 fn run(cli: Cli) -> Result<(), CliError> {
+    // Route to CLI runtime error: exit code 1
     let mut db = SQLite::new().map_err(anyhow::Error::from)?;
     db.initialize().map_err(anyhow::Error::from)?;
     let task_service = Service::new(db);
