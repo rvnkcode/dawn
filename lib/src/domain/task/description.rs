@@ -5,7 +5,7 @@ use std::{
 
 use thiserror::Error;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Description(String);
 
 #[derive(Debug, Error)]
