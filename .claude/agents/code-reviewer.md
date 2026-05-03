@@ -61,11 +61,6 @@ These MUST be flagged — they can cause real damage:
 - Does the code follow Hexagonal Architecture principles?
 - OOP principles are being followed?
 - Does the code follow functional programming principles?
-- **Class diagram accuracy** — Read `docs/class.md` and verify against the actual code:
-  1. Every public struct/enum/trait that changed must be reflected in the diagram
-  2. Method signatures must match (self vs &self vs &mut self, parameter types, return types)
-  3. Relationships (composition, aggregation, dependency, implementation) must match the code
-  4. New dependencies introduced by changed code must appear as relationships
 - Does the code follow DDD principles?
 - Are the SQL queries optimized and secure? Indexes used properly? Schema design appropriate?
 
