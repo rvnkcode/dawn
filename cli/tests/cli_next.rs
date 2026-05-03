@@ -3,7 +3,7 @@ mod common;
 #[test]
 fn next_with_no_tasks_prints_no_matches() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .assert()
         .code(1)
         .stderr("No matches.\n");
@@ -12,11 +12,11 @@ fn next_with_no_tasks_prints_no_matches() {
 #[test]
 fn next_with_one_task_prints_singular_footer() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
-    let output = common::dawn_cmd(&db)
+    let output = common::execute_dawn(&db)
         .assert()
         .success()
         .get_output()
@@ -40,15 +40,15 @@ fn next_with_one_task_prints_singular_footer() {
 #[test]
 fn next_with_multiple_tasks_prints_plural_footer() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "one"])
         .assert()
         .success();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "two"])
         .assert()
         .success();
-    let output = common::dawn_cmd(&db)
+    let output = common::execute_dawn(&db)
         .assert()
         .success()
         .get_output()
@@ -69,7 +69,7 @@ fn next_with_multiple_tasks_prints_plural_footer() {
 fn next_filter_set_two_indices() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two", "three"]);
-    let out = common::dawn_cmd(&db).arg("1,2").output().expect("run");
+    let out = common::execute_dawn(&db).arg("1,2").output().expect("run");
     let stdout = String::from_utf8(out.stdout).expect("utf8");
     assert!(out.status.success());
     // Index↔description mapping is not stable (see common::setup_tasks).
@@ -86,7 +86,7 @@ fn next_filter_set_two_indices() {
 fn next_filter_multiple_set_args() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two", "three"]);
-    let out = common::dawn_cmd(&db)
+    let out = common::execute_dawn(&db)
         .args(["1,2", "2,3"])
         .output()
         .expect("run");
@@ -100,11 +100,11 @@ fn next_filter_multiple_set_args() {
 #[test]
 fn next_filter_nonexistent_index_prints_no_matches() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "one"])
         .assert()
         .success();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .arg("99,100")
         .assert()
         .code(1)
@@ -117,7 +117,7 @@ fn next_filter_nonexistent_index_prints_no_matches() {
 fn next_filter_bare_range_returns_subset() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two", "three", "four", "five"]);
-    let out = common::dawn_cmd(&db).arg("1-3").output().expect("run");
+    let out = common::execute_dawn(&db).arg("1-3").output().expect("run");
     let stdout = String::from_utf8(out.stdout).expect("utf8");
     assert!(out.status.success());
     // Index↔description mapping is not stable (see common::setup_tasks).
@@ -136,7 +136,7 @@ fn next_filter_bare_range_returns_subset() {
 fn next_filter_descending_range_swaps_and_matches() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two", "three"]);
-    let out = common::dawn_cmd(&db).arg("3-1").output().expect("run");
+    let out = common::execute_dawn(&db).arg("3-1").output().expect("run");
     let stdout = String::from_utf8(out.stdout).expect("utf8");
     assert!(out.status.success());
     assert!(stdout.contains("one"));
@@ -150,7 +150,7 @@ fn next_filter_descending_range_swaps_and_matches() {
 fn next_filter_equal_bounds_range_matches_single_task() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["only"]);
-    let out = common::dawn_cmd(&db).arg("1-1").output().expect("run");
+    let out = common::execute_dawn(&db).arg("1-1").output().expect("run");
     let stdout = String::from_utf8(out.stdout).expect("utf8");
     assert!(out.status.success());
     assert!(stdout.contains("only"), "missing task: {stdout}");
@@ -168,7 +168,10 @@ fn next_filter_equal_bounds_range_matches_single_task() {
 fn next_filter_set_with_range_and_index() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two", "three", "four"]);
-    let out = common::dawn_cmd(&db).arg("1-2,3").output().expect("run");
+    let out = common::execute_dawn(&db)
+        .arg("1-2,3")
+        .output()
+        .expect("run");
     let stdout = String::from_utf8(out.stdout).expect("utf8");
     assert!(out.status.success());
     let present = ["one", "two", "three", "four"]
@@ -182,11 +185,11 @@ fn next_filter_set_with_range_and_index() {
 #[test]
 fn next_filter_out_of_bounds_range_prints_no_matches() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "only"])
         .assert()
         .success();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .arg("99-100")
         .assert()
         .code(1)
@@ -202,7 +205,7 @@ fn next_filter_out_of_bounds_range_prints_no_matches() {
 fn bare_equal_bounds_range_routes_to_next_not_info() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two"]);
-    let out = common::dawn_cmd(&db).arg("1-1").output().expect("run");
+    let out = common::execute_dawn(&db).arg("1-1").output().expect("run");
     let stdout = String::from_utf8(out.stdout).expect("utf8");
     assert!(out.status.success());
     assert!(
@@ -228,7 +231,7 @@ fn next_filter_range_combined_with_word_filter() {
         &db,
         &["alpha foo", "bravo foo", "charlie foo", "delta", "echo"],
     );
-    let stdout = common::run_stdout(common::dawn_cmd(&db).args(["1-5", "foo"]));
+    let stdout = common::run_stdout(common::execute_dawn(&db).args(["1-5", "foo"]));
     assert_eq!(
         stdout.matches("foo").count(),
         3,
@@ -244,13 +247,13 @@ fn next_filter_range_combined_with_word_filter() {
 #[test]
 fn next_filter_set_with_invalid_segment_demotes_to_word() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "one"])
         .assert()
         .success();
     // "1,invalid" fails the strict set syntax, falls through, and is searched
     // for verbatim in descriptions. No task contains that string.
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .arg("1,invalid")
         .assert()
         .code(1)
@@ -260,13 +263,13 @@ fn next_filter_set_with_invalid_segment_demotes_to_word() {
 #[test]
 fn next_filter_set_with_zero_segment_demotes_to_word() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "one"])
         .assert()
         .success();
     // "0" is rejected by the index segment alternation, so "1,0" is treated as
     // a single word, not a partial index set.
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .arg("1,0")
         .assert()
         .code(1)
@@ -278,7 +281,7 @@ fn next_filter_set_with_zero_segment_demotes_to_word() {
 #[test]
 fn all_invalid_single_prints_no_matches() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .arg("invalid")
         .assert()
         .code(1)
@@ -288,7 +291,7 @@ fn all_invalid_single_prints_no_matches() {
 #[test]
 fn zero_bare_prints_no_matches() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .arg("0")
         .assert()
         .code(1)

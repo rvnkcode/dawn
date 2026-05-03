@@ -23,6 +23,7 @@ uuid.workspace = true
 
 [dev-dependencies]
 assert_cmd = "2.2.0"
+predicates = "3.1.4"
 rexpect = "0.7.0"
 tempfile = "3.27.0"
 

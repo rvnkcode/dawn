@@ -30,7 +30,7 @@ fn status_for(stdout: &str, description: &str) -> char {
 #[test]
 fn all_with_no_tasks_prints_no_matches() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .arg("all")
         .assert()
         .code(1)
@@ -40,12 +40,12 @@ fn all_with_no_tasks_prints_no_matches() {
 #[test]
 fn all_with_one_task_prints_singular_footer() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    let stdout = run_stdout(common::dawn_cmd(&db).arg("all"));
+    let stdout = run_stdout(common::execute_dawn(&db).arg("all"));
     assert!(stdout.contains("buy milk"), "missing description: {stdout}");
     assert!(
         stdout.contains("1 task"),
@@ -62,7 +62,7 @@ fn all_with_multiple_tasks_prints_plural_footer() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta"]);
 
-    let stdout = run_stdout(common::dawn_cmd(&db).arg("all"));
+    let stdout = run_stdout(common::execute_dawn(&db).arg("all"));
     assert!(stdout.contains("alpha"), "missing 'alpha': {stdout}");
     assert!(stdout.contains("beta"), "missing 'beta': {stdout}");
     assert!(
@@ -76,12 +76,12 @@ fn all_with_multiple_tasks_prints_plural_footer() {
 #[test]
 fn all_renders_pending_with_index() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    let stdout = run_stdout(common::dawn_cmd(&db).arg("all"));
+    let stdout = run_stdout(common::execute_dawn(&db).arg("all"));
     assert_eq!(status_for(&stdout, "buy milk"), 'P');
     let row = stdout
         .lines()
@@ -94,13 +94,16 @@ fn all_renders_pending_with_index() {
 #[test]
 fn all_renders_completed_with_dash_id() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
-    common::dawn_cmd(&db).args(["1", "done"]).assert().success();
+    common::execute_dawn(&db)
+        .args(["1", "done"])
+        .assert()
+        .success();
 
-    let stdout = run_stdout(common::dawn_cmd(&db).arg("all"));
+    let stdout = run_stdout(common::execute_dawn(&db).arg("all"));
     assert_eq!(status_for(&stdout, "buy milk"), 'C');
     let row = stdout
         .lines()
@@ -113,14 +116,14 @@ fn all_renders_completed_with_dash_id() {
 #[test]
 fn all_renders_deleted_with_dash_id() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
-    let uuid = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
+    let uuid = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
     delete_via_pty(&db, &uuid);
 
-    let stdout = run_stdout(common::dawn_cmd(&db).arg("all"));
+    let stdout = run_stdout(common::execute_dawn(&db).arg("all"));
     assert_eq!(status_for(&stdout, "buy milk"), 'D');
     let row = stdout
         .lines()
@@ -138,16 +141,16 @@ fn all_shows_pending_completed_and_deleted_together() {
     // Capture two UIDs by index before mutating state. After `done`/`delete`
     // the pending indices renumber, so anything past this point must address
     // tasks by UUID.
-    let uid_first = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
-    let uid_second = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("2")));
+    let uid_first = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    let uid_second = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
 
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args([&uid_first, "done"])
         .assert()
         .success();
     delete_via_pty(&db, &uid_second);
 
-    let stdout = run_stdout(common::dawn_cmd(&db).arg("all"));
+    let stdout = run_stdout(common::execute_dawn(&db).arg("all"));
     assert!(stdout.contains("alpha"), "missing alpha: {stdout}");
     assert!(stdout.contains("beta"), "missing beta: {stdout}");
     assert!(stdout.contains("gamma"), "missing gamma: {stdout}");
@@ -177,7 +180,7 @@ fn all_pre_index_filters_to_one_task() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["apple", "banana", "cherry"]);
 
-    let stdout = run_stdout(common::dawn_cmd(&db).args(["1", "all"]));
+    let stdout = run_stdout(common::execute_dawn(&db).args(["1", "all"]));
     let present = ["apple", "banana", "cherry"]
         .iter()
         .filter(|d| stdout.contains(*d))
@@ -191,7 +194,7 @@ fn all_post_index_filters_to_one_task() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["apple", "banana", "cherry"]);
 
-    let stdout = run_stdout(common::dawn_cmd(&db).args(["all", "1"]));
+    let stdout = run_stdout(common::execute_dawn(&db).args(["all", "1"]));
     let present = ["apple", "banana", "cherry"]
         .iter()
         .filter(|d| stdout.contains(*d))
@@ -205,7 +208,7 @@ fn all_pre_and_post_indices_merge_into_union() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["apple", "banana", "cherry"]);
 
-    let stdout = run_stdout(common::dawn_cmd(&db).args(["1", "all", "2"]));
+    let stdout = run_stdout(common::execute_dawn(&db).args(["1", "all", "2"]));
     let present = ["apple", "banana", "cherry"]
         .iter()
         .filter(|d| stdout.contains(*d))
@@ -219,7 +222,7 @@ fn all_pre_range_filters_to_two_tasks() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["apple", "banana", "cherry"]);
 
-    let stdout = run_stdout(common::dawn_cmd(&db).args(["1-2", "all"]));
+    let stdout = run_stdout(common::execute_dawn(&db).args(["1-2", "all"]));
     let present = ["apple", "banana", "cherry"]
         .iter()
         .filter(|d| stdout.contains(*d))
@@ -233,7 +236,7 @@ fn all_post_range_filters_to_two_tasks() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["apple", "banana", "cherry"]);
 
-    let stdout = run_stdout(common::dawn_cmd(&db).args(["all", "1-2"]));
+    let stdout = run_stdout(common::execute_dawn(&db).args(["all", "1-2"]));
     let present = ["apple", "banana", "cherry"]
         .iter()
         .filter(|d| stdout.contains(*d))
@@ -247,7 +250,7 @@ fn all_set_filter_returns_two_tasks() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["apple", "banana", "cherry"]);
 
-    let stdout = run_stdout(common::dawn_cmd(&db).args(["all", "1,2"]));
+    let stdout = run_stdout(common::execute_dawn(&db).args(["all", "1,2"]));
     let present = ["apple", "banana", "cherry"]
         .iter()
         .filter(|d| stdout.contains(*d))
@@ -262,20 +265,20 @@ fn all_set_filter_returns_two_tasks() {
 #[test]
 fn all_pre_and_post_words_merge_into_and_filter() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy bread"])
         .assert()
         .success();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "make milk"])
         .assert()
         .success();
 
-    let stdout = run_stdout(common::dawn_cmd(&db).args(["buy", "all", "milk"]));
+    let stdout = run_stdout(common::execute_dawn(&db).args(["buy", "all", "milk"]));
     assert!(stdout.contains("buy milk"), "missing AND match: {stdout}");
     assert!(
         !stdout.contains("buy bread"),
@@ -293,15 +296,15 @@ fn all_pre_and_post_words_merge_into_and_filter() {
 #[test]
 fn all_word_filter_matches_across_statuses() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "shared keyword one"])
         .assert()
         .success();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "shared keyword two"])
         .assert()
         .success();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "unrelated"])
         .assert()
         .success();
@@ -309,12 +312,12 @@ fn all_word_filter_matches_across_statuses() {
     // Complete one task by description (index↔description mapping is unstable
     // when tasks share `entry` seconds — see `setup_tasks` doc). `next` would
     // hide the completed row, but `all` must still surface it under a word filter.
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["shared", "keyword", "one", "done"])
         .assert()
         .success();
 
-    let stdout = run_stdout(common::dawn_cmd(&db).args(["all", "shared"]));
+    let stdout = run_stdout(common::execute_dawn(&db).args(["all", "shared"]));
     assert!(
         stdout.contains("shared keyword one"),
         "first match missing: {stdout}"
@@ -341,15 +344,15 @@ fn all_word_filter_matches_across_statuses() {
 #[test]
 fn all_uuid_filter_matches_deleted_task() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
-    let uuid = extract_uuid(&run_stdout(common::dawn_cmd(&db).arg("1")));
+    let uuid = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
     delete_via_pty(&db, &uuid);
 
     // Index is gone after deletion — UUID is the only handle.
-    let stdout = run_stdout(common::dawn_cmd(&db).args(["all", &uuid]));
+    let stdout = run_stdout(common::execute_dawn(&db).args(["all", &uuid]));
     assert!(
         stdout.contains("buy milk"),
         "deleted task missing: {stdout}"
@@ -361,12 +364,12 @@ fn all_uuid_filter_matches_deleted_task() {
 #[test]
 fn all_filter_with_no_match_prints_no_matches() {
     let (_dir, db) = common::test_db();
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["add", "buy milk"])
         .assert()
         .success();
 
-    common::dawn_cmd(&db)
+    common::execute_dawn(&db)
         .args(["all", "99"])
         .assert()
         .code(1)

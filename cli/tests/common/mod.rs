@@ -12,7 +12,15 @@ use tempfile::TempDir;
 const PTY_TIMEOUT_MS: u64 = 5000;
 const SELECT_DOWN: &str = "\x1b[B";
 
-pub fn dawn_cmd(db: &Path) -> Command {
+// Return `TempDir` to ensure temp dir and DB alive until test end
+pub fn test_db() -> (TempDir, PathBuf) {
+    let dir = TempDir::new().expect("tempdir");
+    let db = dir.path().join("dawn.db");
+    (dir, db)
+}
+
+// Executes binary with env var override to use test DB
+pub fn execute_dawn(db: &Path) -> Command {
     let mut cmd = Command::cargo_bin("dawn").expect("binary 'dawn' from dawn-cli crate");
     cmd.env("DAWN_DB_PATH", db).env_remove("XDG_DATA_HOME");
     cmd
@@ -65,19 +73,13 @@ pub fn assert_pty_exit(p: &mut PtySession, expected_code: i32) {
     }
 }
 
-pub fn test_db() -> (TempDir, PathBuf) {
-    let dir = TempDir::new().expect("tempdir");
-    let db = dir.path().join("dawn.db");
-    (dir, db)
-}
-
 // Tasks share `entry` seconds, so the Index↔description mapping is not stable
 // (tiebreaker is the random UUID lex order). Tests must not assume that the
 // i-th description receives Index i; filter on all seeded indices, or assert
 // on counts rather than on which description maps to which index.
 pub fn setup_tasks(db: &Path, descriptions: &[&str]) {
     for desc in descriptions {
-        dawn_cmd(db).args(["add", desc]).assert().success();
+        execute_dawn(db).args(["add", desc]).assert().success();
     }
 }
 
