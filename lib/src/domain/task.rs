@@ -9,13 +9,12 @@ pub mod uuid_prefix;
 
 use std::fmt::{self, Display, Formatter};
 
-use uuid::Uuid;
-
 pub use description::Description;
 pub use filter::Filter;
 pub use index::Index;
 pub use index_range::IndexRange;
 pub use timestamp::Timestamp;
+use uuid::Uuid;
 pub use uuid_prefix::UuidPrefix;
 
 pub struct TaskCreation {
