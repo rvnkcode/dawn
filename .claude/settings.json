@@ -1,28 +1,4 @@
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "FILE=$(jq -r '.tool_input.file_path | select(endswith(\".rs\"))') && [ -n \"$FILE\" ] && cargo fmt -- \"$FILE\" || true"
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/clippy.sh"
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/markdownlint.sh"
-          }
-        ]
-      }
-    ]
-  },
-  "enabledPlugins": {
-    "rust-analyzer-lsp@claude-plugins-official": true
-  },
   "permissions": {
     "allow": [
       "Bash(cargo build:*)",
@@ -46,5 +22,38 @@
       "WebFetch(domain:taskwarrior.org)",
       "WebSearch"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(jq -r '.tool_input.file_path | select(endswith(\".rs\"))') && [ -n \"$FILE\" ] && cargo fmt -- \"$FILE\" || true"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/clippy.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/markdownlint.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "extraKnownMarketplaces": {
+    "karpathy-skills": {
+      "source": {
+        "source": "github",
+        "repo": "forrestchang/andrej-karpathy-skills"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "andrej-karpathy-skills@karpathy-skills": true
   }
 }
