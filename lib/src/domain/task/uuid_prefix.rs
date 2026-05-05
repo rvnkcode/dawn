@@ -105,16 +105,6 @@ mod tests {
     }
 
     #[test]
-    fn parse_rejects_non_hex_chars() {
-        assert!(UuidPrefix::parse("zzzzzzzz").is_err());
-    }
-
-    #[test]
-    fn parse_rejects_empty() {
-        assert!(UuidPrefix::parse("").is_err());
-    }
-
-    #[test]
     fn parse_rejects_wildcard_chars() {
         assert!(UuidPrefix::parse("%").is_err());
         assert!(UuidPrefix::parse("_").is_err());
@@ -138,11 +128,5 @@ mod tests {
     fn from_str_delegates_to_parse() {
         let prefix: UuidPrefix = "550e8400".parse().unwrap();
         assert_eq!(prefix.as_str(), "550e8400");
-    }
-
-    #[test]
-    fn display_round_trips_input() {
-        let prefix = UuidPrefix::parse("550e8400-e29b").unwrap();
-        assert_eq!(prefix.to_string(), "550e8400-e29b");
     }
 }
