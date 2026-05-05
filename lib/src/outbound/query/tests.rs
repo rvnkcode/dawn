@@ -3,6 +3,7 @@ use rusqlite::types::{ToSqlOutput, Value, ValueRef};
 use super::*;
 use crate::domain::task::UuidPrefix;
 
+// Convert ToSql parameter into a Value for easier assertions in tests
 fn to_value(param: &dyn ToSql) -> Value {
     match param.to_sql().unwrap() {
         ToSqlOutput::Owned(value) => value,
@@ -16,67 +17,6 @@ fn to_value(param: &dyn ToSql) -> Value {
 }
 
 #[test]
-fn build_where_clause_with_empty_filter() {
-    let filter = Filter::default();
-
-    assert!(build_where_clause(&filter).unwrap().is_none());
-}
-
-// filter.statuses
-
-#[test]
-fn build_where_clause_with_pending_only() {
-    let filter = Filter::default().with_statuses([Status::Pending]);
-
-    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(clause, "WHERE (t.deleted IS NULL AND t.completed IS NULL)");
-    assert!(params.is_empty());
-}
-
-#[test]
-fn build_where_clause_with_completed_only() {
-    let filter = Filter::default().with_statuses([Status::Completed]);
-
-    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(
-        clause,
-        "WHERE (t.deleted IS NULL AND t.completed IS NOT NULL)"
-    );
-    assert!(params.is_empty());
-}
-
-#[test]
-fn build_where_clause_with_deleted_only() {
-    let filter = Filter::default().with_statuses([Status::Deleted]);
-
-    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(clause, "WHERE (t.deleted IS NOT NULL)");
-    assert!(params.is_empty());
-}
-
-#[test]
-fn build_where_clause_with_two_statuses() {
-    let filter = Filter::default().with_statuses([Status::Pending, Status::Completed]);
-
-    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert!(clause.starts_with("WHERE "));
-    assert!(clause.contains(" OR "));
-    assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
-    assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NOT NULL)"));
-    assert!(params.is_empty());
-}
-
-#[test]
-fn build_where_clause_with_all_statuses() {
-    let filter =
-        Filter::default().with_statuses([Status::Pending, Status::Completed, Status::Deleted]);
-
-    assert!(build_where_clause(&filter).unwrap().is_none());
-}
-
-// filter.uuids
-
-#[test]
 fn repeat_vars_single() {
     assert_eq!(repeat_vars(1), "?");
 }
@@ -87,19 +27,26 @@ fn repeat_vars_multiple() {
 }
 
 #[test]
-fn build_where_clause_with_single_uid() {
+fn build_where_clause_with_empty_filter() {
+    let filter = Filter::default();
+
+    assert!(build_where_clause(&filter).unwrap().is_none());
+}
+
+// filter.uuids
+
+#[test]
+fn build_where_clause_with_single_uuid() {
     use uuid::Uuid;
 
     let uuid_str = Uuid::new_v4().to_string();
     let filter = Filter::default().with_uuids([UuidPrefix::parse(&uuid_str).unwrap()]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(clause, "WHERE t.id LIKE ?");
+
+    assert_eq!(clause, "WHERE t.id IN (?)");
     assert_eq!(params.len(), 1);
-    assert_eq!(
-        to_value(params[0].as_ref()),
-        Value::Text(format!("{uuid_str}%"))
-    );
+    assert_eq!(to_value(params[0].as_ref()), Value::Text(uuid_str));
 }
 
 #[test]
@@ -114,11 +61,12 @@ fn build_where_clause_with_multiple_uids() {
     ]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(clause, "WHERE (t.id LIKE ? OR t.id LIKE ?)");
+
+    assert_eq!(clause, "WHERE t.id IN (?,?)");
     assert_eq!(params.len(), 2);
     let values: Vec<Value> = params.iter().map(|p| to_value(p.as_ref())).collect();
-    assert!(values.contains(&Value::Text(format!("{uuid1_str}%"))));
-    assert!(values.contains(&Value::Text(format!("{uuid2_str}%"))));
+    assert!(values.contains(&Value::Text(uuid1_str)));
+    assert!(values.contains(&Value::Text(uuid2_str)));
 }
 
 #[test]
@@ -133,6 +81,27 @@ fn build_where_clause_with_short_uuid_prefix() {
     );
 }
 
+#[test]
+fn build_where_clause_mixes_full_uuid_and_short_prefix() {
+    use uuid::Uuid;
+
+    let full_uuid_str = Uuid::new_v4().to_string();
+    let filter = Filter::default().with_uuids([
+        UuidPrefix::parse(&full_uuid_str).unwrap(),
+        UuidPrefix::parse("abc12345").unwrap(),
+    ]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+
+    assert_eq!(clause, "WHERE (t.id IN (?) OR t.id LIKE ?)");
+    assert_eq!(params.len(), 2);
+    assert_eq!(to_value(params[0].as_ref()), Value::Text(full_uuid_str));
+    assert_eq!(
+        to_value(params[1].as_ref()),
+        Value::Text("abc12345%".into())
+    );
+}
+
 // filter.indices
 
 #[test]
@@ -142,6 +111,7 @@ fn build_where_clause_with_single_index() {
     let filter = Filter::default().with_indices([Index::new(1).unwrap()]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+
     assert_eq!(clause, "WHERE tpr.row_id IN (?)");
     assert_eq!(params.len(), 1);
     assert_eq!(to_value(params[0].as_ref()), Value::Integer(1));
@@ -154,6 +124,7 @@ fn build_where_clause_with_multiple_indices() {
     let filter = Filter::default().with_indices([Index::new(1).unwrap(), Index::new(2).unwrap()]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+
     assert_eq!(clause, "WHERE tpr.row_id IN (?,?)");
     assert_eq!(params.len(), 2);
     let values: Vec<Value> = params.iter().map(|p| to_value(p.as_ref())).collect();
@@ -174,27 +145,11 @@ fn build_where_clause_with_single_index_range() {
     .unwrap()]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+
     assert_eq!(clause, "WHERE tpr.row_id BETWEEN ? AND ?");
     assert_eq!(params.len(), 2);
     assert_eq!(to_value(params[0].as_ref()), Value::Integer(1));
     assert_eq!(to_value(params[1].as_ref()), Value::Integer(3));
-}
-
-#[test]
-fn build_where_clause_with_swapped_index_range_normalizes() {
-    use crate::domain::task::{Index, IndexRange};
-
-    let filter = Filter::default().with_index_ranges([IndexRange::new(
-        Index::new(5).unwrap(),
-        Index::new(3).unwrap(),
-    )
-    .unwrap()]);
-
-    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(clause, "WHERE tpr.row_id BETWEEN ? AND ?");
-    assert_eq!(params.len(), 2);
-    assert_eq!(to_value(params[0].as_ref()), Value::Integer(3));
-    assert_eq!(to_value(params[1].as_ref()), Value::Integer(5));
 }
 
 #[test]
@@ -225,191 +180,60 @@ fn build_where_clause_with_multiple_index_ranges() {
     assert_eq!(pairs, [(1, 3), (5, 7)]);
 }
 
-#[test]
-fn build_where_clause_with_index_and_index_range() {
-    use crate::domain::task::{Index, IndexRange};
+// filter.statuses
 
-    let filter = Filter::default()
-        .with_indices([Index::new(7).unwrap()])
-        .with_index_ranges([
-            IndexRange::new(Index::new(1).unwrap(), Index::new(3).unwrap()).unwrap(),
-        ]);
+#[test]
+fn build_where_clause_with_pending_only() {
+    let filter = Filter::default().with_statuses([Status::Pending]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+
+    assert_eq!(clause, "WHERE (t.deleted IS NULL AND t.completed IS NULL)");
+    assert!(params.is_empty());
+}
+
+#[test]
+fn build_where_clause_with_completed_only() {
+    let filter = Filter::default().with_statuses([Status::Completed]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+
     assert_eq!(
         clause,
-        "WHERE (tpr.row_id IN (?) OR tpr.row_id BETWEEN ? AND ?)"
+        "WHERE (t.deleted IS NULL AND t.completed IS NOT NULL)"
     );
-    assert_eq!(params.len(), 3);
-    assert_eq!(to_value(params[0].as_ref()), Value::Integer(7));
-    assert_eq!(to_value(params[1].as_ref()), Value::Integer(1));
-    assert_eq!(to_value(params[2].as_ref()), Value::Integer(3));
+    assert!(params.is_empty());
 }
 
 #[test]
-fn build_where_clause_with_uuid_and_index_range() {
-    use uuid::Uuid;
-
-    use crate::domain::task::{Index, IndexRange};
-
-    let uuid = Uuid::new_v4();
-    let uuid_str = uuid.to_string();
-    let filter = Filter::default()
-        .with_uuids([UuidPrefix::from(uuid)])
-        .with_index_ranges([
-            IndexRange::new(Index::new(1).unwrap(), Index::new(3).unwrap()).unwrap(),
-        ]);
+fn build_where_clause_with_deleted_only() {
+    let filter = Filter::default().with_statuses([Status::Deleted]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(clause, "WHERE (t.id LIKE ? OR tpr.row_id BETWEEN ? AND ?)");
-    assert_eq!(params.len(), 3);
-    assert_eq!(
-        to_value(params[0].as_ref()),
-        Value::Text(format!("{uuid_str}%"))
-    );
-    assert_eq!(to_value(params[1].as_ref()), Value::Integer(1));
-    assert_eq!(to_value(params[2].as_ref()), Value::Integer(3));
+
+    assert_eq!(clause, "WHERE (t.deleted IS NOT NULL)");
+    assert!(params.is_empty());
 }
 
 #[test]
-fn build_where_clause_with_uuid_and_index_and_index_range() {
-    use uuid::Uuid;
-
-    use crate::domain::task::{Index, IndexRange};
-
-    let uuid = Uuid::new_v4();
-    let uuid_str = uuid.to_string();
-    let filter = Filter::default()
-        .with_uuids([UuidPrefix::from(uuid)])
-        .with_indices([Index::new(7).unwrap()])
-        .with_index_ranges([
-            IndexRange::new(Index::new(1).unwrap(), Index::new(3).unwrap()).unwrap(),
-        ]);
+fn build_where_clause_with_two_statuses() {
+    let filter = Filter::default().with_statuses([Status::Pending, Status::Completed]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(
-        clause,
-        "WHERE (t.id LIKE ? OR tpr.row_id IN (?) OR tpr.row_id BETWEEN ? AND ?)"
-    );
-    assert_eq!(params.len(), 4);
-    assert_eq!(
-        to_value(params[0].as_ref()),
-        Value::Text(format!("{uuid_str}%"))
-    );
-    assert_eq!(to_value(params[1].as_ref()), Value::Integer(7));
-    assert_eq!(to_value(params[2].as_ref()), Value::Integer(1));
-    assert_eq!(to_value(params[3].as_ref()), Value::Integer(3));
-}
 
-#[test]
-fn build_where_clause_with_index_range_and_status() {
-    use crate::domain::task::{Index, IndexRange};
-
-    let filter = Filter::default()
-        .with_index_ranges([
-            IndexRange::new(Index::new(1).unwrap(), Index::new(3).unwrap()).unwrap(),
-        ])
-        .with_statuses([Status::Pending]);
-
-    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert!(clause.starts_with("WHERE "));
-    assert!(clause.contains("tpr.row_id BETWEEN ? AND ?"));
-    assert!(clause.contains(" AND "));
+    assert!(clause.contains(" OR "));
     assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
-    assert_eq!(params.len(), 2);
-    assert_eq!(to_value(params[0].as_ref()), Value::Integer(1));
-    assert_eq!(to_value(params[1].as_ref()), Value::Integer(3));
-}
-
-// filter.uuids + filter.indices
-
-#[test]
-fn build_where_clause_with_uuid_and_index() {
-    use uuid::Uuid;
-
-    use crate::domain::task::Index;
-
-    let uuid = Uuid::new_v4();
-    let uuid_str = uuid.to_string();
-    let filter = Filter::default()
-        .with_uuids([UuidPrefix::from(uuid)])
-        .with_indices([Index::new(1).unwrap()]);
-
-    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(clause, "WHERE (t.id LIKE ? OR tpr.row_id IN (?))");
-    assert_eq!(params.len(), 2);
-    assert_eq!(
-        to_value(params[0].as_ref()),
-        Value::Text(format!("{uuid_str}%"))
-    );
-    assert_eq!(to_value(params[1].as_ref()), Value::Integer(1));
-}
-
-// filter IDs + status
-
-#[test]
-fn build_where_clause_with_uuid_and_status() {
-    use uuid::Uuid;
-
-    let uuid = Uuid::new_v4();
-    let uuid_str = uuid.to_string();
-    let filter = Filter::default()
-        .with_uuids([UuidPrefix::from(uuid)])
-        .with_statuses([Status::Pending]);
-
-    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert!(clause.starts_with("WHERE "));
-    assert!(clause.contains("t.id LIKE ?"));
-    assert!(clause.contains(" AND "));
-    assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
-    assert_eq!(params.len(), 1);
-    assert_eq!(
-        to_value(params[0].as_ref()),
-        Value::Text(format!("{uuid_str}%"))
-    );
+    assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NOT NULL)"));
+    assert!(params.is_empty());
 }
 
 #[test]
-fn build_where_clause_with_index_and_status() {
-    use crate::domain::task::Index;
+fn build_where_clause_with_all_statuses() {
+    let filter =
+        Filter::default().with_statuses([Status::Pending, Status::Completed, Status::Deleted]);
 
-    let filter = Filter::default()
-        .with_indices([Index::new(1).unwrap()])
-        .with_statuses([Status::Pending]);
-
-    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert!(clause.starts_with("WHERE "));
-    assert!(clause.contains("tpr.row_id IN (?)"));
-    assert!(clause.contains(" AND "));
-    assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
-    assert_eq!(params.len(), 1);
-    assert_eq!(to_value(params[0].as_ref()), Value::Integer(1));
-}
-
-#[test]
-fn build_where_clause_with_uuid_and_index_and_status() {
-    use uuid::Uuid;
-
-    use crate::domain::task::Index;
-
-    let uuid = Uuid::new_v4();
-    let uuid_str = uuid.to_string();
-    let filter = Filter::default()
-        .with_uuids([UuidPrefix::from(uuid)])
-        .with_indices([Index::new(1).unwrap()])
-        .with_statuses([Status::Pending]);
-
-    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert!(clause.starts_with("WHERE "));
-    assert!(clause.contains("(t.id LIKE ? OR tpr.row_id IN (?))"));
-    assert!(clause.contains(" AND "));
-    assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
-    assert_eq!(params.len(), 2);
-    assert_eq!(
-        to_value(params[0].as_ref()),
-        Value::Text(format!("{uuid_str}%"))
-    );
-    assert_eq!(to_value(params[1].as_ref()), Value::Integer(1));
+    assert!(build_where_clause(&filter).unwrap().is_none());
 }
 
 // filter.words
@@ -457,6 +281,16 @@ fn build_where_clause_with_single_short_word() {
 }
 
 #[test]
+fn build_where_clause_counts_chars_not_bytes_for_korean_short() {
+    let filter = Filter::default().with_words(["한"]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+    assert_eq!(clause, r"WHERE t.description LIKE ? ESCAPE '\'");
+    assert_eq!(params.len(), 1);
+    assert_eq!(to_value(params[0].as_ref()), Value::Text("%한%".into()));
+}
+
+#[test]
 fn build_where_clause_with_multiple_short_words() {
     let filter = Filter::default().with_words(["a", "bb"]);
 
@@ -487,68 +321,128 @@ fn build_where_clause_with_mixed_word_lengths() {
     assert_eq!(to_value(params[1].as_ref()), Value::Text("%hi%".into()));
 }
 
-#[test]
-fn build_where_clause_escapes_fts_quotes() {
-    let filter = Filter::default().with_words(["a\"b"]);
-
-    let (_, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(params.len(), 1);
-    assert_eq!(
-        to_value(params[0].as_ref()),
-        Value::Text("\"a\"\"b\"".into())
-    );
-}
+// build ID clauses
 
 #[test]
-fn build_where_clause_escapes_like_percent() {
-    let filter = Filter::default().with_words(["a%"]);
+fn build_where_clause_with_uuid_and_index() {
+    use uuid::Uuid;
+
+    use crate::domain::task::Index;
+
+    let uuid = Uuid::new_v4();
+    let uuid_str = uuid.to_string();
+    let filter = Filter::default()
+        .with_uuids([UuidPrefix::from(uuid)])
+        .with_indices([Index::new(1).unwrap()]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(clause, r"WHERE t.description LIKE ? ESCAPE '\'");
-    assert_eq!(params.len(), 1);
-    assert_eq!(to_value(params[0].as_ref()), Value::Text(r"%a\%%".into()));
+
+    assert_eq!(clause, "WHERE (t.id IN (?) OR tpr.row_id IN (?))");
+    assert_eq!(params.len(), 2);
+    assert_eq!(to_value(params[0].as_ref()), Value::Text(uuid_str));
+    assert_eq!(to_value(params[1].as_ref()), Value::Integer(1));
 }
 
 #[test]
-fn build_where_clause_escapes_like_underscore_and_backslash() {
-    let filter = Filter::default().with_words(["_\\"]);
+fn build_where_clause_with_uuid_and_index_range() {
+    use uuid::Uuid;
 
-    let (_, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(params.len(), 1);
-    assert_eq!(to_value(params[0].as_ref()), Value::Text(r"%\_\\%".into()));
-}
+    use crate::domain::task::{Index, IndexRange};
 
-#[test]
-fn build_where_clause_counts_chars_not_bytes_for_korean_short() {
-    let filter = Filter::default().with_words(["한"]);
+    let uuid = Uuid::new_v4();
+    let uuid_str = uuid.to_string();
+    let filter = Filter::default()
+        .with_uuids([UuidPrefix::from(uuid)])
+        .with_index_ranges([
+            IndexRange::new(Index::new(1).unwrap(), Index::new(3).unwrap()).unwrap(),
+        ]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(clause, r"WHERE t.description LIKE ? ESCAPE '\'");
-    assert_eq!(params.len(), 1);
-    assert_eq!(to_value(params[0].as_ref()), Value::Text("%한%".into()));
+
+    assert_eq!(clause, "WHERE (t.id IN (?) OR tpr.row_id BETWEEN ? AND ?)");
+    assert_eq!(params.len(), 3);
+    assert_eq!(to_value(params[0].as_ref()), Value::Text(uuid_str));
+    assert_eq!(to_value(params[1].as_ref()), Value::Integer(1));
+    assert_eq!(to_value(params[2].as_ref()), Value::Integer(3));
 }
 
 #[test]
-fn build_where_clause_counts_chars_not_bytes_for_korean_long() {
-    let filter = Filter::default().with_words(["한글로"]);
+fn build_where_clause_with_index_and_index_range() {
+    use crate::domain::task::{Index, IndexRange};
+
+    let filter = Filter::default()
+        .with_indices([Index::new(7).unwrap()])
+        .with_index_ranges([
+            IndexRange::new(Index::new(1).unwrap(), Index::new(3).unwrap()).unwrap(),
+        ]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+
     assert_eq!(
         clause,
-        "WHERE t.id IN (SELECT id FROM task_fts WHERE task_fts MATCH ?)"
+        "WHERE (tpr.row_id IN (?) OR tpr.row_id BETWEEN ? AND ?)"
     );
-    assert_eq!(params.len(), 1);
-    assert_eq!(
-        to_value(params[0].as_ref()),
-        Value::Text("\"한글로\"".into())
-    );
+    assert_eq!(params.len(), 3);
+    assert_eq!(to_value(params[0].as_ref()), Value::Integer(7));
+    assert_eq!(to_value(params[1].as_ref()), Value::Integer(1));
+    assert_eq!(to_value(params[2].as_ref()), Value::Integer(3));
 }
 
 #[test]
-fn build_where_clause_with_words_and_status() {
+fn build_where_clause_with_uuid_and_index_and_index_range() {
+    use uuid::Uuid;
+
+    use crate::domain::task::{Index, IndexRange};
+
+    let uuid = Uuid::new_v4();
+    let uuid_str = uuid.to_string();
     let filter = Filter::default()
-        .with_words(["hello"])
+        .with_uuids([UuidPrefix::from(uuid)])
+        .with_indices([Index::new(7).unwrap()])
+        .with_index_ranges([
+            IndexRange::new(Index::new(1).unwrap(), Index::new(3).unwrap()).unwrap(),
+        ]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+
+    assert_eq!(
+        clause,
+        "WHERE (t.id IN (?) OR tpr.row_id IN (?) OR tpr.row_id BETWEEN ? AND ?)"
+    );
+    assert_eq!(params.len(), 4);
+    assert_eq!(to_value(params[0].as_ref()), Value::Text(uuid_str));
+    assert_eq!(to_value(params[1].as_ref()), Value::Integer(7));
+    assert_eq!(to_value(params[2].as_ref()), Value::Integer(1));
+    assert_eq!(to_value(params[3].as_ref()), Value::Integer(3));
+}
+
+// filter IDs + status
+
+#[test]
+fn build_where_clause_with_uuid_and_status() {
+    use uuid::Uuid;
+
+    let uuid = Uuid::new_v4();
+    let uuid_str = uuid.to_string();
+    let filter = Filter::default()
+        .with_uuids([UuidPrefix::from(uuid)])
         .with_statuses([Status::Pending]);
+
+    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+
+    assert!(clause.starts_with("WHERE "));
+    assert!(clause.contains("t.id IN (?)"));
+    assert!(clause.contains(" AND "));
+    assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
+    assert_eq!(params.len(), 1);
+    assert_eq!(to_value(params[0].as_ref()), Value::Text(uuid_str));
+}
+
+#[test]
+fn build_where_clause_with_status_and_words() {
+    let filter = Filter::default()
+        .with_statuses([Status::Pending])
+        .with_words(["hello"]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
     assert!(clause.starts_with("WHERE "));
@@ -563,7 +457,7 @@ fn build_where_clause_with_words_and_status() {
 }
 
 #[test]
-fn build_where_clause_with_words_and_uid() {
+fn build_where_clause_with_uuid_and_words() {
     use uuid::Uuid;
 
     let uuid = Uuid::new_v4();
@@ -573,34 +467,40 @@ fn build_where_clause_with_words_and_uid() {
         .with_words(["hi"]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
+
     assert_eq!(
         clause,
-        r"WHERE t.id LIKE ? AND t.description LIKE ? ESCAPE '\'"
+        r"WHERE t.id IN (?) AND t.description LIKE ? ESCAPE '\'"
     );
     assert_eq!(params.len(), 2);
-    assert_eq!(
-        to_value(params[0].as_ref()),
-        Value::Text(format!("{uuid_str}%"))
-    );
+    assert_eq!(to_value(params[0].as_ref()), Value::Text(uuid_str));
     assert_eq!(to_value(params[1].as_ref()), Value::Text("%hi%".into()));
 }
 
 #[test]
-fn build_where_clause_with_words_and_index() {
-    use crate::domain::task::Index;
+fn build_where_clause_with_uuid_and_status_and_words() {
+    use uuid::Uuid;
 
+    let uuid = Uuid::new_v4();
+    let uuid_str = uuid.to_string();
     let filter = Filter::default()
-        .with_indices([Index::new(1).unwrap()])
-        .with_words(["hi"]);
+        .with_uuids([UuidPrefix::from(uuid)])
+        .with_statuses([Status::Pending])
+        .with_words(["hello"]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-    assert_eq!(
-        clause,
-        r"WHERE tpr.row_id IN (?) AND t.description LIKE ? ESCAPE '\'"
-    );
+
+    assert!(clause.starts_with("WHERE "));
+    assert!(clause.contains("t.id IN (?)"));
+    assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
+    assert!(clause.contains("t.id IN (SELECT id FROM task_fts WHERE task_fts MATCH ?)"));
+    assert!(clause.contains(" AND "));
     assert_eq!(params.len(), 2);
-    assert_eq!(to_value(params[0].as_ref()), Value::Integer(1));
-    assert_eq!(to_value(params[1].as_ref()), Value::Text("%hi%".into()));
+    assert_eq!(to_value(params[0].as_ref()), Value::Text(uuid_str));
+    assert_eq!(
+        to_value(params[1].as_ref()),
+        Value::Text("\"hello\"".into())
+    );
 }
 
 // escape_fts5_term

@@ -23,12 +23,19 @@ pub struct UuidPrefix(String);
 pub struct UuidPrefixError(String);
 
 impl UuidPrefix {
+    // Standard UUID string format: 8-4-4-4-12 hex digits with 4 hyphens.
+    const FULL_LEN: usize = 36;
+
     pub fn parse(raw: &str) -> Result<Self, UuidPrefixError> {
         if UUID_PREFIX_RE.is_match(raw) {
             Ok(Self(raw.to_string()))
         } else {
             Err(UuidPrefixError(raw.to_string()))
         }
+    }
+
+    pub fn is_full(&self) -> bool {
+        self.0.len() == Self::FULL_LEN
     }
 
     pub fn as_str(&self) -> &str {
