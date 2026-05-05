@@ -36,6 +36,7 @@ impl Filter {
         for word in words {
             let owned: String = word.into();
             let trimmed = owned.trim();
+            // de-duplicate
             if !trimmed.is_empty() && !self.words.iter().any(|w| w == trimmed) {
                 self.words.push(trimmed.to_string());
             }

@@ -112,6 +112,7 @@ impl TaskRepository for SQLite {
     fn create_task(&self, id: &Uuid, req: &TaskCreation) -> anyhow::Result<()> {
         self.conn.execute(
             "INSERT INTO task (id, description) VALUES (?, ?)",
+            // UUID has no &str representation
             [id.to_string(), req.description.to_string()],
         )?;
         Ok(())
