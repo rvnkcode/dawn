@@ -14,6 +14,7 @@ pub(crate) fn build_where_clause(filter: &Filter) -> anyhow::Result<Option<Claus
     }
     let mut clauses = Vec::new();
     let mut params = Vec::new();
+    // UUID, index, and index range combined with OR
     if let Some((id_clause, id_params)) = build_id_clause(filter)? {
         clauses.push(id_clause);
         params.extend(id_params);
@@ -21,6 +22,7 @@ pub(crate) fn build_where_clause(filter: &Filter) -> anyhow::Result<Option<Claus
     if let Some(status_clause) = build_status_clause(filter) {
         clauses.push(status_clause);
     }
+    // Words combined with AND
     if let Some((words_clause, words_params)) = build_words_clause(filter) {
         clauses.push(words_clause);
         params.extend(words_params);

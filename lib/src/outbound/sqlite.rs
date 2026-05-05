@@ -137,6 +137,7 @@ impl TaskRepository for SQLite {
                 format!("{select_clause} {where_clause} {order_clause}"),
                 params,
             ),
+            // Fetch all tasks: without WHERE or params
             None => (format!("{select_clause} {order_clause}"), Vec::new()),
         };
         let mut stmt = self.conn.prepare(&query)?;
