@@ -139,7 +139,7 @@ fn update_tasks_sets_completed() {
     db.update_tasks(&modification, &[id]).unwrap();
 
     let tasks = db
-        .list_tasks(&Filter::default().with_statuses([Status::Completed]))
+        .list_tasks(&Filter::default().with_report_status(Status::Completed))
         .unwrap();
     assert_eq!(tasks.len(), 1);
     assert_eq!(
@@ -172,7 +172,7 @@ fn update_tasks_clears_completed() {
     db.update_tasks(&modification, &[id]).unwrap();
 
     let tasks = db
-        .list_tasks(&Filter::default().with_statuses([Status::Pending]))
+        .list_tasks(&Filter::default().with_report_status(Status::Pending))
         .unwrap();
     assert_eq!(tasks.len(), 1);
     assert!(tasks[0].completed.is_none());
@@ -192,7 +192,7 @@ fn update_tasks_sets_deleted() {
     db.update_tasks(&modification, &[id]).unwrap();
 
     let tasks = db
-        .list_tasks(&Filter::default().with_statuses([Status::Deleted]))
+        .list_tasks(&Filter::default().with_report_status(Status::Deleted))
         .unwrap();
     assert_eq!(tasks.len(), 1);
     assert_eq!(tasks[0].deleted, Some(Timestamp::new(1700000000).unwrap()));
@@ -218,7 +218,7 @@ fn update_tasks_clears_deleted() {
     db.update_tasks(&modification, &[id]).unwrap();
 
     let tasks = db
-        .list_tasks(&Filter::default().with_statuses([Status::Pending]))
+        .list_tasks(&Filter::default().with_report_status(Status::Pending))
         .unwrap();
     assert_eq!(tasks.len(), 1);
     assert!(tasks[0].deleted.is_none());
