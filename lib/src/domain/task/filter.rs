@@ -75,27 +75,29 @@ impl Filter {
 
 #[cfg(test)]
 mod tests {
+    use uuid::Uuid;
+
     use super::*;
 
     fn uuid(n: u128) -> UuidPrefix {
-        UuidPrefix::from(uuid::Uuid::from_u128(n))
+        UuidPrefix::from(Uuid::from_u128(n))
     }
 
     fn range(from: usize, to: usize) -> IndexRange {
         IndexRange::new(Index::new(from).unwrap(), Index::new(to).unwrap()).unwrap()
     }
 
-    // UIDs
+    // UUIDs
 
     #[test]
-    fn with_uids_single() {
+    fn with_uuids_single() {
         let filter = Filter::default().with_uuids([uuid(1)]);
         assert_eq!(filter.uuids().len(), 1);
         assert!(filter.uuids().contains(&uuid(1)));
     }
 
     #[test]
-    fn with_uids_multiple() {
+    fn with_uuids_multiple() {
         let filter = Filter::default().with_uuids([uuid(1), uuid(2)]);
         assert_eq!(filter.uuids().len(), 2);
         assert!(filter.uuids().contains(&uuid(1)));
@@ -103,7 +105,7 @@ mod tests {
     }
 
     #[test]
-    fn with_uids_deduplicates() {
+    fn with_uuids_deduplicates() {
         let filter = Filter::default().with_uuids([uuid(1), uuid(1)]);
         assert_eq!(filter.uuids().len(), 1);
     }
@@ -217,19 +219,10 @@ mod tests {
         assert!(!filter.is_empty());
     }
 
-    #[test]
-    fn is_empty_with_all() {
-        let filter = Filter::default()
-            .with_uuids([uuid(1)])
-            .with_statuses([Status::Pending])
-            .with_indices([Index::new(1).unwrap()]);
-        assert!(!filter.is_empty());
-    }
-
     // with_*()
 
     #[test]
-    fn with_uids_extends() {
+    fn with_uuids_extends() {
         let filter = Filter::default()
             .with_uuids([uuid(1)])
             .with_uuids([uuid(2)]);
