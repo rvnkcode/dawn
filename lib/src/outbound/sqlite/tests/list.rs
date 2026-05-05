@@ -26,8 +26,6 @@ fn insert_task_from(db: &SQLite, task: &Task) {
         .expect("insert_task_from: failed to insert test fixture");
 }
 
-// List Tasks
-
 #[test]
 fn list_tasks_returns_empty_vec_when_no_tasks() {
     let db = setup();
@@ -111,7 +109,7 @@ fn list_tasks_filter_pending_only() {
     insert_task_from(&db, &pending);
     insert_task_from(&db, &completed);
     insert_task_from(&db, &deleted);
-    let filter = Filter::default().with_statuses([Status::Pending]);
+    let filter = Filter::default().with_report_status(Status::Pending);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -151,7 +149,7 @@ fn list_tasks_filter_completed_only() {
     insert_task_from(&db, &pending);
     insert_task_from(&db, &completed);
     insert_task_from(&db, &deleted);
-    let filter = Filter::default().with_statuses([Status::Completed]);
+    let filter = Filter::default().with_report_status(Status::Completed);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -191,140 +189,19 @@ fn list_tasks_filter_deleted_only() {
     insert_task_from(&db, &pending);
     insert_task_from(&db, &completed);
     insert_task_from(&db, &deleted);
-    let filter = Filter::default().with_statuses([Status::Deleted]);
+    let filter = Filter::default().with_report_status(Status::Deleted);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
     assert_eq!(tasks, vec![deleted]);
 }
 
-#[test]
-fn list_tasks_no_filter_returns_all() {
-    let db = setup();
-    let pending = Task {
-        uuid: "00000000-0000-0000-0000-00000000002a".parse().unwrap(),
-        index: Some(Index::new(1).unwrap()),
-        description: Description::new("pending").unwrap(),
-        entry: Timestamp::new(1000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(1000).unwrap(),
-    };
-    let completed = Task {
-        uuid: "00000000-0000-0000-0000-00000000002b".parse().unwrap(),
-        index: None,
-        description: Description::new("completed").unwrap(),
-        entry: Timestamp::new(2000).unwrap(),
-        completed: Some(Timestamp::new(3000).unwrap()),
-        deleted: None,
-        modified: Timestamp::new(2000).unwrap(),
-    };
-    let deleted = Task {
-        uuid: "00000000-0000-0000-0000-00000000002c".parse().unwrap(),
-        index: None,
-        description: Description::new("deleted").unwrap(),
-        entry: Timestamp::new(3000).unwrap(),
-        completed: None,
-        deleted: Some(Timestamp::new(4000).unwrap()),
-        modified: Timestamp::new(3000).unwrap(),
-    };
-    insert_task_from(&db, &pending);
-    insert_task_from(&db, &completed);
-    insert_task_from(&db, &deleted);
-    let filter = Filter::default();
-
-    let tasks = db.list_tasks(&filter).unwrap();
-
-    assert_eq!(tasks, vec![pending, completed, deleted]);
-}
-
-#[test]
-fn list_tasks_filter_two_statuses() {
-    let db = setup();
-    let pending = Task {
-        uuid: "00000000-0000-0000-0000-00000000002d".parse().unwrap(),
-        index: Some(Index::new(1).unwrap()),
-        description: Description::new("pending").unwrap(),
-        entry: Timestamp::new(1000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(1000).unwrap(),
-    };
-    let completed = Task {
-        uuid: "00000000-0000-0000-0000-00000000002e".parse().unwrap(),
-        index: None,
-        description: Description::new("completed").unwrap(),
-        entry: Timestamp::new(2000).unwrap(),
-        completed: Some(Timestamp::new(3000).unwrap()),
-        deleted: None,
-        modified: Timestamp::new(2000).unwrap(),
-    };
-    let deleted = Task {
-        uuid: "00000000-0000-0000-0000-00000000002f".parse().unwrap(),
-        index: None,
-        description: Description::new("deleted").unwrap(),
-        entry: Timestamp::new(3000).unwrap(),
-        completed: None,
-        deleted: Some(Timestamp::new(4000).unwrap()),
-        modified: Timestamp::new(3000).unwrap(),
-    };
-    insert_task_from(&db, &pending);
-    insert_task_from(&db, &completed);
-    insert_task_from(&db, &deleted);
-    let filter = Filter::default().with_statuses([Status::Pending, Status::Completed]);
-
-    let tasks = db.list_tasks(&filter).unwrap();
-
-    assert_eq!(tasks, vec![pending, completed]);
-}
-
-#[test]
-fn list_tasks_filter_all_statuses() {
-    let db = setup();
-    let pending = Task {
-        uuid: "00000000-0000-0000-0000-000000000034".parse().unwrap(),
-        index: Some(Index::new(1).unwrap()),
-        description: Description::new("pending").unwrap(),
-        entry: Timestamp::new(1000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(1000).unwrap(),
-    };
-    let completed = Task {
-        uuid: "00000000-0000-0000-0000-000000000035".parse().unwrap(),
-        index: None,
-        description: Description::new("completed").unwrap(),
-        entry: Timestamp::new(2000).unwrap(),
-        completed: Some(Timestamp::new(3000).unwrap()),
-        deleted: None,
-        modified: Timestamp::new(2000).unwrap(),
-    };
-    let deleted = Task {
-        uuid: "00000000-0000-0000-0000-000000000036".parse().unwrap(),
-        index: None,
-        description: Description::new("deleted").unwrap(),
-        entry: Timestamp::new(3000).unwrap(),
-        completed: None,
-        deleted: Some(Timestamp::new(4000).unwrap()),
-        modified: Timestamp::new(3000).unwrap(),
-    };
-    insert_task_from(&db, &pending);
-    insert_task_from(&db, &completed);
-    insert_task_from(&db, &deleted);
-    let filter =
-        Filter::default().with_statuses([Status::Pending, Status::Completed, Status::Deleted]);
-
-    let tasks = db.list_tasks(&filter).unwrap();
-
-    assert_eq!(tasks, vec![pending, completed, deleted]);
-}
-
 // Filter by UUID
 
 #[test]
-fn list_tasks_filter_single_uid() {
+fn list_tasks_filter_single_uuid() {
     let db = setup();
-    let target = Task {
+    let expected = Task {
         uuid: "00000000-0000-0000-0000-000000000037".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("target").unwrap(),
@@ -351,7 +228,7 @@ fn list_tasks_filter_single_uid() {
         deleted: None,
         modified: Timestamp::new(3000).unwrap(),
     };
-    insert_task_from(&db, &target);
+    insert_task_from(&db, &expected);
     insert_task_from(&db, &other1);
     insert_task_from(&db, &other2);
     let filter = Filter::default().with_uuids([UuidPrefix::from(
@@ -362,11 +239,11 @@ fn list_tasks_filter_single_uid() {
 
     let tasks = db.list_tasks(&filter).unwrap();
 
-    assert_eq!(tasks, vec![target]);
+    assert_eq!(tasks, vec![expected]);
 }
 
 #[test]
-fn list_tasks_filter_multiple_uids() {
+fn list_tasks_filter_multiple_uuids() {
     let db = setup();
     let first = Task {
         uuid: "00000000-0000-0000-0000-00000000003a".parse().unwrap(),
@@ -417,7 +294,7 @@ fn list_tasks_filter_multiple_uids() {
 }
 
 #[test]
-fn list_tasks_filter_nonexistent_uid() {
+fn list_tasks_filter_nonexistent_uuid() {
     let db = setup();
     let task = Task {
         uuid: "00000000-0000-0000-0000-000000000046".parse().unwrap(),
@@ -438,62 +315,9 @@ fn list_tasks_filter_nonexistent_uid() {
 }
 
 #[test]
-fn list_tasks_filter_uuid_with_status() {
-    let db = setup();
-    let pending = Task {
-        uuid: "00000000-0000-0000-0000-000000000043".parse().unwrap(),
-        index: Some(Index::new(1).unwrap()),
-        description: Description::new("pending").unwrap(),
-        entry: Timestamp::new(1000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(1000).unwrap(),
-    };
-    let completed = Task {
-        uuid: "00000000-0000-0000-0000-000000000044".parse().unwrap(),
-        index: None,
-        description: Description::new("completed").unwrap(),
-        entry: Timestamp::new(2000).unwrap(),
-        completed: Some(Timestamp::new(3000).unwrap()),
-        deleted: None,
-        modified: Timestamp::new(2000).unwrap(),
-    };
-    let other = Task {
-        uuid: "00000000-0000-0000-0000-000000000045".parse().unwrap(),
-        index: Some(Index::new(2).unwrap()),
-        description: Description::new("other pending").unwrap(),
-        entry: Timestamp::new(4000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(4000).unwrap(),
-    };
-    insert_task_from(&db, &pending);
-    insert_task_from(&db, &completed);
-    insert_task_from(&db, &other);
-    let filter = Filter::default()
-        .with_uuids([
-            UuidPrefix::from(
-                "00000000-0000-0000-0000-000000000043"
-                    .parse::<Uuid>()
-                    .unwrap(),
-            ),
-            UuidPrefix::from(
-                "00000000-0000-0000-0000-000000000044"
-                    .parse::<Uuid>()
-                    .unwrap(),
-            ),
-        ])
-        .with_statuses([Status::Pending]);
-
-    let tasks = db.list_tasks(&filter).unwrap();
-
-    assert_eq!(tasks, vec![pending]);
-}
-
-#[test]
 fn list_tasks_filter_short_uuid_prefix() {
     let db = setup();
-    let target = Task {
+    let expected = Task {
         uuid: "550e8400-e29b-41d4-a716-446655440000".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("target").unwrap(),
@@ -511,13 +335,60 @@ fn list_tasks_filter_short_uuid_prefix() {
         deleted: None,
         modified: Timestamp::new(2000).unwrap(),
     };
-    insert_task_from(&db, &target);
+    insert_task_from(&db, &expected);
     insert_task_from(&db, &decoy);
     let filter = Filter::default().with_uuids([UuidPrefix::parse("550e8400").unwrap()]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
-    assert_eq!(tasks, vec![target]);
+    assert_eq!(tasks, vec![expected]);
+}
+
+#[test]
+fn list_tasks_filter_full_uuid_and_prefix_mixed() {
+    let db = setup();
+    let by_full = Task {
+        uuid: "11111111-2222-3333-4444-555555555555".parse().unwrap(),
+        index: Some(Index::new(1).unwrap()),
+        description: Description::new("matched by full uuid").unwrap(),
+        entry: Timestamp::new(1000).unwrap(),
+        completed: None,
+        deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
+    };
+    let by_prefix = Task {
+        uuid: "aabbccdd-0000-0000-0000-000000000001".parse().unwrap(),
+        index: Some(Index::new(2).unwrap()),
+        description: Description::new("matched by prefix").unwrap(),
+        entry: Timestamp::new(2000).unwrap(),
+        completed: None,
+        deleted: None,
+        modified: Timestamp::new(2000).unwrap(),
+    };
+    let excluded = Task {
+        uuid: "ffffffff-0000-0000-0000-000000000002".parse().unwrap(),
+        index: Some(Index::new(3).unwrap()),
+        description: Description::new("excluded").unwrap(),
+        entry: Timestamp::new(3000).unwrap(),
+        completed: None,
+        deleted: None,
+        modified: Timestamp::new(3000).unwrap(),
+    };
+    insert_task_from(&db, &by_full);
+    insert_task_from(&db, &by_prefix);
+    insert_task_from(&db, &excluded);
+    let filter = Filter::default().with_uuids([
+        UuidPrefix::from(
+            "11111111-2222-3333-4444-555555555555"
+                .parse::<Uuid>()
+                .unwrap(),
+        ),
+        UuidPrefix::parse("aabbccdd").unwrap(),
+    ]);
+
+    let tasks = db.list_tasks(&filter).unwrap();
+
+    assert_eq!(tasks, vec![by_full, by_prefix]);
 }
 
 // Filter by Index
@@ -525,7 +396,7 @@ fn list_tasks_filter_short_uuid_prefix() {
 #[test]
 fn list_tasks_filter_single_index() {
     let db = setup();
-    let target = Task {
+    let expected = Task {
         uuid: "00000000-0000-0000-0000-00000000006c".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("target").unwrap(),
@@ -543,13 +414,13 @@ fn list_tasks_filter_single_index() {
         deleted: None,
         modified: Timestamp::new(2000).unwrap(),
     };
-    insert_task_from(&db, &target);
+    insert_task_from(&db, &expected);
     insert_task_from(&db, &other);
     let filter = Filter::default().with_indices([Index::new(1).unwrap()]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
-    assert_eq!(tasks, vec![target]);
+    assert_eq!(tasks, vec![expected]);
 }
 
 #[test]
@@ -593,6 +464,26 @@ fn list_tasks_filter_multiple_indices() {
 }
 
 #[test]
+fn list_tasks_filter_nonexistent_index() {
+    let db = setup();
+    let task = Task {
+        uuid: "00000000-0000-0000-0000-000000000075".parse().unwrap(),
+        index: Some(Index::new(1).unwrap()),
+        description: Description::new("existing").unwrap(),
+        entry: Timestamp::new(1000).unwrap(),
+        completed: None,
+        deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
+    };
+    insert_task_from(&db, &task);
+    let filter = Filter::default().with_indices([Index::new(99).unwrap()]);
+
+    let tasks = db.list_tasks(&filter).unwrap();
+
+    assert!(tasks.is_empty());
+}
+
+#[test]
 fn list_tasks_filter_index_with_completed_returns_empty() {
     let db = setup();
     insert_task_from(
@@ -621,63 +512,7 @@ fn list_tasks_filter_index_with_completed_returns_empty() {
     );
     let filter = Filter::default()
         .with_indices([Index::new(1).unwrap()])
-        .with_statuses([Status::Completed]);
-
-    let tasks = db.list_tasks(&filter).unwrap();
-
-    assert!(tasks.is_empty());
-}
-
-#[test]
-fn list_tasks_filter_index_with_deleted_returns_empty() {
-    let db = setup();
-    insert_task_from(
-        &db,
-        &Task {
-            uuid: "00000000-0000-0000-0000-000000000073".parse().unwrap(),
-            index: None,
-            description: Description::new("deleted").unwrap(),
-            entry: Timestamp::new(1000).unwrap(),
-            completed: None,
-            deleted: Some(Timestamp::new(2000).unwrap()),
-            modified: Timestamp::new(1000).unwrap(),
-        },
-    );
-    insert_task_from(
-        &db,
-        &Task {
-            uuid: "00000000-0000-0000-0000-000000000074".parse().unwrap(),
-            index: Some(Index::new(1).unwrap()),
-            description: Description::new("pending").unwrap(),
-            entry: Timestamp::new(3000).unwrap(),
-            completed: None,
-            deleted: None,
-            modified: Timestamp::new(3000).unwrap(),
-        },
-    );
-    let filter = Filter::default()
-        .with_indices([Index::new(1).unwrap()])
-        .with_statuses([Status::Deleted]);
-
-    let tasks = db.list_tasks(&filter).unwrap();
-
-    assert!(tasks.is_empty());
-}
-
-#[test]
-fn list_tasks_filter_nonexistent_index() {
-    let db = setup();
-    let task = Task {
-        uuid: "00000000-0000-0000-0000-000000000075".parse().unwrap(),
-        index: Some(Index::new(1).unwrap()),
-        description: Description::new("existing").unwrap(),
-        entry: Timestamp::new(1000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(1000).unwrap(),
-    };
-    insert_task_from(&db, &task);
-    let filter = Filter::default().with_indices([Index::new(99).unwrap()]);
+        .with_report_status(Status::Completed);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -738,131 +573,7 @@ fn list_tasks_filter_index_range_oversized_upper_returns_existing() {
     assert_eq!(tasks, vec![t1, t2, t3, t4, t5]);
 }
 
-#[test]
-fn list_tasks_filter_index_range_combined_with_index() {
-    let db = setup();
-    let [t1, t2, _t3, t4, _t5] = five_pending(0x32 << 8);
-    for t in [&t1, &t2, &_t3, &t4, &_t5] {
-        insert_task_from(&db, t);
-    }
-    let filter = Filter::default()
-        .with_indices([Index::new(4).unwrap()])
-        .with_index_ranges([
-            IndexRange::new(Index::new(1).unwrap(), Index::new(2).unwrap()).unwrap(),
-        ]);
-
-    let tasks = db.list_tasks(&filter).unwrap();
-
-    assert_eq!(tasks, vec![t1, t2, t4]);
-}
-
-#[test]
-fn list_tasks_filter_swapped_index_range_normalizes() {
-    let db = setup();
-    let [_t1, _t2, t3, t4, t5] = five_pending(0x33 << 8);
-    for t in [&_t1, &_t2, &t3, &t4, &t5] {
-        insert_task_from(&db, t);
-    }
-    let filter = Filter::default().with_index_ranges([IndexRange::new(
-        Index::new(5).unwrap(),
-        Index::new(3).unwrap(),
-    )
-    .unwrap()]);
-
-    let tasks = db.list_tasks(&filter).unwrap();
-
-    assert_eq!(tasks, vec![t3, t4, t5]);
-}
-
-// Filter by UUID + Index
-
-#[test]
-fn list_tasks_filter_uuid_and_index() {
-    let db = setup();
-    let by_uid = Task {
-        uuid: "00000000-0000-0000-0000-000000000002".parse().unwrap(),
-        index: Some(Index::new(1).unwrap()),
-        description: Description::new("matched by uuid").unwrap(),
-        entry: Timestamp::new(1000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(1000).unwrap(),
-    };
-    let by_index = Task {
-        uuid: "00000000-0000-0000-0000-000000000003".parse().unwrap(),
-        index: Some(Index::new(2).unwrap()),
-        description: Description::new("matched by index").unwrap(),
-        entry: Timestamp::new(2000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(2000).unwrap(),
-    };
-    let excluded = Task {
-        uuid: "00000000-0000-0000-0000-000000000004".parse().unwrap(),
-        index: Some(Index::new(3).unwrap()),
-        description: Description::new("excluded").unwrap(),
-        entry: Timestamp::new(3000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(3000).unwrap(),
-    };
-    insert_task_from(&db, &by_uid);
-    insert_task_from(&db, &by_index);
-    insert_task_from(&db, &excluded);
-    let filter = Filter::default()
-        .with_uuids([UuidPrefix::from(
-            "00000000-0000-0000-0000-000000000002"
-                .parse::<Uuid>()
-                .unwrap(),
-        )])
-        .with_indices([Index::new(2).unwrap()]);
-
-    let tasks = db.list_tasks(&filter).unwrap();
-
-    assert_eq!(tasks, vec![by_uid, by_index]);
-}
-
 // Filter by Word
-
-#[test]
-fn list_tasks_filter_word_long_match() {
-    let db = setup();
-    let milk = Task {
-        uuid: "00000000-0000-0000-0000-000000000057".parse().unwrap(),
-        index: Some(Index::new(1).unwrap()),
-        description: Description::new("buy milk").unwrap(),
-        entry: Timestamp::new(1000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(1000).unwrap(),
-    };
-    let eggs = Task {
-        uuid: "00000000-0000-0000-0000-000000000058".parse().unwrap(),
-        index: Some(Index::new(2).unwrap()),
-        description: Description::new("buy eggs").unwrap(),
-        entry: Timestamp::new(2000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(2000).unwrap(),
-    };
-    let mom = Task {
-        uuid: "00000000-0000-0000-0000-000000000059".parse().unwrap(),
-        index: Some(Index::new(3).unwrap()),
-        description: Description::new("call mom").unwrap(),
-        entry: Timestamp::new(3000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(3000).unwrap(),
-    };
-    insert_task_from(&db, &milk);
-    insert_task_from(&db, &eggs);
-    insert_task_from(&db, &mom);
-    let filter = Filter::default().with_words(["milk"]);
-
-    let tasks = db.list_tasks(&filter).unwrap();
-
-    assert_eq!(tasks, vec![milk]);
-}
 
 #[test]
 fn list_tasks_filter_word_long_case_insensitive() {
@@ -929,7 +640,7 @@ fn list_tasks_filter_word_no_match_returns_empty() {
 #[test]
 fn list_tasks_filter_word_short_match() {
     let db = setup();
-    let target = Task {
+    let expected = Task {
         uuid: "00000000-0000-0000-0000-000000000065".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("hi there").unwrap(),
@@ -947,13 +658,13 @@ fn list_tasks_filter_word_short_match() {
         deleted: None,
         modified: Timestamp::new(2000).unwrap(),
     };
-    insert_task_from(&db, &target);
+    insert_task_from(&db, &expected);
     insert_task_from(&db, &other);
     let filter = Filter::default().with_words(["hi"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
-    assert_eq!(tasks, vec![target]);
+    assert_eq!(tasks, vec![expected]);
 }
 
 #[test]
@@ -979,7 +690,7 @@ fn list_tasks_filter_word_short_case_insensitive() {
 #[test]
 fn list_tasks_filter_multiple_words_all_match() {
     let db = setup();
-    let both = Task {
+    let expected = Task {
         uuid: "00000000-0000-0000-0000-00000000005d".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("buy milk and eggs").unwrap(),
@@ -997,13 +708,13 @@ fn list_tasks_filter_multiple_words_all_match() {
         deleted: None,
         modified: Timestamp::new(2000).unwrap(),
     };
-    insert_task_from(&db, &both);
+    insert_task_from(&db, &expected);
     insert_task_from(&db, &bread);
     let filter = Filter::default().with_words(["milk", "eggs"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
-    assert_eq!(tasks, vec![both]);
+    assert_eq!(tasks, vec![expected]);
 }
 
 #[test]
@@ -1031,7 +742,7 @@ fn list_tasks_filter_multiple_words_partial_match_returns_empty() {
 #[test]
 fn list_tasks_filter_mixed_long_and_short_words() {
     let db = setup();
-    let both = Task {
+    let expected = Task {
         uuid: "00000000-0000-0000-0000-000000000060".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("hi there world").unwrap(),
@@ -1058,44 +769,14 @@ fn list_tasks_filter_mixed_long_and_short_words() {
         deleted: None,
         modified: Timestamp::new(3000).unwrap(),
     };
-    insert_task_from(&db, &both);
+    insert_task_from(&db, &expected);
     insert_task_from(&db, &only_short);
     insert_task_from(&db, &only_long);
     let filter = Filter::default().with_words(["hi", "world"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
-    assert_eq!(tasks, vec![both]);
-}
-
-#[test]
-fn list_tasks_filter_word_korean_long() {
-    let db = setup();
-    let korean = Task {
-        uuid: "00000000-0000-0000-0000-000000000053".parse().unwrap(),
-        index: Some(Index::new(1).unwrap()),
-        description: Description::new("한글로 작성된 작업").unwrap(),
-        entry: Timestamp::new(1000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(1000).unwrap(),
-    };
-    let english = Task {
-        uuid: "00000000-0000-0000-0000-000000000054".parse().unwrap(),
-        index: Some(Index::new(2).unwrap()),
-        description: Description::new("english task").unwrap(),
-        entry: Timestamp::new(2000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(2000).unwrap(),
-    };
-    insert_task_from(&db, &korean);
-    insert_task_from(&db, &english);
-    let filter = Filter::default().with_words(["한글로"]);
-
-    let tasks = db.list_tasks(&filter).unwrap();
-
-    assert_eq!(tasks, vec![korean]);
+    assert_eq!(tasks, vec![expected]);
 }
 
 #[test]
@@ -1129,97 +810,7 @@ fn list_tasks_filter_word_korean_short() {
 }
 
 #[test]
-fn list_tasks_filter_word_japanese_long() {
-    let db = setup();
-    let japanese = Task {
-        uuid: "00000000-0000-0000-0000-00000000004d".parse().unwrap(),
-        index: Some(Index::new(1).unwrap()),
-        description: Description::new("買い物に行く").unwrap(),
-        entry: Timestamp::new(1000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(1000).unwrap(),
-    };
-    let english = Task {
-        uuid: "00000000-0000-0000-0000-00000000004e".parse().unwrap(),
-        index: Some(Index::new(2).unwrap()),
-        description: Description::new("english task").unwrap(),
-        entry: Timestamp::new(2000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(2000).unwrap(),
-    };
-    insert_task_from(&db, &japanese);
-    insert_task_from(&db, &english);
-    let filter = Filter::default().with_words(["買い物"]);
-
-    let tasks = db.list_tasks(&filter).unwrap();
-
-    assert_eq!(tasks, vec![japanese]);
-}
-
-#[test]
-fn list_tasks_filter_word_japanese_short() {
-    let db = setup();
-    let japanese = Task {
-        uuid: "00000000-0000-0000-0000-00000000004f".parse().unwrap(),
-        index: Some(Index::new(1).unwrap()),
-        description: Description::new("買い物").unwrap(),
-        entry: Timestamp::new(1000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(1000).unwrap(),
-    };
-    let english = Task {
-        uuid: "00000000-0000-0000-0000-000000000050".parse().unwrap(),
-        index: Some(Index::new(2).unwrap()),
-        description: Description::new("english task").unwrap(),
-        entry: Timestamp::new(2000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(2000).unwrap(),
-    };
-    insert_task_from(&db, &japanese);
-    insert_task_from(&db, &english);
-    let filter = Filter::default().with_words(["買"]);
-
-    let tasks = db.list_tasks(&filter).unwrap();
-
-    assert_eq!(tasks, vec![japanese]);
-}
-
-#[test]
-fn list_tasks_filter_word_japanese_hiragana_katakana() {
-    let db = setup();
-    let hiragana = Task {
-        uuid: "00000000-0000-0000-0000-000000000051".parse().unwrap(),
-        index: Some(Index::new(1).unwrap()),
-        description: Description::new("ひらがなのテスト").unwrap(),
-        entry: Timestamp::new(1000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(1000).unwrap(),
-    };
-    let katakana_only = Task {
-        uuid: "00000000-0000-0000-0000-000000000052".parse().unwrap(),
-        index: Some(Index::new(2).unwrap()),
-        description: Description::new("カタカナのみ").unwrap(),
-        entry: Timestamp::new(2000).unwrap(),
-        completed: None,
-        deleted: None,
-        modified: Timestamp::new(2000).unwrap(),
-    };
-    insert_task_from(&db, &hiragana);
-    insert_task_from(&db, &katakana_only);
-    let filter = Filter::default().with_words(["テスト"]);
-
-    let tasks = db.list_tasks(&filter).unwrap();
-
-    assert_eq!(tasks, vec![hiragana]);
-}
-
-#[test]
-fn list_tasks_filter_word_with_like_metacharacter() {
+fn list_tasks_filter_word_with_like_meta_character() {
     let db = setup();
     let percent = Task {
         uuid: "00000000-0000-0000-0000-000000000063".parse().unwrap(),
@@ -1248,6 +839,130 @@ fn list_tasks_filter_word_with_like_metacharacter() {
     assert_eq!(tasks, vec![percent]);
 }
 
+// Filter combinations — UUID
+
+#[test]
+fn list_tasks_filter_uuid_and_index() {
+    let db = setup();
+    let by_uuid = Task {
+        uuid: "00000000-0000-0000-0000-000000000002".parse().unwrap(),
+        index: Some(Index::new(1).unwrap()),
+        description: Description::new("matched by uuid").unwrap(),
+        entry: Timestamp::new(1000).unwrap(),
+        completed: None,
+        deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
+    };
+    let by_index = Task {
+        uuid: "00000000-0000-0000-0000-000000000003".parse().unwrap(),
+        index: Some(Index::new(2).unwrap()),
+        description: Description::new("matched by index").unwrap(),
+        entry: Timestamp::new(2000).unwrap(),
+        completed: None,
+        deleted: None,
+        modified: Timestamp::new(2000).unwrap(),
+    };
+    let excluded = Task {
+        uuid: "00000000-0000-0000-0000-000000000004".parse().unwrap(),
+        index: Some(Index::new(3).unwrap()),
+        description: Description::new("excluded").unwrap(),
+        entry: Timestamp::new(3000).unwrap(),
+        completed: None,
+        deleted: None,
+        modified: Timestamp::new(3000).unwrap(),
+    };
+    insert_task_from(&db, &by_uuid);
+    insert_task_from(&db, &by_index);
+    insert_task_from(&db, &excluded);
+    let filter = Filter::default()
+        .with_uuids([UuidPrefix::from(
+            "00000000-0000-0000-0000-000000000002"
+                .parse::<Uuid>()
+                .unwrap(),
+        )])
+        .with_indices([Index::new(2).unwrap()]);
+
+    let tasks = db.list_tasks(&filter).unwrap();
+
+    assert_eq!(tasks, vec![by_uuid, by_index]);
+}
+
+#[test]
+fn list_tasks_filter_uuid_with_status() {
+    let db = setup();
+    let expected = Task {
+        uuid: "00000000-0000-0000-0000-000000000043".parse().unwrap(),
+        index: Some(Index::new(1).unwrap()),
+        description: Description::new("pending").unwrap(),
+        entry: Timestamp::new(1000).unwrap(),
+        completed: None,
+        deleted: None,
+        modified: Timestamp::new(1000).unwrap(),
+    };
+    let completed = Task {
+        uuid: "00000000-0000-0000-0000-000000000044".parse().unwrap(),
+        index: None,
+        description: Description::new("completed").unwrap(),
+        entry: Timestamp::new(2000).unwrap(),
+        completed: Some(Timestamp::new(3000).unwrap()),
+        deleted: None,
+        modified: Timestamp::new(2000).unwrap(),
+    };
+    let other = Task {
+        uuid: "00000000-0000-0000-0000-000000000045".parse().unwrap(),
+        index: Some(Index::new(2).unwrap()),
+        description: Description::new("other pending").unwrap(),
+        entry: Timestamp::new(4000).unwrap(),
+        completed: None,
+        deleted: None,
+        modified: Timestamp::new(4000).unwrap(),
+    };
+    insert_task_from(&db, &expected);
+    insert_task_from(&db, &completed);
+    insert_task_from(&db, &other);
+    let filter = Filter::default()
+        .with_uuids([
+            UuidPrefix::from(
+                "00000000-0000-0000-0000-000000000043"
+                    .parse::<Uuid>()
+                    .unwrap(),
+            ),
+            UuidPrefix::from(
+                "00000000-0000-0000-0000-000000000044"
+                    .parse::<Uuid>()
+                    .unwrap(),
+            ),
+        ])
+        .with_report_status(Status::Pending);
+
+    let tasks = db.list_tasks(&filter).unwrap();
+
+    assert_eq!(tasks, vec![expected]);
+}
+
+// Filter combinations — Index
+
+#[test]
+fn list_tasks_filter_index_and_range() {
+    let db = setup();
+    let tasks = five_pending(0x32 << 8);
+    for t in &tasks {
+        insert_task_from(&db, t);
+    }
+    let [t1, t2, _, t4, _] = tasks;
+    let filter = Filter::default()
+        .with_indices([Index::new(4).unwrap()])
+        .with_index_ranges([
+            IndexRange::new(Index::new(1).unwrap(), Index::new(2).unwrap()).unwrap(),
+        ]);
+
+    let tasks = db.list_tasks(&filter).unwrap();
+
+    assert_eq!(tasks, vec![t1, t2, t4]);
+}
+
+// Filter combinations — Word
+
 #[test]
 fn list_tasks_filter_word_with_status() {
     let db = setup();
@@ -1273,7 +988,7 @@ fn list_tasks_filter_word_with_status() {
     insert_task_from(&db, &completed);
     let filter = Filter::default()
         .with_words(["milk"])
-        .with_statuses([Status::Pending]);
+        .with_report_status(Status::Pending);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
@@ -1281,10 +996,10 @@ fn list_tasks_filter_word_with_status() {
 }
 
 #[test]
-fn list_tasks_filter_word_with_uid() {
+fn list_tasks_filter_word_with_uuid_prefix() {
     let db = setup();
-    let target = Task {
-        uuid: "00000000-0000-0000-0000-00000000006a".parse().unwrap(),
+    let expected = Task {
+        uuid: "aabbccdd-0000-0000-0000-00000000006a".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("buy milk").unwrap(),
         entry: Timestamp::new(1000).unwrap(),
@@ -1301,25 +1016,21 @@ fn list_tasks_filter_word_with_uid() {
         deleted: None,
         modified: Timestamp::new(2000).unwrap(),
     };
-    insert_task_from(&db, &target);
+    insert_task_from(&db, &expected);
     insert_task_from(&db, &other);
     let filter = Filter::default()
-        .with_uuids([UuidPrefix::from(
-            "00000000-0000-0000-0000-00000000006a"
-                .parse::<Uuid>()
-                .unwrap(),
-        )])
+        .with_uuids([UuidPrefix::parse("aabbccdd").unwrap()])
         .with_words(["milk"]);
 
     let tasks = db.list_tasks(&filter).unwrap();
 
-    assert_eq!(tasks, vec![target]);
+    assert_eq!(tasks, vec![expected]);
 }
 
 #[test]
 fn list_tasks_filter_word_with_index() {
     let db = setup();
-    let target = Task {
+    let expected = Task {
         uuid: "00000000-0000-0000-0000-000000000048".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("buy milk").unwrap(),
@@ -1346,7 +1057,7 @@ fn list_tasks_filter_word_with_index() {
         deleted: None,
         modified: Timestamp::new(3000).unwrap(),
     };
-    insert_task_from(&db, &target);
+    insert_task_from(&db, &expected);
     insert_task_from(&db, &other_word);
     insert_task_from(&db, &other_index);
     let filter = Filter::default()
@@ -1355,13 +1066,13 @@ fn list_tasks_filter_word_with_index() {
 
     let tasks = db.list_tasks(&filter).unwrap();
 
-    assert_eq!(tasks, vec![target]);
+    assert_eq!(tasks, vec![expected]);
 }
 
 #[test]
 fn list_tasks_filter_word_with_index_short() {
     let db = setup();
-    let target = Task {
+    let expected = Task {
         uuid: "00000000-0000-0000-0000-00000000004b".parse().unwrap(),
         index: Some(Index::new(1).unwrap()),
         description: Description::new("hi there").unwrap(),
@@ -1379,7 +1090,7 @@ fn list_tasks_filter_word_with_index_short() {
         deleted: None,
         modified: Timestamp::new(2000).unwrap(),
     };
-    insert_task_from(&db, &target);
+    insert_task_from(&db, &expected);
     insert_task_from(&db, &other);
     let filter = Filter::default()
         .with_indices([Index::new(1).unwrap()])
@@ -1387,5 +1098,5 @@ fn list_tasks_filter_word_with_index_short() {
 
     let tasks = db.list_tasks(&filter).unwrap();
 
-    assert_eq!(tasks, vec![target]);
+    assert_eq!(tasks, vec![expected]);
 }

@@ -180,11 +180,11 @@ fn build_where_clause_with_multiple_index_ranges() {
     assert_eq!(pairs, [(1, 3), (5, 7)]);
 }
 
-// filter.statuses
+// filter.report_status
 
 #[test]
-fn build_where_clause_with_pending_only() {
-    let filter = Filter::default().with_statuses([Status::Pending]);
+fn build_where_clause_with_pending() {
+    let filter = Filter::default().with_report_status(Status::Pending);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
 
@@ -193,8 +193,8 @@ fn build_where_clause_with_pending_only() {
 }
 
 #[test]
-fn build_where_clause_with_completed_only() {
-    let filter = Filter::default().with_statuses([Status::Completed]);
+fn build_where_clause_with_completed() {
+    let filter = Filter::default().with_report_status(Status::Completed);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
 
@@ -206,34 +206,13 @@ fn build_where_clause_with_completed_only() {
 }
 
 #[test]
-fn build_where_clause_with_deleted_only() {
-    let filter = Filter::default().with_statuses([Status::Deleted]);
+fn build_where_clause_with_deleted() {
+    let filter = Filter::default().with_report_status(Status::Deleted);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
 
-    assert_eq!(clause, "WHERE (t.deleted IS NOT NULL)");
+    assert_eq!(clause, "WHERE t.deleted IS NOT NULL");
     assert!(params.is_empty());
-}
-
-#[test]
-fn build_where_clause_with_two_statuses() {
-    let filter = Filter::default().with_statuses([Status::Pending, Status::Completed]);
-
-    let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
-
-    assert!(clause.starts_with("WHERE "));
-    assert!(clause.contains(" OR "));
-    assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NULL)"));
-    assert!(clause.contains("(t.deleted IS NULL AND t.completed IS NOT NULL)"));
-    assert!(params.is_empty());
-}
-
-#[test]
-fn build_where_clause_with_all_statuses() {
-    let filter =
-        Filter::default().with_statuses([Status::Pending, Status::Completed, Status::Deleted]);
-
-    assert!(build_where_clause(&filter).unwrap().is_none());
 }
 
 // filter.words
@@ -426,7 +405,7 @@ fn build_where_clause_with_uuid_and_status() {
     let uuid_str = uuid.to_string();
     let filter = Filter::default()
         .with_uuids([UuidPrefix::from(uuid)])
-        .with_statuses([Status::Pending]);
+        .with_report_status(Status::Pending);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
 
@@ -441,7 +420,7 @@ fn build_where_clause_with_uuid_and_status() {
 #[test]
 fn build_where_clause_with_status_and_words() {
     let filter = Filter::default()
-        .with_statuses([Status::Pending])
+        .with_report_status(Status::Pending)
         .with_words(["hello"]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();
@@ -485,7 +464,7 @@ fn build_where_clause_with_uuid_and_status_and_words() {
     let uuid_str = uuid.to_string();
     let filter = Filter::default()
         .with_uuids([UuidPrefix::from(uuid)])
-        .with_statuses([Status::Pending])
+        .with_report_status(Status::Pending)
         .with_words(["hello"]);
 
     let (clause, params) = build_where_clause(&filter).unwrap().unwrap();

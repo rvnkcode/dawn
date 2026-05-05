@@ -7,7 +7,8 @@ pub struct Filter {
     uuids: HashSet<UuidPrefix>,
     indices: HashSet<Index>,
     index_ranges: HashSet<IndexRange>,
-    statuses: HashSet<Status>,
+    // No status filter from user, only list command fot each individual status
+    report_status: Option<Status>,
     words: Vec<String>,
 }
 
@@ -27,8 +28,8 @@ impl Filter {
         self
     }
 
-    pub fn with_statuses(mut self, statuses: impl IntoIterator<Item = Status>) -> Self {
-        self.statuses.extend(statuses);
+    pub fn with_report_status(mut self, status: Status) -> Self {
+        self.report_status = Some(status);
         self
     }
 
@@ -56,8 +57,8 @@ impl Filter {
         &self.index_ranges
     }
 
-    pub fn statuses(&self) -> &HashSet<Status> {
-        &self.statuses
+    pub fn report_status(&self) -> Option<&Status> {
+        self.report_status.as_ref()
     }
 
     pub fn words(&self) -> &[String] {
@@ -68,7 +69,7 @@ impl Filter {
         self.uuids.is_empty()
             && self.indices.is_empty()
             && self.index_ranges.is_empty()
-            && self.statuses.is_empty()
+            && self.report_status.is_none()
             && self.words.is_empty()
     }
 }
@@ -164,27 +165,12 @@ mod tests {
         assert_eq!(filter.index_ranges().len(), 1);
     }
 
-    // Statuses
+    // Report status
 
     #[test]
-    fn with_statuses_single() {
-        let filter = Filter::default().with_statuses([Status::Pending]);
-        assert_eq!(filter.statuses().len(), 1);
-        assert!(filter.statuses().contains(&Status::Pending));
-    }
-
-    #[test]
-    fn with_statuses_multiple() {
-        let filter = Filter::default().with_statuses([Status::Pending, Status::Completed]);
-        assert_eq!(filter.statuses().len(), 2);
-        assert!(filter.statuses().contains(&Status::Pending));
-        assert!(filter.statuses().contains(&Status::Completed));
-    }
-
-    #[test]
-    fn with_statuses_deduplicates() {
-        let filter = Filter::default().with_statuses([Status::Pending, Status::Pending]);
-        assert_eq!(filter.statuses().len(), 1);
+    fn with_report_status_some() {
+        let filter = Filter::default().with_report_status(Status::Pending);
+        assert_eq!(filter.report_status(), Some(&Status::Pending));
     }
 
     // is_empty()
@@ -208,8 +194,8 @@ mod tests {
     }
 
     #[test]
-    fn is_empty_with_statuses_only() {
-        let filter = Filter::default().with_statuses([Status::Pending]);
+    fn is_empty_with_report_status_only() {
+        let filter = Filter::default().with_report_status(Status::Pending);
         assert!(!filter.is_empty());
     }
 
@@ -252,13 +238,11 @@ mod tests {
     }
 
     #[test]
-    fn with_statuses_extends() {
+    fn with_report_status_overrides() {
         let filter = Filter::default()
-            .with_statuses([Status::Pending])
-            .with_statuses([Status::Completed]);
-        assert_eq!(filter.statuses().len(), 2);
-        assert!(filter.statuses().contains(&Status::Pending));
-        assert!(filter.statuses().contains(&Status::Completed));
+            .with_report_status(Status::Pending)
+            .with_report_status(Status::Completed);
+        assert_eq!(filter.report_status(), Some(&Status::Completed));
     }
 
     #[test]

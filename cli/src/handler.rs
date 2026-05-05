@@ -41,7 +41,7 @@ impl<TS: TaskService> Handler<TS> {
     }
 
     fn next(&self, filter: Filter) -> Result<(), CliError> {
-        let filter = filter.with_statuses([Status::Pending]);
+        let filter = filter.with_report_status(Status::Pending);
         let tasks = self.task_service.list(&filter)?;
         display_list_table::<NextRow>(tasks)
     }

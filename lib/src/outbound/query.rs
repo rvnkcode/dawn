@@ -4,8 +4,6 @@ use uuid::Uuid;
 
 use crate::domain::task::{Filter, Status, TaskModification, UuidPrefix};
 
-const ALL_STATUSES: usize = 3;
-
 type Clause = (String, Vec<Box<dyn ToSql>>);
 
 pub(crate) fn build_where_clause(filter: &Filter) -> anyhow::Result<Option<Clause>> {
@@ -27,11 +25,8 @@ pub(crate) fn build_where_clause(filter: &Filter) -> anyhow::Result<Option<Claus
         clauses.push(words_clause);
         params.extend(words_params);
     }
-    if clauses.is_empty() {
-        Ok(None)
-    } else {
-        Ok(Some((format!("WHERE {}", clauses.join(" AND ")), params)))
-    }
+
+    Ok(Some((format!("WHERE {}", clauses.join(" AND ")), params)))
 }
 
 fn build_id_clause(filter: &Filter) -> anyhow::Result<Option<Clause>> {
@@ -89,24 +84,12 @@ fn build_id_clause(filter: &Filter) -> anyhow::Result<Option<Clause>> {
 }
 
 fn build_status_clause(filter: &Filter) -> Option<String> {
-    let statuses = filter.statuses();
-    if statuses.is_empty() || statuses.len() == ALL_STATUSES {
-        return None;
-    }
-    let mut conditions = Vec::new();
-    for status in statuses {
-        match status {
-            Status::Pending => conditions.push("(t.deleted IS NULL AND t.completed IS NULL)"),
-            Status::Completed => conditions.push("(t.deleted IS NULL AND t.completed IS NOT NULL)"),
-            Status::Deleted => conditions.push("(t.deleted IS NOT NULL)"),
-        }
-    }
-    let joined = conditions.join(" OR ");
-    if conditions.len() > 1 {
-        Some(format!("({joined})"))
-    } else {
-        Some(joined)
-    }
+    let clause = match filter.report_status()? {
+        Status::Pending => "(t.deleted IS NULL AND t.completed IS NULL)",
+        Status::Completed => "(t.deleted IS NULL AND t.completed IS NOT NULL)",
+        Status::Deleted => "t.deleted IS NOT NULL",
+    };
+    Some(clause.to_string())
 }
 
 // Trigram tokenizer requires ≥ 3 characters
