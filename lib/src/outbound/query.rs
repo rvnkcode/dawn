@@ -2,7 +2,7 @@ use anyhow::Context;
 use rusqlite::ToSql;
 use uuid::Uuid;
 
-use crate::domain::task::{Filter, Status, TaskModification};
+use crate::domain::task::{Filter, Status, TaskModification, UuidPrefix};
 
 const ALL_STATUSES: usize = 3;
 
@@ -33,30 +33,38 @@ pub(crate) fn build_where_clause(filter: &Filter) -> anyhow::Result<Option<Claus
 }
 
 fn build_id_clause(filter: &Filter) -> anyhow::Result<Option<Clause>> {
-    let mut fragments: Vec<String> = Vec::new();
+    let mut clauses: Vec<String> = Vec::new();
     let mut params: Vec<Box<dyn ToSql>> = Vec::new();
 
-    // Each uuid is a Taskwarrior-style prefix (8-36 chars); match via LIKE so that
-    // 8-char short forms still hit the full UUID stored in the column.
-    // No LIKE escape needed: UuidPrefix charset [0-9a-f-] excludes %, _, \.
     let uuids = filter.uuids();
     if !uuids.is_empty() {
-        let likes: Vec<&str> = std::iter::repeat_n("t.id LIKE ?", uuids.len()).collect();
-        let joined = likes.join(" OR ");
-        let clause = if uuids.len() == 1 {
-            joined
-        } else {
-            format!("({joined})")
-        };
-        fragments.push(clause);
-        for uuid in uuids {
+        let (full, prefix): (Vec<&UuidPrefix>, Vec<&UuidPrefix>) =
+            uuids.iter().partition(|u| u.is_full());
+
+        let mut sub_clauses: Vec<String> = Vec::new();
+        if !full.is_empty() {
+            sub_clauses.push(format!("t.id IN ({})", repeat_vars(full.len())));
+            for uuid in &full {
+                params.push(Box::new(uuid.to_string()) as Box<dyn ToSql>);
+            }
+        }
+        for uuid in &prefix {
+            sub_clauses.push("t.id LIKE ?".to_string());
+            // No LIKE escape needed: UuidPrefix [0-9a-f-] excludes %, _, \
             params.push(Box::new(format!("{uuid}%")) as Box<dyn ToSql>);
         }
+
+        let clause = if sub_clauses.len() == 1 {
+            sub_clauses.remove(0)
+        } else {
+            format!("({})", sub_clauses.join(" OR "))
+        };
+        clauses.push(clause);
     }
 
     let indices = filter.indices();
     if !indices.is_empty() {
-        fragments.push(format!("tpr.row_id IN ({})", repeat_vars(indices.len())));
+        clauses.push(format!("tpr.row_id IN ({})", repeat_vars(indices.len())));
         for index in indices {
             let v = i64::try_from(index.get()).context("task index exceeds i64 range")?;
             params.push(Box::new(v) as Box<dyn ToSql>);
@@ -64,17 +72,17 @@ fn build_id_clause(filter: &Filter) -> anyhow::Result<Option<Clause>> {
     }
 
     for range in filter.index_ranges() {
-        fragments.push("tpr.row_id BETWEEN ? AND ?".to_string());
+        clauses.push("tpr.row_id BETWEEN ? AND ?".to_string());
         let start = i64::try_from(range.start().get()).context("task index exceeds i64 range")?;
         let end = i64::try_from(range.end().get()).context("task index exceeds i64 range")?;
         params.push(Box::new(start) as Box<dyn ToSql>);
         params.push(Box::new(end) as Box<dyn ToSql>);
     }
 
-    Ok(match fragments.len() {
+    Ok(match clauses.len() {
         0 => None,
-        1 => Some((fragments.remove(0), params)),
-        _ => Some((format!("({})", fragments.join(" OR ")), params)),
+        1 => Some((clauses.remove(0), params)),
+        _ => Some((format!("({})", clauses.join(" OR ")), params)),
     })
 }
 
@@ -101,30 +109,6 @@ fn build_status_clause(filter: &Filter) -> Option<String> {
 
 // Trigram tokenizer requires ≥ 3 characters
 const FTS_MIN_CHARS: usize = 3;
-
-/*
-* Escapes a term for FTS5 query by wrapping in double quotes
-* and escaping internal double quotes
-*/
-fn escape_fts5_term(term: &str) -> String {
-    let escaped = term.replace('"', "\"\"");
-    format!("\"{escaped}\"")
-}
-
-/*
-* Escapes `%`, `_`, and `\` in a SQLite LIKE pattern.
-* Use with `LIKE ? ESCAPE '\'`.
-*/
-fn escape_like(term: &str) -> String {
-    let mut out = String::new();
-    for c in term.chars() {
-        if matches!(c, '\\' | '%' | '_') {
-            out.push('\\');
-        }
-        out.push(c);
-    }
-    out
-}
 
 fn build_words_clause(filter: &Filter) -> Option<Clause> {
     let words = filter.words();
@@ -163,6 +147,30 @@ fn build_words_clause(filter: &Filter) -> Option<Clause> {
         format!("({})", clauses.join(" AND "))
     };
     Some((joined, params))
+}
+
+/*
+* Escapes a term for FTS5 query by wrapping in double quotes
+* and escaping internal double quotes
+*/
+fn escape_fts5_term(term: &str) -> String {
+    let escaped = term.replace('"', "\"\"");
+    format!("\"{escaped}\"")
+}
+
+/*
+* Escapes `%`, `_`, and `\` in a SQLite LIKE pattern.
+* Use with `LIKE ? ESCAPE '\'`.
+*/
+fn escape_like(term: &str) -> String {
+    let mut out = String::new();
+    for c in term.chars() {
+        if matches!(c, '\\' | '%' | '_') {
+            out.push('\\');
+        }
+        out.push(c);
+    }
+    out
 }
 
 pub(crate) fn build_update_clause(
