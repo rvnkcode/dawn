@@ -1,3 +1,4 @@
-pub(crate) mod query_builder;
+pub(crate) mod query;
 pub mod sqlite;
+
 pub use sqlite::SQLite;

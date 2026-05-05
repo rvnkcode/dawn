@@ -10,7 +10,7 @@ use crate::{
         Description, Filter, Index, Task, TaskCreation, TaskModification, Timestamp,
         port::TaskRepository,
     },
-    outbound::query_builder,
+    outbound::query,
 };
 
 const DB_VERSION: u8 = 1;
@@ -132,7 +132,7 @@ impl TaskRepository for SQLite {
             FROM task AS t \
                 LEFT JOIN vw_task_pending_row_id AS tpr ON tpr.id = t.id";
         let order_clause = "ORDER BY t.entry, t.id";
-        let (query, params) = match query_builder::build_where_clause(filter)? {
+        let (query, params) = match query::build_where_clause(filter)? {
             Some((where_clause, params)) => (
                 format!("{select_clause} {where_clause} {order_clause}"),
                 params,
@@ -184,7 +184,7 @@ impl TaskRepository for SQLite {
         modification: &TaskModification,
         targets: &[Uuid],
     ) -> anyhow::Result<()> {
-        let (query, params) = query_builder::build_update_clause(modification, targets)?;
+        let (query, params) = query::build_update_clause(modification, targets)?;
         self.conn.execute(&query, params_from_iter(params.iter()))?;
         Ok(())
     }
@@ -195,7 +195,7 @@ impl TaskRepository for SQLite {
         }
         let query = format!(
             "DELETE FROM task WHERE id IN ({})",
-            query_builder::repeat_vars(targets.len())
+            query::repeat_vars(targets.len())
         );
         let params = targets
             .iter()
