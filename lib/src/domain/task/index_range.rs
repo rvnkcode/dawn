@@ -14,7 +14,7 @@ impl IndexRange {
             (end, start)
         };
         if low == high {
-            Err(low)
+            Err(low) // Fallback to the Index
         } else {
             Ok(Self {
                 start: low,
