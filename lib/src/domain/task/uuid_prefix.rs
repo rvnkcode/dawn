@@ -17,7 +17,7 @@ pub const UUID_PREFIX_PATTERN: &str =
 static UUID_PREFIX_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(&format!(r"^{UUID_PREFIX_PATTERN}$")).unwrap());
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct UuidPrefix(String);
 
 #[derive(Debug, Error, PartialEq)]
