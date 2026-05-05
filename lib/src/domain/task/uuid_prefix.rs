@@ -8,9 +8,7 @@ use regex::Regex;
 use thiserror::Error;
 use uuid::Uuid;
 
-// Taskwarrior parity: 8-char minimum, hyphens at fixed positions, up to full 36 chars.
-// Prefix matches via SQL LIKE; see Lexer::isUUID in TW source.
-// Exposed without anchors so adapters can embed it in larger regex patterns.
+// 8-char minimum, up to 8-4-4-4-12: prefix matches via SQL LIKE
 pub const UUID_PREFIX_PATTERN: &str =
     r"[0-9a-f]{8}(?:-[0-9a-f]{0,4}(?:-[0-9a-f]{0,4}(?:-[0-9a-f]{0,4}(?:-[0-9a-f]{0,12})?)?)?)?";
 
@@ -52,7 +50,7 @@ impl FromStr for UuidPrefix {
     }
 }
 
-// A full UUID (lowercase hyphenated) is always a valid prefix.
+// A full UUID is always a valid prefix.
 impl From<Uuid> for UuidPrefix {
     fn from(uuid: Uuid) -> Self {
         Self(uuid.to_string())
