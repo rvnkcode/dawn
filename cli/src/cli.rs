@@ -10,7 +10,6 @@ use crate::{
 #[derive(Parser)]
 #[command(about = "A command line todo manager.", long_about = None, subcommand_precedence_over_arg = true, version)]
 pub struct Cli {
-    #[arg(allow_hyphen_values = true)]
     filter: Vec<String>,
     #[command(subcommand)]
     command: Option<Command>,
