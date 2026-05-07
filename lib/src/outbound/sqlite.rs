@@ -142,7 +142,7 @@ impl TaskRepository for SQLite {
         };
         let mut stmt = self.conn.prepare(&query)?;
         let tasks = stmt
-            .query_map(rusqlite::params_from_iter(params.iter()), |row| {
+            .query_and_then(params_from_iter(params.iter()), |row| {
                 let id_str: String = row.get(0)?;
                 let row_id: Option<i64> = row.get(1)?;
                 let description_str: String = row.get(2)?;
@@ -150,19 +150,6 @@ impl TaskRepository for SQLite {
                 let completed: Option<i64> = row.get(4)?;
                 let deleted: Option<i64> = row.get(5)?;
                 let modified: i64 = row.get(6)?;
-                Ok((
-                    id_str,
-                    row_id,
-                    description_str,
-                    entry,
-                    completed,
-                    deleted,
-                    modified,
-                ))
-            })?
-            .map(|result| {
-                let (id_str, row_id, description_str, entry, completed, deleted, modified) =
-                    result?;
                 Ok(Task {
                     uuid: Uuid::parse_str(&id_str)?,
                     index: match row_id {
@@ -175,7 +162,7 @@ impl TaskRepository for SQLite {
                     deleted: deleted.map(Timestamp::new).transpose()?,
                     modified: Timestamp::new(modified)?,
                 })
-            })
+            })?
             .collect::<anyhow::Result<Vec<Task>>>()?;
         Ok(tasks)
     }
