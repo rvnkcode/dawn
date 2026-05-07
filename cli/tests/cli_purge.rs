@@ -3,28 +3,15 @@ mod common;
 use std::path::Path;
 
 use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uuid, run_stdout, select_option};
-
-// `task all` body containment check; tolerates the empty-DB exit-1 / stderr
-// "No matches." case by returning false rather than panicking.
-fn all_contains(db: &Path, description: &str) -> bool {
-    let out = common::execute_dawn(db)
-        .arg("all")
-        .output()
-        .expect("run all");
-    String::from_utf8_lossy(&out.stdout).contains(description)
-}
+use predicates::{prelude::PredicateBooleanExt, str::contains};
 
 fn assert_all_empty(db: &Path) {
-    let out = common::execute_dawn(db)
+    common::execute_dawn(db)
         .arg("all")
-        .output()
-        .expect("run all");
-    assert_eq!(out.status.code(), Some(1), "expected empty all → exit 1");
-    let stderr = String::from_utf8(out.stderr).expect("utf8 stderr");
-    assert!(
-        stderr.contains("No matches."),
-        "expected 'No matches.' stderr: {stderr}"
-    );
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(contains("No matches."));
 }
 
 // ── Group A: Pre-filter route (filter before subcommand) ──
@@ -36,18 +23,17 @@ fn purge_by_pre_uuid_purges_deleted_task() {
         .args(["add", "buy milk"])
         .assert()
         .success();
-
     let uuid = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
     delete_via_pty(&db, &uuid);
 
     let mut p = dawn_pty(&db, &[&uuid, "purge"]);
+
     p.exp_string("Permanently remove task")
         .expect("single confirm prompt");
     p.exp_string("'buy milk'?").expect("description in prompt");
     p.send_line("y").expect("send y");
     p.exp_string("Purged 1 task.").expect("footer");
     assert_pty_exit(&mut p, 0);
-
     assert_all_empty(&db);
 }
 
@@ -55,7 +41,6 @@ fn purge_by_pre_uuid_purges_deleted_task() {
 fn purge_by_pre_word_filter_matches_one_task() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["buy milk", "fix bug"]);
-
     // Capture UUID of "buy milk" before deleting; index↔description mapping is unstable.
     let info1 = run_stdout(common::execute_dawn(&db).arg("1"));
     let info2 = run_stdout(common::execute_dawn(&db).arg("2"));
@@ -67,21 +52,23 @@ fn purge_by_pre_word_filter_matches_one_task() {
     delete_via_pty(&db, &buy_uid);
 
     let mut p = dawn_pty(&db, &["buy", "purge"]);
+
     p.exp_string("Permanently remove task")
         .expect("single confirm prompt");
     p.send_line("y").expect("send y");
     p.exp_string("Purged 1 task.").expect("footer");
     assert_pty_exit(&mut p, 0);
-
-    assert!(all_contains(&db, "fix bug"), "untouched task missing");
-    assert!(!all_contains(&db, "buy milk"), "purged task still present");
+    common::execute_dawn(&db)
+        .arg("all")
+        .assert()
+        .success()
+        .stdout(contains("fix bug").and(contains("buy milk").not()));
 }
 
 #[test]
 fn purge_pre_set_two_uids_both_purged() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta"]);
-
     let uuid1 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
     let uuid2 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
     delete_via_pty(&db, &uuid1);
@@ -90,6 +77,7 @@ fn purge_pre_set_two_uids_both_purged() {
     // original_count == 2 > 1 → bulk Select fires per task.
     let target = format!("{uuid1},{uuid2}");
     let mut p = dawn_pty(&db, &[&target, "purge"]);
+
     p.exp_string("Permanently remove task")
         .expect("first bulk prompt");
     select_option(&mut p, "Yes");
@@ -98,9 +86,7 @@ fn purge_pre_set_two_uids_both_purged() {
     select_option(&mut p, "Yes");
     p.exp_string("Purged 2 tasks.").expect("footer");
     assert_pty_exit(&mut p, 0);
-
-    assert!(!all_contains(&db, "alpha"), "alpha still present");
-    assert!(!all_contains(&db, "beta"), "beta still present");
+    assert_all_empty(&db);
 }
 
 // ── Group B: Empty-filter prompt (TTY) ──
@@ -113,20 +99,19 @@ fn purge_no_filter_tty_decline_aborts() {
         .assert()
         .success();
 
-    // Decline path returns from `confirm_empty_filter()` before any task lookup,
-    // so a pending task is enough to verify the purge was not executed.
     let mut p = dawn_pty(&db, &["purge"]);
+
     p.exp_string("This command has no filter")
         .expect("empty-filter prompt");
     p.send_line("n").expect("send n");
     p.exp_string("Command prevented from running.")
         .expect("abort msg");
     assert_pty_exit(&mut p, 2);
-
-    assert!(
-        all_contains(&db, "buy milk"),
-        "task unexpectedly purged after decline"
-    );
+    common::execute_dawn(&db)
+        .arg("all")
+        .assert()
+        .success()
+        .stdout(contains("buy milk"));
 }
 
 #[test]
@@ -136,8 +121,8 @@ fn purge_no_filter_tty_accept_purges_only_deleted() {
     // Delete via word filter so we know exactly which task is deleted.
     delete_via_pty(&db, "alpha");
 
-    // tasks.len() == 2, deleted.len() == 1 → bulk Select fires once.
     let mut p = dawn_pty(&db, &["purge"]);
+
     p.exp_string("This command has no filter")
         .expect("empty-filter prompt");
     p.send_line("y").expect("send y");
@@ -148,9 +133,11 @@ fn purge_no_filter_tty_accept_purges_only_deleted() {
     select_option(&mut p, "Yes");
     p.exp_string("Purged 1 task.").expect("footer");
     assert_pty_exit(&mut p, 0);
-
-    assert!(!all_contains(&db, "alpha"), "alpha still present");
-    assert!(all_contains(&db, "beta"), "beta unexpectedly removed");
+    common::execute_dawn(&db)
+        .arg("all")
+        .assert()
+        .success()
+        .stdout(contains("alpha").not().and(contains("beta")));
 }
 
 // ── Group C: Filter resolves to nothing (`tasks.is_empty()`) ──
@@ -163,20 +150,12 @@ fn purge_no_match_returns_no_specified() {
         .assert()
         .success();
 
-    let out = common::execute_dawn(&db)
+    common::execute_dawn(&db)
         .args(["nonexistentword", "purge"])
-        .output()
-        .expect("run");
-    assert_eq!(
-        out.status.code(),
-        Some(1),
-        "expected exit 1 from NoSpecified"
-    );
-    let stderr = String::from_utf8(out.stderr).expect("utf8 stderr");
-    assert!(
-        stderr.contains("No tasks specified."),
-        "missing NoSpecified stderr: {stderr}"
-    );
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(contains("No tasks specified."));
 }
 
 // ── Group D: Filter matches only pending (`deleted.is_empty()`) ──
@@ -190,17 +169,17 @@ fn purge_filter_matches_only_pending_prints_yellow() {
         .success();
 
     // Non-empty filter matches a pending task; deleted set is empty → yellow exit 0.
-    let out = common::execute_dawn(&db)
+    common::execute_dawn(&db)
         .args(["buy", "purge"])
-        .output()
-        .expect("run");
-    assert_eq!(out.status.code(), Some(0), "expected exit 0");
-    let stderr = String::from_utf8(out.stderr).expect("utf8 stderr");
-    assert!(
-        stderr.contains("No deleted tasks specified."),
-        "missing yellow message: {stderr}"
-    );
-    assert!(all_contains(&db, "buy milk"), "pending task removed");
+        .assert()
+        .success()
+        .stderr(contains("No deleted tasks specified."));
+
+    common::execute_dawn(&db)
+        .arg("all")
+        .assert()
+        .success()
+        .stdout(contains("buy milk"));
 }
 
 // ── Group E: User confirmation declines / bulk Select branches ──
@@ -216,21 +195,24 @@ fn purge_user_declines_single_no_op() {
     delete_via_pty(&db, &uuid);
 
     let mut p = dawn_pty(&db, &[&uuid, "purge"]);
+
     p.exp_string("Permanently remove task")
         .expect("single confirm prompt");
     p.send_line("n").expect("send n");
     // Purge has no Partial — declining still exits 0 with "Purged 0 tasks.".
     p.exp_string("Purged 0 tasks.").expect("zero-count footer");
     assert_pty_exit(&mut p, 0);
-
-    assert!(all_contains(&db, "buy milk"), "task purged despite decline");
+    common::execute_dawn(&db)
+        .arg("all")
+        .assert()
+        .success()
+        .stdout(contains("buy milk"));
 }
 
 #[test]
 fn purge_bulk_no_skips_one() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta"]);
-
     let uuid1 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
     let uuid2 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
     delete_via_pty(&db, &uuid1);
@@ -238,6 +220,7 @@ fn purge_bulk_no_skips_one() {
 
     let target = format!("{uuid1},{uuid2}");
     let mut p = dawn_pty(&db, &[&target, "purge"]);
+
     p.exp_string("Permanently remove task")
         .expect("first bulk prompt");
     select_option(&mut p, "Yes");
@@ -248,8 +231,9 @@ fn purge_bulk_no_skips_one() {
     assert_pty_exit(&mut p, 0);
 
     // Exactly one of the two descriptions must remain (deleted-but-not-purged).
-    let alpha = all_contains(&db, "alpha");
-    let beta = all_contains(&db, "beta");
+    let all_view = run_stdout(common::execute_dawn(&db).arg("all"));
+    let alpha = all_view.contains("alpha");
+    let beta = all_view.contains("beta");
     assert!(
         alpha ^ beta,
         "expected exactly one survivor: alpha={alpha} beta={beta}"
@@ -260,7 +244,6 @@ fn purge_bulk_no_skips_one() {
 fn purge_bulk_quit_aborts_remaining() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
-
     let uuid1 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
     let uuid2 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
     let uuid3 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("3")));
@@ -270,6 +253,7 @@ fn purge_bulk_quit_aborts_remaining() {
 
     let target = format!("{uuid1},{uuid2},{uuid3}");
     let mut p = dawn_pty(&db, &[&target, "purge"]);
+
     p.exp_string("Permanently remove task")
         .expect("first bulk prompt");
     select_option(&mut p, "Yes");
@@ -280,9 +264,10 @@ fn purge_bulk_quit_aborts_remaining() {
     assert_pty_exit(&mut p, 0);
 
     // Quit aborts the remaining 2 → 1 purged, 2 deleted-but-not-purged.
+    let all_view = run_stdout(common::execute_dawn(&db).arg("all"));
     let survivors = ["alpha", "beta", "gamma"]
         .iter()
-        .filter(|d| all_contains(&db, d))
+        .filter(|d| all_view.contains(*d))
         .count();
     assert_eq!(survivors, 2, "expected 2 survivors after Quit");
 }
@@ -291,7 +276,6 @@ fn purge_bulk_quit_aborts_remaining() {
 fn purge_bulk_all_purges_remaining() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
-
     let uuid1 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
     let uuid2 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
     let uuid3 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("3")));
@@ -301,11 +285,11 @@ fn purge_bulk_all_purges_remaining() {
 
     let target = format!("{uuid1},{uuid2},{uuid3}");
     let mut p = dawn_pty(&db, &[&target, "purge"]);
+
     p.exp_string("Permanently remove task")
         .expect("first bulk prompt");
     select_option(&mut p, "All");
     p.exp_string("Purged 3 tasks.").expect("footer");
     assert_pty_exit(&mut p, 0);
-
     assert_all_empty(&db);
 }
