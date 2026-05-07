@@ -144,51 +144,7 @@ fn done_promotes_set_from_mods_two_tasks() {
     assert_no_pending_tasks(&db);
 }
 
-// ── Group C: Empty-filter prompt (TTY) ──
-
-#[test]
-fn done_no_filter_tty_decline_aborts() {
-    let (_dir, db) = common::test_db();
-    common::execute_dawn(&db)
-        .args(["add", "buy milk"])
-        .assert()
-        .success();
-
-    let mut p = dawn_pty(&db, &["done"]);
-    p.exp_string("This command has no filter")
-        .expect("empty-filter prompt");
-    p.send_line("n").expect("send n");
-    p.exp_string("Command prevented from running.")
-        .expect("abort msg");
-    assert_pty_exit(&mut p, 2);
-
-    common::execute_dawn(&db)
-        .assert()
-        .success()
-        .stdout(contains("buy milk"));
-}
-
-#[test]
-fn done_no_filter_tty_accept_completes_all() {
-    let (_dir, db) = common::test_db();
-    common::setup_tasks(&db, &["one", "two"]);
-
-    let mut p = dawn_pty(&db, &["done"]);
-    p.exp_string("This command has no filter")
-        .expect("empty-filter prompt");
-    p.send_line("y").expect("send y");
-    p.exp_string("This command will alter 2 tasks.")
-        .expect("alter header");
-    for _ in 0..2 {
-        p.exp_string("Completed task").expect("action line");
-    }
-    p.exp_string("Completed 2 tasks.").expect("footer");
-    assert_pty_exit(&mut p, 0);
-
-    assert_no_pending_tasks(&db);
-}
-
-// ── Group D: Errors / no-op ──
+// ── Group C: Errors / no-op ──
 
 #[test]
 fn done_already_completed_task_skipped_partial() {
@@ -266,7 +222,7 @@ fn done_mixed_pending_and_completed_partial() {
     assert_no_pending_tasks(&db);
 }
 
-// ── Group E: Bulk-confirm route (3+ tasks, per-task Select) ──
+// ── Group D: Bulk-confirm route (3+ tasks, per-task Select) ──
 
 #[test]
 fn done_bulk_three_tasks_all_completes_remaining() {

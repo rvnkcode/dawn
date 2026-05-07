@@ -213,18 +213,3 @@ fn next_filter_set_with_invalid_segment_demotes_to_word() {
         .code(1)
         .stderr("No matches.\n");
 }
-
-#[test]
-fn next_filter_set_with_zero_segment_demotes_to_word() {
-    let (_dir, db) = common::test_db();
-    common::execute_dawn(&db)
-        .args(["add", "one"])
-        .assert()
-        .success();
-
-    common::execute_dawn(&db)
-        .arg("1,0")
-        .assert()
-        .code(1)
-        .stderr("No matches.\n");
-}

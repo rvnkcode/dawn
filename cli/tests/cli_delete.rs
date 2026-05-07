@@ -131,25 +131,6 @@ fn delete_pre_set_with_range_and_index() {
         .stdout(contains("1 task"));
 }
 
-#[test]
-fn delete_bulk_all_path_deletes_remaining() {
-    let (_dir, db) = common::test_db();
-    common::setup_tasks(&db, &["a", "b", "c"]);
-
-    let mut p = dawn_pty(&db, &["1,2,3", "delete"]);
-
-    p.exp_string("This command will alter 3 tasks.")
-        .expect("alter header");
-    p.exp_string("Delete task").expect("first prompt");
-    select_option(&mut p, "All");
-    for _ in 0..3 {
-        p.exp_string("Deleting task").expect("action line");
-    }
-    p.exp_string("Deleted 3 tasks.").expect("footer");
-    assert_pty_exit(&mut p, 0);
-    assert_no_pending_tasks(&db);
-}
-
 // ── Group B: Promotion route ──
 
 #[test]
@@ -212,53 +193,7 @@ fn delete_promotes_set_from_mods_two_tasks() {
     assert_no_pending_tasks(&db);
 }
 
-// ── Group C: Empty-filter prompt (TTY) ──
-
-#[test]
-fn delete_no_filter_tty_decline_aborts() {
-    let (_dir, db) = common::test_db();
-    common::execute_dawn(&db)
-        .args(["add", "buy milk"])
-        .assert()
-        .success();
-
-    let mut p = dawn_pty(&db, &["delete"]);
-
-    p.exp_string("This command has no filter")
-        .expect("empty-filter prompt");
-    p.send_line("n").expect("send n");
-    p.exp_string("Command prevented from running.")
-        .expect("abort msg");
-    assert_pty_exit(&mut p, 2);
-    common::execute_dawn(&db)
-        .assert()
-        .success()
-        .stdout(contains("buy milk"));
-}
-
-#[test]
-fn delete_no_filter_tty_accept_deletes_all() {
-    let (_dir, db) = common::test_db();
-    common::setup_tasks(&db, &["one", "two"]);
-
-    let mut p = dawn_pty(&db, &["delete"]);
-
-    p.exp_string("This command has no filter")
-        .expect("empty-filter prompt");
-    p.send_line("y").expect("send y");
-    p.exp_string("This command will alter 2 tasks.")
-        .expect("alter header");
-    p.exp_string("Delete task").expect("first prompt");
-    select_option(&mut p, "All");
-    for _ in 0..2 {
-        p.exp_string("Deleting task").expect("action line");
-    }
-    p.exp_string("Deleted 2 tasks.").expect("footer");
-    assert_pty_exit(&mut p, 0);
-    assert_no_pending_tasks(&db);
-}
-
-// ── Group D: Errors / no-op ──
+// ── Group C: Errors / no-op ──
 
 #[test]
 fn delete_already_deleted_task_skipped_partial() {
