@@ -106,8 +106,8 @@ mod tests {
         let row = AllRow::new(t, now).unwrap();
         let f = fields(&row);
 
-        assert_eq!(f[1], "C");
-        assert_eq!(f[4], "10s");
+        assert_eq!(f[1], "C"); // Status
+        assert_eq!(f[4], "10s"); // End
     }
 
     #[test]
@@ -119,8 +119,8 @@ mod tests {
         let row = AllRow::new(t, now).unwrap();
         let f = fields(&row);
 
-        assert_eq!(f[1], "D");
-        assert_eq!(f[4], "");
+        assert_eq!(f[1], "D"); // Status
+        assert_eq!(f[4], ""); // End
     }
 
     #[test]
@@ -133,7 +133,7 @@ mod tests {
         let row = AllRow::new(t, now).unwrap();
         let f = fields(&row);
 
-        assert_eq!(f[1], "D");
-        assert_eq!(f[4], "50s");
+        assert_eq!(f[1], "D"); // Status
+        assert_eq!(f[4], "50s"); // End
     }
 }

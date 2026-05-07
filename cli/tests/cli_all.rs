@@ -1,11 +1,9 @@
 mod common;
 
 use common::{delete_via_pty, extract_uuid, run_stdout};
+use predicates::{prelude::PredicateBooleanExt, str::contains};
 
-// Returns the status letter (P/C/D) found in the body row containing `description`.
-// Body rows start with the ID column (numeric for pending, "-" for completed/deleted)
-// followed by the St column. Header ("ID"/"St") and footer ("N task[s]") rows are
-// rejected by the cols[0]/cols[1] shape check.
+// Pick status column from description
 fn status_for(stdout: &str, description: &str) -> char {
     let row = stdout
         .lines()
@@ -33,8 +31,9 @@ fn all_with_no_tasks_prints_no_matches() {
     common::execute_dawn(&db)
         .arg("all")
         .assert()
+        .failure()
         .code(1)
-        .stderr("No matches.\n");
+        .stderr(contains("No matches."));
 }
 
 #[test]
@@ -45,16 +44,15 @@ fn all_with_one_task_prints_singular_footer() {
         .assert()
         .success();
 
-    let stdout = run_stdout(common::execute_dawn(&db).arg("all"));
-    assert!(stdout.contains("buy milk"), "missing description: {stdout}");
-    assert!(
-        stdout.contains("1 task"),
-        "missing singular footer: {stdout}"
-    );
-    assert!(
-        !stdout.contains("1 tasks"),
-        "stdout has plural form: {stdout}"
-    );
+    common::execute_dawn(&db)
+        .arg("all")
+        .assert()
+        .success()
+        .stdout(
+            contains("buy milk")
+                .and(contains("1 task"))
+                .and(contains("1 tasks").not()),
+        );
 }
 
 #[test]
@@ -62,13 +60,15 @@ fn all_with_multiple_tasks_prints_plural_footer() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta"]);
 
-    let stdout = run_stdout(common::execute_dawn(&db).arg("all"));
-    assert!(stdout.contains("alpha"), "missing 'alpha': {stdout}");
-    assert!(stdout.contains("beta"), "missing 'beta': {stdout}");
-    assert!(
-        stdout.contains("2 tasks"),
-        "missing plural footer: {stdout}"
-    );
+    common::execute_dawn(&db)
+        .arg("all")
+        .assert()
+        .success()
+        .stdout(
+            contains("alpha")
+                .and(contains("beta"))
+                .and(contains("2 tasks")),
+        );
 }
 
 // ── B. Status visibility (pending / completed / deleted) ──
@@ -82,6 +82,7 @@ fn all_renders_pending_with_index() {
         .success();
 
     let stdout = run_stdout(common::execute_dawn(&db).arg("all"));
+
     assert_eq!(status_for(&stdout, "buy milk"), 'P');
     let row = stdout
         .lines()
@@ -104,6 +105,7 @@ fn all_renders_completed_with_dash_id() {
         .success();
 
     let stdout = run_stdout(common::execute_dawn(&db).arg("all"));
+
     assert_eq!(status_for(&stdout, "buy milk"), 'C');
     let row = stdout
         .lines()
@@ -124,6 +126,7 @@ fn all_renders_deleted_with_dash_id() {
     delete_via_pty(&db, &uuid);
 
     let stdout = run_stdout(common::execute_dawn(&db).arg("all"));
+
     assert_eq!(status_for(&stdout, "buy milk"), 'D');
     let row = stdout
         .lines()
@@ -137,13 +140,8 @@ fn all_renders_deleted_with_dash_id() {
 fn all_shows_pending_completed_and_deleted_together() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
-
-    // Capture two UIDs by index before mutating state. After `done`/`delete`
-    // the pending indices renumber, so anything past this point must address
-    // tasks by UUID.
     let uid_first = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
     let uid_second = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
-
     common::execute_dawn(&db)
         .args([&uid_first, "done"])
         .assert()
@@ -151,6 +149,7 @@ fn all_shows_pending_completed_and_deleted_together() {
     delete_via_pty(&db, &uid_second);
 
     let stdout = run_stdout(common::execute_dawn(&db).arg("all"));
+
     assert!(stdout.contains("alpha"), "missing alpha: {stdout}");
     assert!(stdout.contains("beta"), "missing beta: {stdout}");
     assert!(stdout.contains("gamma"), "missing gamma: {stdout}");
@@ -260,8 +259,6 @@ fn all_set_filter_returns_two_tasks() {
 }
 
 // Words from pre and post merge into a single AND-joined filter
-// (build_words_clause joins FTS MATCH terms with AND), unlike index merging
-// which is a UNION.
 #[test]
 fn all_pre_and_post_words_merge_into_and_filter() {
     let (_dir, db) = common::test_db();
@@ -278,17 +275,16 @@ fn all_pre_and_post_words_merge_into_and_filter() {
         .assert()
         .success();
 
-    let stdout = run_stdout(common::execute_dawn(&db).args(["buy", "all", "milk"]));
-    assert!(stdout.contains("buy milk"), "missing AND match: {stdout}");
-    assert!(
-        !stdout.contains("buy bread"),
-        "OR match leaked from 'buy': {stdout}"
-    );
-    assert!(
-        !stdout.contains("make milk"),
-        "OR match leaked from 'milk': {stdout}"
-    );
-    assert!(stdout.contains("1 task"), "missing footer: {stdout}");
+    common::execute_dawn(&db)
+        .args(["buy", "all", "milk"])
+        .assert()
+        .success()
+        .stdout(
+            contains("buy milk")
+                .and(contains("buy bread").not())
+                .and(contains("make milk").not())
+                .and(contains("1 task")),
+        );
 }
 
 // ── D. status × filter interactions (where `all` diverges from `next`) ──
@@ -308,16 +304,13 @@ fn all_word_filter_matches_across_statuses() {
         .args(["add", "unrelated"])
         .assert()
         .success();
-
-    // Complete one task by description (index↔description mapping is unstable
-    // when tasks share `entry` seconds — see `setup_tasks` doc). `next` would
-    // hide the completed row, but `all` must still surface it under a word filter.
     common::execute_dawn(&db)
         .args(["shared", "keyword", "one", "done"])
         .assert()
         .success();
 
     let stdout = run_stdout(common::execute_dawn(&db).args(["all", "shared"]));
+
     assert!(
         stdout.contains("shared keyword one"),
         "first match missing: {stdout}"
@@ -353,6 +346,7 @@ fn all_uuid_filter_matches_deleted_task() {
 
     // Index is gone after deletion — UUID is the only handle.
     let stdout = run_stdout(common::execute_dawn(&db).args(["all", &uuid]));
+
     assert!(
         stdout.contains("buy milk"),
         "deleted task missing: {stdout}"
@@ -372,6 +366,7 @@ fn all_filter_with_no_match_prints_no_matches() {
     common::execute_dawn(&db)
         .args(["all", "99"])
         .assert()
+        .failure()
         .code(1)
-        .stderr("No matches.\n");
+        .stderr(contains("No matches."));
 }
