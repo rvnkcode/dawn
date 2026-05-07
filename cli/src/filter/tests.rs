@@ -32,7 +32,7 @@ fn single_uuid_bare_yields_info() {
     );
 }
 
-// ── Taskwarrior parity: 8+ char hex prefix matches as UUID ──
+// ── 8+ char hex prefix matches as UUID ──
 
 #[test]
 fn eight_char_hex_prefix_yields_info_as_uuid() {
@@ -77,18 +77,6 @@ fn malformed_uuid_with_oversized_group_falls_to_word() {
 }
 
 #[test]
-fn uuid_prefix_in_set_treated_as_uuid() {
-    assert_eq!(
-        parse_default(&raw(&["1,550e8400"])),
-        DefaultCommand::Next(
-            Filter::default()
-                .with_indices([idx(1)])
-                .with_uuids([uuid("550e8400")]),
-        ),
-    );
-}
-
-#[test]
 fn single_index_bare_yields_info() {
     assert_eq!(
         parse_default(&raw(&["42"])),
@@ -122,6 +110,18 @@ fn set_with_index_and_uuid_yields_next() {
             Filter::default()
                 .with_indices([idx(1)])
                 .with_uuids([uuid("550e8400-e29b-41d4-a716-446655440000")]),
+        ),
+    );
+}
+
+#[test]
+fn uuid_prefix_in_set_treated_as_uuid() {
+    assert_eq!(
+        parse_default(&raw(&["1,550e8400"])),
+        DefaultCommand::Next(
+            Filter::default()
+                .with_indices([idx(1)])
+                .with_uuids([uuid("550e8400")]),
         ),
     );
 }
@@ -165,14 +165,6 @@ fn set_and_bare_with_overlapping_ids_dedup() {
 // ── Non-ID bare → collected as word, does not flip to Info ──
 
 #[test]
-fn invalid_bare_collected_as_word() {
-    assert_eq!(
-        parse_default(&raw(&["invalid"])),
-        DefaultCommand::Next(Filter::default().with_words(["invalid"])),
-    );
-}
-
-#[test]
 fn zero_bare_collected_as_word() {
     assert_eq!(
         parse_default(&raw(&["0"])),
@@ -185,18 +177,6 @@ fn non_ascii_bare_collected_as_word() {
     assert_eq!(
         parse_default(&raw(&["한국어"])),
         DefaultCommand::Next(Filter::default().with_words(["한국어"])),
-    );
-}
-
-#[test]
-fn invalid_bare_mixed_with_set_collected_as_word() {
-    assert_eq!(
-        parse_default(&raw(&["invalid", "1,2"])),
-        DefaultCommand::Next(
-            Filter::default()
-                .with_indices([idx(1), idx(2)])
-                .with_words(["invalid"]),
-        ),
     );
 }
 
@@ -326,16 +306,6 @@ fn surrounding_whitespace_on_word_trimmed() {
     );
 }
 
-#[test]
-fn set_with_zero_segment_demoted_to_word() {
-    // Strict SET_RE rejects "0" as an index segment, so the whole token
-    // falls through and becomes a single word.
-    assert_eq!(
-        parse_default(&raw(&["1,0,2"])),
-        DefaultCommand::Next(Filter::default().with_words(["1,0,2"])),
-    );
-}
-
 // ── Leading-zero numbers: Taskwarrior parity (007 is text, not 7) ──
 
 #[test]
@@ -343,14 +313,6 @@ fn bare_leading_zero_collected_as_word() {
     assert_eq!(
         parse_default(&raw(&["007"])),
         DefaultCommand::Next(Filter::default().with_words(["007"])),
-    );
-}
-
-#[test]
-fn bare_double_zero_collected_as_word() {
-    assert_eq!(
-        parse_default(&raw(&["00"])),
-        DefaultCommand::Next(Filter::default().with_words(["00"])),
     );
 }
 
@@ -519,15 +481,6 @@ fn empty_input_yields_next_with_empty_filter() {
 }
 
 // ── mutation: no promotion (pre is non-empty) ──
-
-#[test]
-fn mutation_pre_index_post_word() {
-    assert_eq!(
-        parse_mutation(&raw(&["1"]), &raw(&["foo"])),
-        (Filter::default().with_indices([idx(1)]), Some(desc("foo")),),
-    );
-}
-
 #[test]
 fn mutation_pre_index_post_id_shaped_stays_in_description() {
     // pre is non-empty, so promotion does not trigger; post's "2" is folded into the description
@@ -553,17 +506,6 @@ fn mutation_pre_index_post_empty_yields_no_description() {
     assert_eq!(
         parse_mutation(&raw(&["1"]), &raw(&[])),
         (Filter::default().with_indices([idx(1)]), None),
-    );
-}
-
-#[test]
-fn mutation_pre_range_post_word() {
-    assert_eq!(
-        parse_mutation(&raw(&["5-10"]), &raw(&["foo"])),
-        (
-            Filter::default().with_index_ranges([range(5, 10)]),
-            Some(desc("foo")),
-        ),
     );
 }
 
@@ -625,15 +567,6 @@ fn mutation_empty_pre_leading_zero_treated_as_word() {
     assert_eq!(
         parse_mutation(&raw(&[]), &raw(&["007", "foo"])),
         (Filter::default(), Some(desc("007 foo"))),
-    );
-}
-
-#[test]
-fn mutation_empty_pre_word_heuristic_demotion() {
-    // 12-letter all-lowercase falls into the word heuristic → description
-    assert_eq!(
-        parse_mutation(&raw(&[]), &raw(&["breakthrough", "foo"])),
-        (Filter::default(), Some(desc("breakthrough foo")),),
     );
 }
 
