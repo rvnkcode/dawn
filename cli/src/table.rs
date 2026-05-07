@@ -13,8 +13,6 @@ pub(crate) use next::NextRow;
 use uuid::Uuid;
 
 pub(crate) fn get_prefix(uuid: &Uuid) -> String {
-    let mut uuid = uuid.to_string();
     const SHORT_UUID_LEN: usize = 8;
-    uuid.truncate(SHORT_UUID_LEN);
-    uuid
+    uuid.to_string()[..SHORT_UUID_LEN].to_owned()
 }
