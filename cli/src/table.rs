@@ -10,3 +10,11 @@ pub(crate) use all::AllRow;
 pub(crate) use base::BaseTable;
 pub(crate) use info::InfoTable;
 pub(crate) use next::NextRow;
+use uuid::Uuid;
+
+pub fn get_prefix(uuid: &Uuid) -> String {
+    let mut uuid = uuid.to_string();
+    const SHORT_UUID_LEN: usize = 8;
+    uuid.truncate(SHORT_UUID_LEN);
+    uuid
+}

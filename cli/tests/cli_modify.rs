@@ -241,6 +241,7 @@ fn modify_completed_task_by_uuid_emits_note() {
         .success();
     let info_before = run_stdout(common::execute_dawn(&db).arg("1"));
     let uuid = extract_uuid(&info_before);
+    let prefix = &uuid[..8];
     common::execute_dawn(&db)
         .args(["1", "done"])
         .assert()
@@ -252,7 +253,7 @@ fn modify_completed_task_by_uuid_emits_note() {
         .success()
         .stdout(contains("'renamed'").and(contains("Modified 1 task.")))
         .stderr(contains(format!(
-            "Note: Modified task {uuid} is completed."
+            "Note: Modified task {prefix} is completed."
         )));
 
     common::execute_dawn(&db)
@@ -271,6 +272,7 @@ fn modify_deleted_task_by_uuid_emits_note() {
         .success();
     let info_before = run_stdout(common::execute_dawn(&db).arg("1"));
     let uuid = extract_uuid(&info_before);
+    let prefix = &uuid[..8];
     delete_via_pty(&db, &uuid);
 
     common::execute_dawn(&db)
@@ -278,7 +280,9 @@ fn modify_deleted_task_by_uuid_emits_note() {
         .assert()
         .success()
         .stdout(contains("'renamed'").and(contains("Modified 1 task.")))
-        .stderr(contains(format!("Note: Modified task {uuid} is deleted.")));
+        .stderr(contains(format!(
+            "Note: Modified task {prefix} is deleted."
+        )));
 
     common::execute_dawn(&db)
         .arg(&uuid)

@@ -4,12 +4,13 @@ use colored::Colorize;
 use inquire::{Confirm, Select};
 
 use super::*;
-use crate::table::date_format::{DATE_FMT, format_absolute};
+use crate::table::{
+    date_format::{DATE_FMT, format_absolute},
+    get_prefix,
+};
 
 // Threshold for requiring individual confirmation on bulk modify operations
 const BULK_CONFIRM_THRESHOLD: usize = 3;
-
-const SHORT_UUID_LEN: usize = 8;
 
 pub(crate) fn confirm_empty_filter() -> Result<(), CliError> {
     let confirmed = Confirm::new("This command has no filter, and will modify all (including completed and deleted) tasks. Are you sure?")
@@ -143,11 +144,7 @@ where
 pub(crate) fn get_display_id(task: &Task) -> String {
     match &task.index {
         Some(index) => index.to_string(),
-        None => {
-            let mut uuid = task.uuid.to_string();
-            uuid.truncate(SHORT_UUID_LEN);
-            uuid
-        }
+        None => get_prefix(&task.uuid),
     }
 }
 
