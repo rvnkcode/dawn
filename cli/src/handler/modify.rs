@@ -16,6 +16,7 @@ impl<TS: TaskService> Handler<TS> {
         let tasks = self.task_service.list(&filter)?;
         validate_tasks(&tasks)?;
         let action = Action::Modify;
+        // TODO: currently description only - modify status to pending
         let modification = TaskModification {
             description: new_description,
             completed: None,
@@ -43,6 +44,7 @@ impl<TS: TaskService> Handler<TS> {
 
         self.task_service.modify(&modification, &approved_ids)?;
         print_result(&action, approved_ids.len());
+        // Print footnote for actually modified tasks
         print_not_pending_for_ids(&tasks, &approved_ids);
         if candidates.len() > approved_ids.len() {
             return Err(CliError::Partial);
