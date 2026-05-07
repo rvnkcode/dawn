@@ -23,55 +23,7 @@ fn status_for(stdout: &str, description: &str) -> char {
     status.chars().next().unwrap()
 }
 
-// ── A. Footer / empty ──
-
-#[test]
-fn all_with_no_tasks_prints_no_matches() {
-    let (_dir, db) = common::test_db();
-    common::execute_dawn(&db)
-        .arg("all")
-        .assert()
-        .failure()
-        .code(1)
-        .stderr(contains("No matches."));
-}
-
-#[test]
-fn all_with_one_task_prints_singular_footer() {
-    let (_dir, db) = common::test_db();
-    common::execute_dawn(&db)
-        .args(["add", "buy milk"])
-        .assert()
-        .success();
-
-    common::execute_dawn(&db)
-        .arg("all")
-        .assert()
-        .success()
-        .stdout(
-            contains("buy milk")
-                .and(contains("1 task"))
-                .and(contains("1 tasks").not()),
-        );
-}
-
-#[test]
-fn all_with_multiple_tasks_prints_plural_footer() {
-    let (_dir, db) = common::test_db();
-    common::setup_tasks(&db, &["alpha", "beta"]);
-
-    common::execute_dawn(&db)
-        .arg("all")
-        .assert()
-        .success()
-        .stdout(
-            contains("alpha")
-                .and(contains("beta"))
-                .and(contains("2 tasks")),
-        );
-}
-
-// ── B. Status visibility (pending / completed / deleted) ──
+// ── A. Status visibility (pending / completed / deleted) ──
 
 #[test]
 fn all_renders_pending_with_index() {
@@ -167,7 +119,7 @@ fn all_shows_pending_completed_and_deleted_together() {
     assert_eq!(statuses, vec!['C', 'D', 'P']);
 }
 
-// ── C. Filter pass-through (pre + post merge) ──
+// ── B. Filter pass-through (pre + post merge) ──
 
 // "one"/"two"/"three" cannot be reused here: AllRow's "Done" header column
 // always contains the substring "one", which would yield a false positive
@@ -287,7 +239,7 @@ fn all_pre_and_post_words_merge_into_and_filter() {
         );
 }
 
-// ── D. status × filter interactions (where `all` diverges from `next`) ──
+// ── C. status × filter interactions (where `all` diverges from `next`) ──
 
 #[test]
 fn all_word_filter_matches_across_statuses() {

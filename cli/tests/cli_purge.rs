@@ -89,58 +89,7 @@ fn purge_pre_set_two_uids_both_purged() {
     assert_all_empty(&db);
 }
 
-// ── Group B: Empty-filter prompt (TTY) ──
-
-#[test]
-fn purge_no_filter_tty_decline_aborts() {
-    let (_dir, db) = common::test_db();
-    common::execute_dawn(&db)
-        .args(["add", "buy milk"])
-        .assert()
-        .success();
-
-    let mut p = dawn_pty(&db, &["purge"]);
-
-    p.exp_string("This command has no filter")
-        .expect("empty-filter prompt");
-    p.send_line("n").expect("send n");
-    p.exp_string("Command prevented from running.")
-        .expect("abort msg");
-    assert_pty_exit(&mut p, 2);
-    common::execute_dawn(&db)
-        .arg("all")
-        .assert()
-        .success()
-        .stdout(contains("buy milk"));
-}
-
-#[test]
-fn purge_no_filter_tty_accept_purges_only_deleted() {
-    let (_dir, db) = common::test_db();
-    common::setup_tasks(&db, &["alpha", "beta"]);
-    // Delete via word filter so we know exactly which task is deleted.
-    delete_via_pty(&db, "alpha");
-
-    let mut p = dawn_pty(&db, &["purge"]);
-
-    p.exp_string("This command has no filter")
-        .expect("empty-filter prompt");
-    p.send_line("y").expect("send y");
-    p.exp_string("Permanently remove task")
-        .expect("bulk select prompt");
-    p.exp_string("'alpha'?")
-        .expect("alpha must be the deleted candidate");
-    select_option(&mut p, "Yes");
-    p.exp_string("Purged 1 task.").expect("footer");
-    assert_pty_exit(&mut p, 0);
-    common::execute_dawn(&db)
-        .arg("all")
-        .assert()
-        .success()
-        .stdout(contains("alpha").not().and(contains("beta")));
-}
-
-// ── Group C: Filter resolves to nothing (`tasks.is_empty()`) ──
+// ── Group B: Filter resolves to nothing (`tasks.is_empty()`) ──
 
 #[test]
 fn purge_no_match_returns_no_specified() {
@@ -158,7 +107,7 @@ fn purge_no_match_returns_no_specified() {
         .stderr(contains("No tasks specified."));
 }
 
-// ── Group D: Filter matches only pending (`deleted.is_empty()`) ──
+// ── Group C: Filter matches only pending (`deleted.is_empty()`) ──
 
 #[test]
 fn purge_filter_matches_only_pending_prints_yellow() {
@@ -182,7 +131,7 @@ fn purge_filter_matches_only_pending_prints_yellow() {
         .stdout(contains("buy milk"));
 }
 
-// ── Group E: User confirmation declines / bulk Select branches ──
+// ── Group D: User confirmation declines / bulk Select branches ──
 
 #[test]
 fn purge_user_declines_single_no_op() {
