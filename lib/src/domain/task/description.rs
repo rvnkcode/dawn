@@ -21,6 +21,11 @@ impl Description {
             Ok(Self(trimmed.to_string()))
         }
     }
+
+    #[cfg(test)]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
 }
 
 impl Display for Description {
@@ -64,7 +69,7 @@ mod tests {
         let result = Description::new("  hello world  ");
         assert!(result.is_ok());
         let desc = result.unwrap();
-        assert_eq!(desc.to_string(), "hello world");
+        assert_eq!(desc.as_str(), "hello world");
     }
 
     #[test]

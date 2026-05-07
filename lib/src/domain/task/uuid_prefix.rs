@@ -38,6 +38,7 @@ impl UuidPrefix {
         self.0.len() == Self::FULL_LEN
     }
 
+    #[cfg(test)]
     pub fn as_str(&self) -> &str {
         &self.0
     }
