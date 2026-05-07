@@ -5,14 +5,14 @@ use dawn::domain::task::{
 };
 use regex::Regex;
 
-// Taskwarrior parity: indices reject leading zeros (e.g. "007" is text, not 7).
+// Index reject leading zeros (e.g. "007" is text, not 7).
 const INDEX_PATTERN: &str = r"[1-9]\d*";
+// e.g. 1-10
 const RANGE_PATTERN: &str = r"[1-9]\d*-[1-9]\d*";
 
 static INDEX_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(&format!(r"^{INDEX_PATTERN}$")).unwrap());
 
-// e.g. 1-10
 static RANGE_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(&format!(r"^{RANGE_PATTERN}$")).unwrap());
 
@@ -75,8 +75,7 @@ fn classify<S: AsRef<str>>(raw_terms: impl IntoIterator<Item = S>) -> (Filter, b
     (filter, p.has_bare_id)
 }
 
-// Promotes IDs from post into the filter when pre filter is empty;
-// remaining words become the description or annotation
+// Pick ID filters from mods when pre filter is empty: remaining words become the description or annotation
 fn promote_ids_from_post(post: &[String]) -> (Filter, Option<Description>) {
     let parsed = process_terms(post);
     let filter = Filter::default()
