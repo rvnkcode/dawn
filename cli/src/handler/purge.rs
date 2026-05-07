@@ -1,6 +1,8 @@
 use colored::Colorize;
 use inquire::Confirm;
 
+use crate::handler::update::get_display_id;
+
 use super::{
     update::{Action, ConfirmResult, confirm_bulk, confirm_empty_filter, print_result},
     *,
@@ -53,10 +55,11 @@ fn collect_approved_ids_for_purge(
     let is_single = original_count == 1;
     let mut approved_ids = Vec::new();
     for (i, task) in candidates.iter().enumerate() {
+        let display_id = get_display_id(task);
         if is_single {
             let prompt = format!(
                 "Permanently remove task {} '{}'?",
-                task.uuid, task.description
+                display_id, task.description
             );
             if Confirm::new(&prompt).with_default(false).prompt()? {
                 approved_ids.push(task.uuid);
@@ -66,7 +69,7 @@ fn collect_approved_ids_for_purge(
         if i != 0 {
             println!();
         }
-        match confirm_bulk(&task.uuid, &task.description, action)? {
+        match confirm_bulk(&display_id, &task.description, action)? {
             ConfirmResult::Yes => approved_ids.push(task.uuid),
             ConfirmResult::No => continue,
             ConfirmResult::All => {
