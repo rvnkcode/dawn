@@ -2,10 +2,11 @@ use colored::Colorize;
 use inquire::Confirm;
 
 use super::{
-    update::{Action, ConfirmResult, confirm_bulk, confirm_empty_filter, print_result},
+    update::{
+        Action, ConfirmResult, confirm_bulk, confirm_empty_filter, get_display_id, print_result,
+    },
     *,
 };
-use crate::handler::update::get_display_id;
 
 impl<TS: TaskService> Handler<TS> {
     pub(crate) fn purge(&self, pre: &[String], post: &[String]) -> Result<(), CliError> {
