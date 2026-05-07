@@ -1,6 +1,7 @@
 mod common;
 
 use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uuid, run_stdout, select_option};
+use predicates::{prelude::PredicateBooleanExt, str::contains};
 
 // ── Group A: Pre-filter route ──
 
@@ -18,15 +19,11 @@ fn modify_by_pre_index_updates_description() {
         .success()
         .stdout("Modifying task 1 'pick up milk'.\nModified 1 task.\n");
 
-    let info = run_stdout(common::execute_dawn(&db).arg("1"));
-    assert!(
-        info.contains("pick up milk"),
-        "info missing new description: {info}"
-    );
-    assert!(
-        !info.contains("buy milk"),
-        "info still has old description: {info}"
-    );
+    common::execute_dawn(&db)
+        .arg("1")
+        .assert()
+        .success()
+        .stdout(contains("pick up milk").and(contains("buy milk").not()));
 }
 
 #[test]
@@ -44,14 +41,13 @@ fn modify_by_pre_uuid_updates_description() {
         .args([&uuid, "modify", "new", "desc"])
         .assert()
         .success()
-        .stdout(format!(
-            "Modifying task 1 '{}'.\nModified 1 task.\n",
-            "new desc"
-        ));
+        .stdout("Modifying task 1 'new desc'.\nModified 1 task.\n");
 
-    let info_after = run_stdout(common::execute_dawn(&db).arg(&uuid));
-    assert!(info_after.contains("new desc"));
-    assert!(!info_after.contains("buy milk"));
+    common::execute_dawn(&db)
+        .arg(&uuid)
+        .assert()
+        .success()
+        .stdout(contains("new desc").and(contains("buy milk").not()));
 }
 
 #[test]
@@ -59,22 +55,16 @@ fn modify_by_pre_word_filter_matches_one_task() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["buy milk", "fix bug"]);
 
-    let stdout =
-        run_stdout(common::execute_dawn(&db).args(["buy", "modify", "pick", "up", "milk"]));
-    assert!(stdout.contains("Modified 1 task."));
+    common::execute_dawn(&db)
+        .args(["buy", "modify", "pick", "up", "milk"])
+        .assert()
+        .success()
+        .stdout(contains("Modified 1 task."));
 
-    let next = run_stdout(&mut common::execute_dawn(&db));
-    assert!(
-        next.contains("pick up milk"),
-        "next missing modified task: {next}"
-    );
-    assert!(
-        next.contains("fix bug"),
-        "next missing untouched task: {next}"
-    );
-    assert!(
-        !next.contains("buy milk"),
-        "next still has old description: {next}"
+    common::execute_dawn(&db).assert().success().stdout(
+        contains("pick up milk")
+            .and(contains("fix bug"))
+            .and(contains("buy milk").not()),
     );
 }
 
@@ -83,18 +73,18 @@ fn modify_pre_set_filter_two_tasks_both_updated() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two"]);
 
-    let stdout = run_stdout(common::execute_dawn(&db).args(["1,2", "modify", "same"]));
-    assert!(stdout.contains("This command will alter 2 tasks."));
-    assert!(stdout.contains("Modified 2 tasks."));
+    common::execute_dawn(&db)
+        .args(["1,2", "modify", "same"])
+        .assert()
+        .success()
+        .stdout(contains("This command will alter 2 tasks.").and(contains("Modified 2 tasks.")));
 
-    let next = run_stdout(&mut common::execute_dawn(&db));
-    assert_eq!(
-        next.matches("same").count(),
-        2,
-        "expected both tasks renamed to 'same': {next}"
+    common::execute_dawn(&db).assert().success().stdout(
+        contains("same")
+            .count(2)
+            .and(contains("one").not())
+            .and(contains("two").not()),
     );
-    assert!(!next.contains("one"));
-    assert!(!next.contains("two"));
 }
 
 #[test]
@@ -102,18 +92,18 @@ fn modify_by_pre_range_updates_two_tasks() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta"]);
 
-    let stdout = run_stdout(common::execute_dawn(&db).args(["1-2", "modify", "renamed"]));
-    assert!(stdout.contains("This command will alter 2 tasks."));
-    assert!(stdout.contains("Modified 2 tasks."));
+    common::execute_dawn(&db)
+        .args(["1-2", "modify", "renamed"])
+        .assert()
+        .success()
+        .stdout(contains("This command will alter 2 tasks.").and(contains("Modified 2 tasks.")));
 
-    let next = run_stdout(&mut common::execute_dawn(&db));
-    assert_eq!(
-        next.matches("renamed").count(),
-        2,
-        "expected both tasks renamed: {next}"
+    common::execute_dawn(&db).assert().success().stdout(
+        contains("renamed")
+            .count(2)
+            .and(contains("alpha").not())
+            .and(contains("beta").not()),
     );
-    assert!(!next.contains("alpha"));
-    assert!(!next.contains("beta"));
 }
 
 #[test]
@@ -127,19 +117,11 @@ fn modify_pre_filter_with_id_shaped_mod_joins_into_description() {
         .success()
         .stdout("Modifying task 1 '2 foo'.\nModified 1 task.\n");
 
-    // Index↔description mapping is not stable (see common::setup_tasks).
-    // The test verifies that mods' "2" was joined into the description (index 1
-    // was modified to "2 foo") rather than treated as a filter for index 2.
-    // If "2" had been a filter, both tasks would be modified and "one"/"two"
-    // would both disappear.
-    let next = run_stdout(&mut common::execute_dawn(&db));
-    assert!(next.contains("2 foo"), "task 1 not renamed: {next}");
-    let untouched_remains = next.contains("one") || next.contains("two");
-    assert!(
-        untouched_remains,
-        "untouched task lost its description: {next}"
+    common::execute_dawn(&db).assert().success().stdout(
+        contains("2 foo")
+            .and(contains("one").or(contains("two")))
+            .and(contains("2 tasks")),
     );
-    assert!(next.contains("2 tasks"), "expected 2-task footer: {next}");
 }
 
 // ── Group B: Promotion route ──
@@ -158,9 +140,11 @@ fn modify_promotes_single_index_from_mods() {
         .success()
         .stdout("Modifying task 1 'pick up milk'.\nModified 1 task.\n");
 
-    let info = run_stdout(common::execute_dawn(&db).arg("1"));
-    assert!(info.contains("pick up milk"));
-    assert!(!info.contains("buy milk"));
+    common::execute_dawn(&db)
+        .arg("1")
+        .assert()
+        .success()
+        .stdout(contains("pick up milk").and(contains("buy milk").not()));
 }
 
 #[test]
@@ -180,9 +164,11 @@ fn modify_promotes_uuid_from_mods() {
         .success()
         .stdout("Modifying task 1 'new desc'.\nModified 1 task.\n");
 
-    let info_after = run_stdout(common::execute_dawn(&db).arg(&uuid));
-    assert!(info_after.contains("new desc"));
-    assert!(!info_after.contains("buy milk"));
+    common::execute_dawn(&db)
+        .arg(&uuid)
+        .assert()
+        .success()
+        .stdout(contains("new desc").and(contains("buy milk").not()));
 }
 
 #[test]
@@ -190,14 +176,18 @@ fn modify_promotes_set_from_mods_two_tasks() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two"]);
 
-    let stdout = run_stdout(common::execute_dawn(&db).args(["modify", "1,2", "same"]));
-    assert!(stdout.contains("This command will alter 2 tasks."));
-    assert!(stdout.contains("Modified 2 tasks."));
+    common::execute_dawn(&db)
+        .args(["modify", "1,2", "same"])
+        .assert()
+        .success()
+        .stdout(contains("This command will alter 2 tasks.").and(contains("Modified 2 tasks.")));
 
-    let next = run_stdout(&mut common::execute_dawn(&db));
-    assert_eq!(next.matches("same").count(), 2);
-    assert!(!next.contains("one"));
-    assert!(!next.contains("two"));
+    common::execute_dawn(&db).assert().success().stdout(
+        contains("same")
+            .count(2)
+            .and(contains("one").not())
+            .and(contains("two").not()),
+    );
 }
 
 #[test]
@@ -205,14 +195,18 @@ fn modify_promotes_range_from_mods() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["one", "two"]);
 
-    let stdout = run_stdout(common::execute_dawn(&db).args(["modify", "1-2", "same"]));
-    assert!(stdout.contains("This command will alter 2 tasks."));
-    assert!(stdout.contains("Modified 2 tasks."));
+    common::execute_dawn(&db)
+        .args(["modify", "1-2", "same"])
+        .assert()
+        .success()
+        .stdout(contains("This command will alter 2 tasks.").and(contains("Modified 2 tasks.")));
 
-    let next = run_stdout(&mut common::execute_dawn(&db));
-    assert_eq!(next.matches("same").count(), 2);
-    assert!(!next.contains("one"));
-    assert!(!next.contains("two"));
+    common::execute_dawn(&db).assert().success().stdout(
+        contains("same")
+            .count(2)
+            .and(contains("one").not())
+            .and(contains("two").not()),
+    );
 }
 
 #[test]
@@ -229,8 +223,11 @@ fn modify_promotion_with_id_only_mods_is_noop() {
         .success()
         .stdout("Modified 0 tasks.\n");
 
-    let info = run_stdout(common::execute_dawn(&db).arg("1"));
-    assert!(info.contains("one"));
+    common::execute_dawn(&db)
+        .arg("1")
+        .assert()
+        .success()
+        .stdout(contains("one"));
 }
 
 // ── Modify on completed/deleted tasks ──
@@ -242,44 +239,27 @@ fn modify_completed_task_by_uuid_emits_note() {
         .args(["add", "buy milk"])
         .assert()
         .success();
-
     let info_before = run_stdout(common::execute_dawn(&db).arg("1"));
     let uuid = extract_uuid(&info_before);
-
     common::execute_dawn(&db)
         .args(["1", "done"])
         .assert()
         .success();
 
-    let out = common::execute_dawn(&db)
+    common::execute_dawn(&db)
         .args([&uuid, "modify", "renamed"])
-        .output()
-        .expect("run modify");
-    assert!(out.status.success(), "modify failed");
-    let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
-    let stderr = String::from_utf8(out.stderr).expect("utf8 stderr");
-    assert!(
-        stdout.contains("'renamed'"),
-        "action line missing: {stdout}"
-    );
-    assert!(
-        stdout.contains("Modified 1 task."),
-        "footer missing: {stdout}"
-    );
-    assert!(
-        stderr.contains(&format!("Note: Modified task {uuid} is completed.")),
-        "missing completed note on stderr: {stderr}"
-    );
+        .assert()
+        .success()
+        .stdout(contains("'renamed'").and(contains("Modified 1 task.")))
+        .stderr(contains(format!(
+            "Note: Modified task {uuid} is completed."
+        )));
 
-    let info_after = run_stdout(common::execute_dawn(&db).arg(&uuid));
-    assert!(
-        info_after.contains("renamed"),
-        "description not updated: {info_after}"
-    );
-    assert!(
-        !info_after.contains("buy milk"),
-        "old description remains: {info_after}"
-    );
+    common::execute_dawn(&db)
+        .arg(&uuid)
+        .assert()
+        .success()
+        .stdout(contains("renamed").and(contains("buy milk").not()));
 }
 
 #[test]
@@ -289,41 +269,22 @@ fn modify_deleted_task_by_uuid_emits_note() {
         .args(["add", "buy milk"])
         .assert()
         .success();
-
     let info_before = run_stdout(common::execute_dawn(&db).arg("1"));
     let uuid = extract_uuid(&info_before);
-
     delete_via_pty(&db, &uuid);
 
-    let out = common::execute_dawn(&db)
+    common::execute_dawn(&db)
         .args([&uuid, "modify", "renamed"])
-        .output()
-        .expect("run modify");
-    assert!(out.status.success(), "modify failed");
-    let stdout = String::from_utf8(out.stdout).expect("utf8 stdout");
-    let stderr = String::from_utf8(out.stderr).expect("utf8 stderr");
-    assert!(
-        stdout.contains("'renamed'"),
-        "action line missing: {stdout}"
-    );
-    assert!(
-        stdout.contains("Modified 1 task."),
-        "footer missing: {stdout}"
-    );
-    assert!(
-        stderr.contains(&format!("Note: Modified task {uuid} is deleted.")),
-        "missing deleted note on stderr: {stderr}"
-    );
+        .assert()
+        .success()
+        .stdout(contains("'renamed'").and(contains("Modified 1 task.")))
+        .stderr(contains(format!("Note: Modified task {uuid} is deleted.")));
 
-    let info_after = run_stdout(common::execute_dawn(&db).arg(&uuid));
-    assert!(
-        info_after.contains("renamed"),
-        "description not updated: {info_after}"
-    );
-    assert!(
-        !info_after.contains("buy milk"),
-        "old description remains: {info_after}"
-    );
+    common::execute_dawn(&db)
+        .arg(&uuid)
+        .assert()
+        .success()
+        .stdout(contains("renamed").and(contains("buy milk").not()));
 }
 
 // ── Empty-filter prompt (TTY) ──
@@ -344,15 +305,11 @@ fn modify_no_filter_tty_decline_aborts() {
         .expect("abort msg");
     assert_pty_exit(&mut p, 2);
 
-    let info = run_stdout(common::execute_dawn(&db).arg("1"));
-    assert!(
-        info.contains("buy milk"),
-        "task unexpectedly changed: {info}"
-    );
-    assert!(
-        !info.contains("renamed"),
-        "task unexpectedly changed: {info}"
-    );
+    common::execute_dawn(&db)
+        .arg("1")
+        .assert()
+        .success()
+        .stdout(contains("buy milk").and(contains("renamed").not()));
 }
 
 #[test]
@@ -372,14 +329,12 @@ fn modify_no_filter_tty_accept_modifies_all() {
     p.exp_string("Modified 2 tasks.").expect("footer");
     assert_pty_exit(&mut p, 0);
 
-    let next = run_stdout(&mut common::execute_dawn(&db));
-    assert_eq!(
-        next.matches("renamed").count(),
-        2,
-        "expected both tasks renamed: {next}"
+    common::execute_dawn(&db).assert().success().stdout(
+        contains("renamed")
+            .count(2)
+            .and(contains("one").not())
+            .and(contains("two").not()),
     );
-    assert!(!next.contains("one"));
-    assert!(!next.contains("two"));
 }
 
 // ── Group C: No-op (0-count) ──
@@ -398,8 +353,11 @@ fn modify_with_pre_filter_but_empty_mods_is_noop() {
         .success()
         .stdout("Modified 0 tasks.\n");
 
-    let info = run_stdout(common::execute_dawn(&db).arg("1"));
-    assert!(info.contains("one"));
+    common::execute_dawn(&db)
+        .arg("1")
+        .assert()
+        .success()
+        .stdout(contains("one"));
 }
 
 #[test]
@@ -416,8 +374,11 @@ fn modify_with_whitespace_only_mods_is_noop() {
         .success()
         .stdout("Modified 0 tasks.\n");
 
-    let info = run_stdout(common::execute_dawn(&db).arg("1"));
-    assert!(info.contains("one"));
+    common::execute_dawn(&db)
+        .arg("1")
+        .assert()
+        .success()
+        .stdout(contains("one"));
 }
 
 #[test]
@@ -455,15 +416,17 @@ fn modify_by_pre_out_of_bounds_range_prints_no_tasks_specified() {
         .args(["add", "only"])
         .assert()
         .success();
+
     common::execute_dawn(&db)
         .args(["99-100", "modify", "renamed"])
         .assert()
         .code(1)
         .stderr("No tasks specified.\n");
 
-    let next = run_stdout(&mut common::execute_dawn(&db));
-    assert!(next.contains("only"), "task was mutated: {next}");
-    assert!(!next.contains("renamed"), "renamed leaked: {next}");
+    common::execute_dawn(&db)
+        .assert()
+        .success()
+        .stdout(contains("only").and(contains("renamed").not()));
 }
 
 #[test]
@@ -496,18 +459,13 @@ fn modify_bulk_three_tasks_all_modified() {
     p.exp_string("Modified 3 tasks.").expect("footer");
     assert_pty_exit(&mut p, 0);
 
-    let next = run_stdout(&mut common::execute_dawn(&db));
-    assert_eq!(
-        next.matches("renamed").count(),
-        3,
-        "expected all 3 renamed: {next}"
+    common::execute_dawn(&db).assert().success().stdout(
+        contains("renamed")
+            .count(3)
+            .and(contains("alpha").not())
+            .and(contains("beta").not())
+            .and(contains("gamma").not()),
     );
-    for original in ["alpha", "beta", "gamma"] {
-        assert!(
-            !next.contains(original),
-            "old description '{original}' remains: {next}"
-        );
-    }
 }
 
 #[test]
