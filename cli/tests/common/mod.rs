@@ -3,6 +3,7 @@
 use std::path::{Path, PathBuf};
 
 use assert_cmd::Command;
+use predicates::str::contains;
 use rexpect::{
     process::WaitStatus,
     session::{PtySession, spawn_command},
@@ -95,6 +96,15 @@ pub fn extract_uuid(stdout: &str) -> String {
         }
     }
     panic!("UUID row not found in info output:\n{stdout}");
+}
+
+// Asserts the default `next` view is empty: exit 1 with "No matches." on stderr.
+pub fn assert_no_pending_tasks(db: &Path) {
+    execute_dawn(db)
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(contains("No matches."));
 }
 
 pub fn run_stdout(cmd: &mut Command) -> String {
