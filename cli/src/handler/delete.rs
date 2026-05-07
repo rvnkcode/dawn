@@ -42,6 +42,7 @@ impl<TS: TaskService> Handler<TS> {
 
         self.task_service.modify(&modification, &approved_ids)?;
         print_result(&action, approved_ids.len());
+        // Print footnote for actually modified tasks
         print_not_pending_for_ids(&tasks, &approved_ids);
         if tasks.len() > approved_ids.len() {
             return Err(CliError::Partial);

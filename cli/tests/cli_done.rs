@@ -1,18 +1,13 @@
 mod common;
 
-use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uuid, run_stdout, select_option};
+use common::{
+    assert_no_pending_tasks, assert_pty_exit, dawn_pty, delete_via_pty, extract_uuid, run_stdout,
+    select_option,
+};
 use predicates::{
     prelude::PredicateBooleanExt,
     str::{contains, is_empty},
 };
-
-fn assert_no_pending_tasks(db: &std::path::Path) {
-    common::execute_dawn(db)
-        .assert()
-        .failure()
-        .code(1)
-        .stderr(contains("No matches."));
-}
 
 // ── Group A: Pre-filter route ──
 
