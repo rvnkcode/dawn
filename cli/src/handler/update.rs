@@ -9,6 +9,8 @@ use crate::table::date_format::{DATE_FMT, format_absolute};
 // Threshold for requiring individual confirmation on bulk modify operations
 const BULK_CONFIRM_THRESHOLD: usize = 3;
 
+const SHORT_UUID_LEN: usize = 8;
+
 pub(crate) fn confirm_empty_filter() -> Result<(), CliError> {
     let confirmed = Confirm::new("This command has no filter, and will modify all (including completed and deleted) tasks. Are you sure?")
                 .with_default(false)
@@ -141,7 +143,11 @@ where
 pub(crate) fn get_display_id(task: &Task) -> String {
     match &task.index {
         Some(index) => index.to_string(),
-        None => task.uuid.to_string(),
+        None => {
+            let mut uuid = task.uuid.to_string();
+            uuid.truncate(SHORT_UUID_LEN);
+            uuid
+        }
     }
 }
 
@@ -228,13 +234,14 @@ pub(crate) fn print_not_pending_for_ids(tasks: &[Task], modified_ids: &[Uuid]) {
         .filter(|t| t.completed.is_some() || t.deleted.is_some())
         .for_each(|t| {
             let status = t.status();
+            let uuid_prefix = get_display_id(t);
             let msg = format!(
                 "Note: Modified task {} is {}. \
                  You may wish to make this task pending with: \
                  task {} modify --status pending",
-                t.uuid,
+                uuid_prefix,
                 status.to_string().to_lowercase(),
-                t.uuid,
+                uuid_prefix,
             )
             .yellow();
             eprintln!("{}", msg);
