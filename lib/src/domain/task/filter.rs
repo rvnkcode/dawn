@@ -7,7 +7,7 @@ pub struct Filter {
     uuids: HashSet<UuidPrefix>,
     indices: HashSet<Index>,
     index_ranges: HashSet<IndexRange>,
-    // No status filter from user, only list command fot each individual status
+    // No status filter from user, only list command for each individual status
     report_status: Option<Status>,
     words: Vec<String>,
 }
