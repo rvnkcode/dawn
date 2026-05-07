@@ -215,6 +215,18 @@ fn build_where_clause_with_deleted() {
     assert!(params.is_empty());
 }
 
+#[test]
+fn build_where_clause_without_report_status_omits_status_clause() {
+    use crate::domain::task::Index;
+
+    let filter = Filter::default().with_indices([Index::new(1).unwrap()]);
+
+    let (clause, _) = build_where_clause(&filter).unwrap().unwrap();
+
+    assert!(!clause.contains("completed"));
+    assert!(!clause.contains("deleted"));
+}
+
 // filter.words
 
 #[test]
