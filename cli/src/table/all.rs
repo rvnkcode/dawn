@@ -76,18 +76,16 @@ mod tests {
         let uuid = task.uuid;
 
         let row = AllRow::new(task, now).unwrap();
+        let f = fields(&row);
 
-        assert_eq!(
-            fields(&row),
-            vec![
-                "1".to_string(),
-                "P".to_string(),
-                get_prefix(&uuid),
-                "30s".to_string(),
-                String::new(),
-                "buy milk".to_string(),
-            ],
-        );
+        assert_eq!(f[0], "1");
+        assert_eq!(f[1], "P");
+        assert_eq!(f[2].len(), 8);
+        assert!(f[2].chars().all(|c| c.is_ascii_hexdigit()));
+        assert!(uuid.to_string().starts_with(&f[2]));
+        assert_eq!(f[3], "30s");
+        assert_eq!(f[4], "");
+        assert_eq!(f[5], "buy milk");
     }
 
     #[test]
