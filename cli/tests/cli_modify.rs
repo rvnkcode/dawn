@@ -367,6 +367,40 @@ fn modify_status_deleted_persists_pending_to_deleted() {
     assert_eq!(cols[1], "D", "all view status column: {row}");
 }
 
+// `modify --status pending` resurrects a deleted task: info no longer shows
+// an `End` row and the task reappears in the pending list.
+#[test]
+fn modify_status_pending_persists_deleted_to_pending() {
+    let (_dir, db) = common::test_db();
+    common::execute_dawn(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+    let uuid = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    delete_via_pty(&db, &uuid);
+
+    common::execute_dawn(&db)
+        .args([&uuid, "modify", "--status", "pending"])
+        .assert()
+        .success()
+        .stdout(contains("Modified 1 task."));
+
+    let info_after = run_stdout(common::execute_dawn(&db).arg(&uuid));
+    assert!(
+        info_after.contains("Pending"),
+        "info Status row should be Pending: {info_after}"
+    );
+    assert!(
+        !info_after.contains("End "),
+        "info should not include End row: {info_after}"
+    );
+
+    common::execute_dawn(&db)
+        .assert()
+        .success()
+        .stdout(contains("buy milk"));
+}
+
 // modify --status deleted has no "<col> will be set" line analogous to `done`
 // (only the status line). The bulk-confirm diff must announce the status
 // change but emit nothing about the deleted timestamp.
