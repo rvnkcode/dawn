@@ -5,10 +5,15 @@ use super::{
     },
     *,
 };
+use crate::arg::Modification;
 
 impl<TS: TaskService> Handler<TS> {
-    pub(crate) fn modify(&self, raw_filters: &[String], mods: &[String]) -> Result<(), CliError> {
-        let (filter, new_description) = filter::parse_mutation(raw_filters, mods);
+    pub(crate) fn modify(
+        &self,
+        raw_filters: &[String],
+        modification: &Modification,
+    ) -> Result<(), CliError> {
+        let (filter, new_description) = filter::parse_mutation(raw_filters, &modification.mods);
         if filter.is_empty() {
             confirm_empty_filter()?;
         }
