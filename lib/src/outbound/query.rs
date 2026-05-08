@@ -178,14 +178,26 @@ pub(crate) fn build_update_clause(
             )
         }),
         modification.completed.as_ref().map(|c| {
+            // Use IFNULL to prevent overwriting existing completed timestamp
+            let sql = if c.is_some() {
+                "completed = IFNULL(completed, ?)"
+            } else {
+                "completed = ?"
+            };
             (
-                "completed = ?".to_string(),
+                sql.to_string(),
                 Box::new(c.as_ref().map(|ts| ts.as_seconds())) as Box<dyn ToSql>,
             )
         }),
         modification.deleted.as_ref().map(|d| {
+            // Use IFNULL to prevent overwriting existing deleted timestamp
+            let sql = if d.is_some() {
+                "deleted = IFNULL(deleted, ?)"
+            } else {
+                "deleted = ?"
+            };
             (
-                "deleted = ?".to_string(),
+                sql.to_string(),
                 Box::new(d.as_ref().map(|ts| ts.as_seconds())) as Box<dyn ToSql>,
             )
         }),

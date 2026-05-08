@@ -592,7 +592,10 @@ fn build_update_clause_with_completed_set() {
     };
 
     let (clause, params) = build_update_clause(&modification, &[uuid]).unwrap();
-    assert_eq!(clause, "UPDATE task SET completed = ? WHERE id IN (?)");
+    assert_eq!(
+        clause,
+        "UPDATE task SET completed = IFNULL(completed, ?) WHERE id IN (?)"
+    );
     assert_eq!(params.len(), 2);
     assert_eq!(to_value(params[0].as_ref()), Value::Integer(1700000000));
     assert_eq!(to_value(params[1].as_ref()), Value::Text(uuid_str));
@@ -632,7 +635,10 @@ fn build_update_clause_with_deleted_set() {
     };
 
     let (clause, params) = build_update_clause(&modification, &[uuid]).unwrap();
-    assert_eq!(clause, "UPDATE task SET deleted = ? WHERE id IN (?)");
+    assert_eq!(
+        clause,
+        "UPDATE task SET deleted = IFNULL(deleted, ?) WHERE id IN (?)"
+    );
     assert_eq!(params.len(), 2);
     assert_eq!(to_value(params[0].as_ref()), Value::Integer(1700000000));
     assert_eq!(to_value(params[1].as_ref()), Value::Text(uuid_str));
@@ -674,7 +680,7 @@ fn build_update_clause_with_multiple_fields() {
     let (clause, params) = build_update_clause(&modification, &[uuid]).unwrap();
     assert_eq!(
         clause,
-        "UPDATE task SET description = ?, completed = ? WHERE id IN (?)"
+        "UPDATE task SET description = ?, completed = IFNULL(completed, ?) WHERE id IN (?)"
     );
     assert_eq!(params.len(), 3);
     assert_eq!(to_value(params[0].as_ref()), Value::Text("updated".into()));
