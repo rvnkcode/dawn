@@ -1,9 +1,7 @@
-use inquire::Confirm;
-
 use super::{
     update::{
-        Action, ConfirmResult, confirm_bulk, confirm_empty_filter, get_display_id,
-        print_not_pending_for_ids, print_result, process_confirmations, validate_tasks,
+        Action, collect_decisions_with_prompt, confirm_empty_filter, get_display_id, print_result,
+        validate_tasks,
     },
     *,
 };
@@ -33,18 +31,28 @@ impl<TS: TaskService> Handler<TS> {
             completed: None,
             deleted: Some(Some(deleted)),
         };
-        let approved_ids =
-            collect_approved_ids_for_delete(&action, &candidates, &modification, tasks.len())?;
-        if approved_ids.is_empty() {
+        let approved = collect_decisions_with_prompt(
+            &action,
+            &candidates,
+            &modification,
+            tasks.len(),
+            |task| {
+                format!(
+                    "Delete task {} '{}'?",
+                    get_display_id(task),
+                    task.description
+                )
+            },
+        )?
+        .approved;
+        if approved.is_empty() {
             print_result(&action, 0);
             return Err(CliError::Partial);
         }
 
-        self.task_service.modify(&modification, &approved_ids)?;
-        print_result(&action, approved_ids.len());
-        // Print footnote for actually modified tasks
-        print_not_pending_for_ids(&tasks, &approved_ids);
-        if tasks.len() > approved_ids.len() {
+        self.task_service.modify(&modification, &approved)?;
+        print_result(&action, approved.len());
+        if tasks.len() > approved.len() {
             return Err(CliError::Partial);
         }
         Ok(())
@@ -65,28 +73,4 @@ fn filter_non_deleted_tasks(tasks: &[Task]) -> Vec<&Task> {
         }
     }
     non_deleted
-}
-
-fn collect_approved_ids_for_delete(
-    action: &Action,
-    candidates: &[&Task],
-    modification: &TaskModification,
-    original_count: usize,
-) -> anyhow::Result<Vec<Uuid>> {
-    let is_single = original_count == 1;
-    process_confirmations(action, candidates, modification, |i, task| {
-        let display_id = get_display_id(task);
-        if is_single {
-            let prompt = format!("Delete task {} '{}'?", display_id, task.description);
-            return Ok(if Confirm::new(&prompt).with_default(false).prompt()? {
-                ConfirmResult::Yes
-            } else {
-                ConfirmResult::No
-            });
-        }
-        if i != 0 {
-            println!();
-        }
-        confirm_bulk(&display_id, &task.description, action)
-    })
 }

@@ -1,6 +1,9 @@
 mod common;
 
-use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uuid, run_stdout, select_option};
+use common::{
+    assert_pty_exit, dawn_pty, delete_via_pty, drain_pty_and_assert_exit, extract_uuid, run_stdout,
+    select_option,
+};
 use predicates::{prelude::PredicateBooleanExt, str::contains};
 
 // ── Group A: Pre-filter route ──
@@ -228,6 +231,29 @@ fn modify_promotion_with_id_only_mods_is_noop() {
         .assert()
         .success()
         .stdout(contains("one"));
+}
+
+// `modify --status completed` on an already-completed task is a no-op for the
+// timestamp: IFNULL preserves the original `completed` value, and
+// `has_changes` filters the task out when no other field differs.
+#[test]
+fn modify_status_completed_idempotent_on_already_completed_task() {
+    let (_dir, db) = common::test_db();
+    common::execute_dawn(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+    let uuid = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    common::execute_dawn(&db)
+        .args(["1", "done"])
+        .assert()
+        .success();
+
+    common::execute_dawn(&db)
+        .args([&uuid, "modify", "--status", "completed"])
+        .assert()
+        .success()
+        .stdout(contains("Modified 0 tasks."));
 }
 
 // ── Modify on completed/deleted tasks ──
@@ -535,4 +561,139 @@ fn modify_bulk_quit_aborts_remaining() {
         .filter(|w| next.contains(*w))
         .count();
     assert_eq!(untouched, 2, "expected 2 untouched tasks: {next}");
+}
+
+// ── Group F: Bulk-confirm footnote on completed/deleted attempts ──
+//
+// Footnote semantics mirror Taskwarrior: emitted per *attempted* task in the
+// bulk loop, not only per persisted change. No-answered tasks still emit, and
+// the Quit-answered task itself emits — only candidates the loop never reached
+// (post-Quit) are silent.
+
+#[test]
+fn modify_bulk_no_emits_footnote_for_skipped_completed() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
+    let uuid1 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    let uuid2 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
+    let uuid3 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("3")));
+    for uuid in [&uuid1, &uuid2, &uuid3] {
+        common::execute_dawn(&db)
+            .args([uuid.as_str(), "done"])
+            .assert()
+            .success();
+    }
+
+    let target = format!("{uuid1},{uuid2},{uuid3}");
+    let mut p = dawn_pty(&db, &[&target, "modify", "renamed"]);
+    p.exp_string("This command will alter 3 tasks.")
+        .expect("alter header");
+    p.exp_string("Modify task").expect("first prompt");
+    select_option(&mut p, "Yes");
+    p.exp_string("Modifying task").expect("first action");
+    p.exp_string("Modify task").expect("second prompt");
+    select_option(&mut p, "No");
+    p.exp_string("Task not modified.")
+        .expect("not-modified msg");
+    p.exp_string("Modify task").expect("third prompt");
+    select_option(&mut p, "Yes");
+    p.exp_string("Modifying task").expect("third action");
+    p.exp_string("Modified 2 tasks.").expect("footer");
+
+    let trailing = drain_pty_and_assert_exit(&mut p, 1);
+    let footnote_count = trailing.matches("Note: Modified task").count();
+    assert_eq!(
+        footnote_count, 3,
+        "expected footnote for every attempted task (incl. No-skipped): {trailing}"
+    );
+}
+
+#[test]
+fn modify_bulk_quit_emits_footnote_through_quit_task_only() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
+    let uuid1 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    let uuid2 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
+    let uuid3 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("3")));
+    for uuid in [&uuid1, &uuid2, &uuid3] {
+        common::execute_dawn(&db)
+            .args([uuid.as_str(), "done"])
+            .assert()
+            .success();
+    }
+
+    let target = format!("{uuid1},{uuid2},{uuid3}");
+    let mut p = dawn_pty(&db, &[&target, "modify", "renamed"]);
+    p.exp_string("This command will alter 3 tasks.")
+        .expect("alter header");
+    p.exp_string("Modify task").expect("first prompt");
+    select_option(&mut p, "Yes");
+    p.exp_string("Modifying task").expect("first action");
+    p.exp_string("Modify task").expect("second prompt");
+    select_option(&mut p, "Quit");
+    p.exp_string("Task not modified.")
+        .expect("not-modified msg");
+    p.exp_string("Modified 1 task.").expect("footer");
+
+    let trailing = drain_pty_and_assert_exit(&mut p, 1);
+    let footnote_count = trailing.matches("Note: Modified task").count();
+    assert_eq!(
+        footnote_count, 2,
+        "expected footnote for Yes-task and Quit-task only, not the unreached candidate: {trailing}"
+    );
+}
+
+#[test]
+fn modify_bulk_explicit_status_suppresses_footnote_even_with_attempts() {
+    // The status-explicit guard takes precedence over attempted semantics.
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
+    let uuid1 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    let uuid2 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
+    let uuid3 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("3")));
+    for uuid in [&uuid1, &uuid2, &uuid3] {
+        common::execute_dawn(&db)
+            .args([uuid.as_str(), "done"])
+            .assert()
+            .success();
+    }
+
+    let target = format!("{uuid1},{uuid2},{uuid3}");
+    let mut p = dawn_pty(&db, &[&target, "modify", "--status", "pending"]);
+    p.exp_string("This command will alter 3 tasks.")
+        .expect("alter header");
+    p.exp_string("Modify task").expect("first prompt");
+    select_option(&mut p, "All");
+    p.exp_string("Modified 3 tasks.").expect("footer");
+
+    let trailing = drain_pty_and_assert_exit(&mut p, 0);
+    assert!(
+        !trailing.contains("Note: Modified task"),
+        "explicit --status must suppress the footnote: {trailing}"
+    );
+}
+
+// modify --status completed sets the timestamp internally but should NOT show
+// the "End will be set" diff line — Taskwarrior's `task modify status:completed`
+// only displays the status diff. `task done` is the command that owns that line.
+#[test]
+fn modify_bulk_status_completed_omits_end_will_be_set_line() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
+
+    let mut p = dawn_pty(&db, &["1,2,3", "modify", "--status", "completed"]);
+    let (prelude, _) = p
+        .exp_regex("Modify task")
+        .expect("first bulk-confirm prompt");
+    assert!(
+        prelude.contains("Status will be changed from 'pending' to 'completed'."),
+        "diff should still announce status change: {prelude}"
+    );
+    assert!(
+        !prelude.contains("End will be set"),
+        "modify --status completed must not print 'End will be set' line: {prelude}"
+    );
+    select_option(&mut p, "All");
+    p.exp_string("Modified 3 tasks.").expect("footer");
+    assert_pty_exit(&mut p, 0);
 }

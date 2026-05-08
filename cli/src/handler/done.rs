@@ -1,6 +1,6 @@
 use super::{
     update::{
-        Action, collect_approved_ids, confirm_empty_filter, get_display_id, print_result,
+        Action, collect_decisions, confirm_empty_filter, get_display_id, print_result,
         validate_tasks,
     },
     *,
@@ -31,15 +31,16 @@ impl<TS: TaskService> Handler<TS> {
             completed: Some(Some(completed)),
             deleted: None,
         };
-        let approved_ids = collect_approved_ids(&action, &candidates, &modification, tasks.len())?;
-        if approved_ids.is_empty() {
+        let approved =
+            collect_decisions(&action, &candidates, &modification, tasks.len())?.approved;
+        if approved.is_empty() {
             print_result(&action, 0);
             return Err(CliError::Partial);
         }
 
-        self.task_service.modify(&modification, &approved_ids)?;
-        print_result(&action, approved_ids.len());
-        if tasks.len() > approved_ids.len() {
+        self.task_service.modify(&modification, &approved)?;
+        print_result(&action, approved.len());
+        if tasks.len() > approved.len() {
             return Err(CliError::Partial);
         }
         Ok(())
