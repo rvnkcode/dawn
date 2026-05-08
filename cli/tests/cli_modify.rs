@@ -256,6 +256,156 @@ fn modify_status_completed_idempotent_on_already_completed_task() {
         .stdout(contains("Modified 0 tasks."));
 }
 
+// ── --status persistence (round-trip via DB) ──
+
+// `modify --status completed` flips a pending task to completed: info shows
+// `Completed` with an `End` row, and the pending list is empty.
+#[test]
+fn modify_status_completed_persists_pending_to_completed() {
+    let (_dir, db) = common::test_db();
+    common::execute_dawn(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+    let uuid = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+
+    common::execute_dawn(&db)
+        .args(["1", "modify", "--status", "completed"])
+        .assert()
+        .success()
+        .stdout(contains("Modified 1 task."));
+
+    let info_after = run_stdout(common::execute_dawn(&db).arg(&uuid));
+    assert!(
+        info_after.contains("Completed"),
+        "info Status row should be Completed: {info_after}"
+    );
+    assert!(
+        info_after.contains("End"),
+        "info should include End row: {info_after}"
+    );
+
+    common::assert_no_pending_tasks(&db);
+
+    let all_view = run_stdout(common::execute_dawn(&db).arg("all"));
+    let row = all_view
+        .lines()
+        .find(|l| l.contains("buy milk"))
+        .expect("desc row in all view");
+    let cols: Vec<&str> = row.split_whitespace().collect();
+    assert_eq!(cols[1], "C", "all view status column: {row}");
+}
+
+// `modify --status pending` resurrects a completed task: info no longer shows
+// an `End` row and the task reappears in the pending list.
+#[test]
+fn modify_status_pending_persists_completed_to_pending() {
+    let (_dir, db) = common::test_db();
+    common::execute_dawn(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+    let uuid = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    common::execute_dawn(&db)
+        .args(["1", "done"])
+        .assert()
+        .success();
+
+    common::execute_dawn(&db)
+        .args([&uuid, "modify", "--status", "pending"])
+        .assert()
+        .success()
+        .stdout(contains("Modified 1 task."));
+
+    let info_after = run_stdout(common::execute_dawn(&db).arg(&uuid));
+    assert!(
+        info_after.contains("Pending"),
+        "info Status row should be Pending: {info_after}"
+    );
+    assert!(
+        !info_after.contains("End "),
+        "info should not include End row: {info_after}"
+    );
+
+    common::execute_dawn(&db)
+        .assert()
+        .success()
+        .stdout(contains("buy milk"));
+}
+
+// `modify --status deleted` flips a pending task to deleted: info Status row
+// reads `Deleted`, the all view shows `D`, and the pending list is empty.
+#[test]
+fn modify_status_deleted_persists_pending_to_deleted() {
+    let (_dir, db) = common::test_db();
+    common::execute_dawn(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+    let uuid = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+
+    common::execute_dawn(&db)
+        .args(["1", "modify", "--status", "deleted"])
+        .assert()
+        .success()
+        .stdout(contains("Modified 1 task."));
+
+    let info_after = run_stdout(common::execute_dawn(&db).arg(&uuid));
+    assert!(
+        info_after.contains("Deleted"),
+        "info Status row should be Deleted: {info_after}"
+    );
+
+    common::assert_no_pending_tasks(&db);
+
+    let all_view = run_stdout(common::execute_dawn(&db).arg("all"));
+    let row = all_view
+        .lines()
+        .find(|l| l.contains("buy milk"))
+        .expect("desc row in all view");
+    let cols: Vec<&str> = row.split_whitespace().collect();
+    assert_eq!(cols[1], "D", "all view status column: {row}");
+}
+
+// modify --status deleted has no "<col> will be set" line analogous to `done`
+// (only the status line). The bulk-confirm diff must announce the status
+// change but emit nothing about the deleted timestamp.
+#[test]
+fn modify_bulk_status_deleted_diff_announces_status_only() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
+
+    let mut p = dawn_pty(&db, &["1,2,3", "modify", "--status", "deleted"]);
+    let (prelude, _) = p
+        .exp_regex("Modify task")
+        .expect("first bulk-confirm prompt");
+    assert!(
+        prelude.contains("Status will be changed from 'pending' to 'deleted'."),
+        "diff should announce status change: {prelude}"
+    );
+    assert!(
+        !prelude.contains("End will be set"),
+        "modify --status deleted must not print 'End will be set' line: {prelude}"
+    );
+    assert!(
+        !prelude.contains("Deleted will be set"),
+        "modify --status deleted must not print 'Deleted will be set' line: {prelude}"
+    );
+    select_option(&mut p, "All");
+    p.exp_string("Modified 3 tasks.").expect("footer");
+    assert_pty_exit(&mut p, 0);
+
+    let all_view = run_stdout(common::execute_dawn(&db).arg("all"));
+    for desc in ["alpha", "beta", "gamma"] {
+        let row = all_view
+            .lines()
+            .find(|l| l.contains(desc))
+            .unwrap_or_else(|| panic!("missing row for {desc}: {all_view}"));
+        let cols: Vec<&str> = row.split_whitespace().collect();
+        assert_eq!(cols[1], "D", "{desc} should be deleted: {row}");
+    }
+}
+
 // ── Modify on completed/deleted tasks ──
 
 #[test]
