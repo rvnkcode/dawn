@@ -1,4 +1,5 @@
 use clap::Args;
+use dawn::domain::task::Status;
 
 #[derive(Args)]
 pub(crate) struct Creation {
@@ -7,6 +8,7 @@ pub(crate) struct Creation {
 
 #[derive(Args)]
 pub(crate) struct Modification {
-    #[arg(allow_hyphen_values = true)]
     pub(crate) mods: Vec<String>,
+    #[arg(long)]
+    pub(crate) status: Option<Status>,
 }

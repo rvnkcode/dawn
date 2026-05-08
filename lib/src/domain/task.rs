@@ -7,7 +7,10 @@ pub mod service;
 pub mod timestamp;
 pub mod uuid_prefix;
 
-use std::fmt::{self, Display, Formatter};
+use std::{
+    fmt::{self, Display, Formatter},
+    str::FromStr,
+};
 
 pub use description::Description;
 pub use filter::Filter;
@@ -57,7 +60,7 @@ impl Task {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Status {
     Pending,
     Completed,
@@ -70,6 +73,19 @@ impl Display for Status {
             Status::Pending => write!(f, "Pending"),
             Status::Completed => write!(f, "Completed"),
             Status::Deleted => write!(f, "Deleted"),
+        }
+    }
+}
+
+impl FromStr for Status {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "pending" => Ok(Status::Pending),
+            "completed" => Ok(Status::Completed),
+            "deleted" => Ok(Status::Deleted),
+            _ => Err("expected pending, completed, or deleted".to_string()),
         }
     }
 }

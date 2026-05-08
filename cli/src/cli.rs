@@ -42,7 +42,7 @@ impl Cli {
         let handler = Handler::new(task_service);
         match &self.command {
             Some(Command::Add(creation)) => handler.add(&self.filter, &creation.description),
-            Some(Command::Modify(modification)) => handler.modify(&self.filter, &modification.mods),
+            Some(Command::Modify(modification)) => handler.modify(&self.filter, modification),
             Some(Command::Done(modification)) => handler.done(&self.filter, &modification.mods),
             Some(Command::Delete(modification)) => handler.delete(&self.filter, &modification.mods),
             Some(Command::All(modification)) => handler.all(&self.filter, &modification.mods),
