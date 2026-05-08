@@ -1,8 +1,8 @@
 mod common;
 
 use common::{
-    assert_no_pending_tasks, assert_pty_exit, dawn_pty, delete_via_pty, extract_uuid, run_stdout,
-    select_option,
+    assert_no_pending_tasks, assert_pty_exit, dawn_pty, delete_via_pty, drain_pty_and_assert_exit,
+    extract_uuid, run_stdout, select_option,
 };
 use predicates::{
     prelude::PredicateBooleanExt,
@@ -294,6 +294,39 @@ fn done_bulk_quit_aborts_remaining() {
         .assert()
         .success()
         .stdout(contains("2 tasks"));
+}
+
+// Quit prints "Task not completed." for the Quit-task only and breaks; tasks
+// after Quit are neither prompted nor printed. Locks the count invariant.
+#[test]
+fn done_bulk_quit_emits_not_completed_exactly_once() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["a", "b", "c"]);
+
+    let mut p = dawn_pty(&db, &["1,2,3", "done"]);
+    p.exp_string("This command will alter 3 tasks.")
+        .expect("alter header");
+    p.exp_string("Complete task").expect("first prompt");
+    select_option(&mut p, "Yes");
+    p.exp_string("Completed task").expect("first action");
+    p.exp_string("Complete task").expect("second prompt");
+    select_option(&mut p, "Quit");
+
+    let trailing = drain_pty_and_assert_exit(&mut p, 1);
+    assert_eq!(
+        trailing.matches("Task not completed.").count(),
+        1,
+        "Quit should emit not-completed exactly once: {trailing}"
+    );
+    assert_eq!(
+        trailing.matches("Completed task").count(),
+        0,
+        "no action line should fire after Quit: {trailing}"
+    );
+    assert!(
+        trailing.contains("Completed 1 task."),
+        "footer should report 1 completion: {trailing}"
+    );
 }
 
 // done's bulk-confirm diff DOES show "End will be set" — opposite of

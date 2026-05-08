@@ -2,7 +2,10 @@ mod common;
 
 use std::path::Path;
 
-use common::{assert_pty_exit, dawn_pty, delete_via_pty, extract_uuid, run_stdout, select_option};
+use common::{
+    assert_pty_exit, dawn_pty, delete_via_pty, drain_pty_and_assert_exit, extract_uuid, run_stdout,
+    select_option,
+};
 use predicates::{prelude::PredicateBooleanExt, str::contains};
 
 fn assert_all_empty(db: &Path) {
@@ -129,6 +132,131 @@ fn purge_filter_matches_only_pending_prints_yellow() {
         .assert()
         .success()
         .stdout(contains("buy milk"));
+}
+
+// Completed (non-deleted) status hits the same `deleted.is_empty()` branch as
+// pending, but a status-filter regression that special-cases pending could
+// slip past pending-only fixtures.
+#[test]
+fn purge_filter_matches_only_completed_prints_yellow() {
+    let (_dir, db) = common::test_db();
+    common::execute_dawn(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+    common::execute_dawn(&db)
+        .args(["1", "done"])
+        .assert()
+        .success();
+
+    common::execute_dawn(&db)
+        .args(["buy", "purge"])
+        .assert()
+        .success()
+        .stderr(contains("No deleted tasks specified."));
+
+    // Completed task remains in `all` view.
+    common::execute_dawn(&db)
+        .arg("all")
+        .assert()
+        .success()
+        .stdout(contains("buy milk"));
+}
+
+// Mixed filter (1 pending + 1 deleted): only the deleted task is offered for
+// purge; the pending task is silently skipped (no second prompt).
+#[test]
+fn purge_mixed_pending_and_deleted_only_deleted_offered() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta"]);
+    let uuid1 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    let uuid2 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
+    delete_via_pty(&db, &uuid1);
+
+    let target = format!("{uuid1},{uuid2}");
+    let mut p = dawn_pty(&db, &[&target, "purge"]);
+
+    // original_count == 2 → Select widget for the lone deleted candidate.
+    p.exp_string("Permanently remove task")
+        .expect("bulk prompt for deleted candidate");
+    select_option(&mut p, "Yes");
+
+    let trailing = drain_pty_and_assert_exit(&mut p, 0);
+    assert!(
+        trailing.contains("Purged 1 task."),
+        "footer should report exactly 1 purge — pending must be skipped: {trailing}"
+    );
+
+    // Exactly one survivor (the pending one); the purged uuid is gone.
+    let all_view = run_stdout(common::execute_dawn(&db).arg("all"));
+    let alpha = all_view.contains("alpha");
+    let beta = all_view.contains("beta");
+    assert!(
+        alpha ^ beta,
+        "expected exactly one survivor: alpha={alpha} beta={beta}"
+    );
+}
+
+// Empty-filter TTY decline: aborts with exit 2; tasks untouched.
+#[test]
+fn purge_no_filter_tty_decline_aborts() {
+    let (_dir, db) = common::test_db();
+    common::execute_dawn(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+    let uuid = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    delete_via_pty(&db, &uuid);
+
+    let mut p = dawn_pty(&db, &["purge"]);
+    p.exp_string("This command has no filter")
+        .expect("empty-filter prompt");
+    p.send_line("n").expect("send n");
+    p.exp_string("Command prevented from running.")
+        .expect("abort msg");
+    assert_pty_exit(&mut p, 2);
+
+    // Deleted task survives — purge was aborted before reaching the filter.
+    common::execute_dawn(&db)
+        .arg("all")
+        .assert()
+        .success()
+        .stdout(contains("buy milk"));
+}
+
+// Empty-filter TTY accept: proceeds to enumerate all tasks; only deleted ones
+// are offered for purge.
+#[test]
+fn purge_no_filter_tty_accept_purges_deleted() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta"]);
+    let uuid1 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    delete_via_pty(&db, &uuid1);
+
+    let mut p = dawn_pty(&db, &["purge"]);
+    p.exp_string("This command has no filter")
+        .expect("empty-filter prompt");
+    p.send_line("y").expect("send y");
+
+    // tasks.len() == 2 → Select widget for the 1 deleted candidate.
+    p.exp_string("Permanently remove task")
+        .expect("bulk prompt for deleted candidate");
+    select_option(&mut p, "Yes");
+
+    let trailing = drain_pty_and_assert_exit(&mut p, 0);
+    assert!(
+        trailing.contains("Purged 1 task."),
+        "footer should report exactly 1 purge — pending must be skipped: {trailing}"
+    );
+
+    // Exactly one survivor — the pending one.
+    let all_view = run_stdout(common::execute_dawn(&db).arg("all"));
+    let alpha = all_view.contains("alpha");
+    let beta = all_view.contains("beta");
+    assert!(
+        alpha ^ beta,
+        "expected exactly one survivor: alpha={alpha} beta={beta}"
+    );
 }
 
 // ── Group D: User confirmation declines / bulk Select branches ──

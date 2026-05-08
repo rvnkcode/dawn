@@ -10,6 +10,7 @@ use super::{
 
 impl<TS: TaskService> Handler<TS> {
     pub(crate) fn purge(&self, pre: &[String], post: &[String]) -> Result<(), CliError> {
+        // TODO: parse status filter
         let filter = filter::parse_report(pre, post);
         if filter.is_empty() {
             confirm_empty_filter()?;
