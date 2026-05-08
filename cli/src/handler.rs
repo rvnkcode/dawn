@@ -5,7 +5,7 @@ mod modify;
 mod purge;
 mod update;
 
-use chrono::{Local, Utc};
+use chrono::Local;
 use dawn::domain::task::{
     Description, Filter, Status, Task, TaskModification, Timestamp, port::TaskService,
 };
@@ -51,7 +51,7 @@ impl<TS: TaskService> Handler<TS> {
         if tasks.is_empty() {
             return Err(CliError::NoMatch);
         }
-        let now = Utc::now().timestamp();
+        let now = Local::now().timestamp();
         for (i, task) in tasks.iter().enumerate() {
             if i > 0 {
                 println!();
