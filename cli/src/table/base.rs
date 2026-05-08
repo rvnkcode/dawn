@@ -1,4 +1,4 @@
-use chrono::Utc;
+use chrono::Local;
 use colored::control::SHOULD_COLORIZE;
 use dawn::domain::task::Task;
 use tabled::{
@@ -20,7 +20,7 @@ pub(crate) struct BaseTable<R> {
 
 impl<R: TableRow + Tabled> BaseTable<R> {
     pub(crate) fn new(tasks: impl Iterator<Item = Task>) -> anyhow::Result<Self> {
-        let now = Utc::now().timestamp();
+        let now = Local::now().timestamp();
         let rows = tasks
             .map(|task| R::new(task, now))
             .collect::<anyhow::Result<Vec<_>>>()?;
