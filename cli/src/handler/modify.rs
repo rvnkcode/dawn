@@ -73,12 +73,12 @@ type TimestampUpdate = Option<Option<Timestamp>>;
 fn status_to_timestamps(
     status: Option<&Status>,
 ) -> Result<(TimestampUpdate, TimestampUpdate), CliError> {
-    let now = Timestamp::new(Local::now().timestamp()).map_err(CliError::usage)?;
+    let now = || Timestamp::new(Local::now().timestamp()).map_err(CliError::usage);
     match status {
         None => Ok((None, None)),
         Some(Status::Pending) => Ok((Some(None), Some(None))),
-        Some(Status::Completed) => Ok((Some(Some(now)), Some(None))),
-        Some(Status::Deleted) => Ok((None, Some(Some(now)))),
+        Some(Status::Completed) => Ok((Some(Some(now()?)), Some(None))),
+        Some(Status::Deleted) => Ok((None, Some(Some(now()?)))),
     }
 }
 
