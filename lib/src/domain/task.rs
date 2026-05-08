@@ -7,10 +7,7 @@ pub mod service;
 pub mod timestamp;
 pub mod uuid_prefix;
 
-use std::{
-    fmt::{self, Display, Formatter},
-    str::FromStr,
-};
+use std::fmt::{self, Display, Formatter};
 
 pub use description::Description;
 pub use filter::Filter;
@@ -73,19 +70,6 @@ impl Display for Status {
             Status::Pending => write!(f, "Pending"),
             Status::Completed => write!(f, "Completed"),
             Status::Deleted => write!(f, "Deleted"),
-        }
-    }
-}
-
-impl FromStr for Status {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "pending" => Ok(Status::Pending),
-            "completed" => Ok(Status::Completed),
-            "deleted" => Ok(Status::Deleted),
-            _ => Err("expected pending, completed, or deleted".to_string()),
         }
     }
 }
@@ -195,37 +179,5 @@ mod tests {
             deleted: Some(None),
         };
         assert!(!modification.is_empty());
-    }
-
-    #[test]
-    fn status_from_str_parses_each_canonical_variant() {
-        assert_eq!(Status::from_str("pending").unwrap(), Status::Pending);
-        assert_eq!(Status::from_str("completed").unwrap(), Status::Completed);
-        assert_eq!(Status::from_str("deleted").unwrap(), Status::Deleted);
-    }
-
-    #[test]
-    fn status_from_str_is_case_insensitive() {
-        assert_eq!(Status::from_str("PENDING").unwrap(), Status::Pending);
-        assert_eq!(Status::from_str("Completed").unwrap(), Status::Completed);
-        assert_eq!(Status::from_str("DeLeTeD").unwrap(), Status::Deleted);
-    }
-
-    #[test]
-    fn status_from_str_rejects_unknown_value() {
-        let err = Status::from_str("waiting").unwrap_err();
-        assert_eq!(err, "expected pending, completed, or deleted");
-    }
-
-    #[test]
-    fn status_from_str_rejects_empty_string() {
-        assert!(Status::from_str("").is_err());
-    }
-
-    // `to_lowercase` does not trim, so whitespace-padded input must not match.
-    #[test]
-    fn status_from_str_rejects_whitespace_padded_value() {
-        assert!(Status::from_str(" pending").is_err());
-        assert!(Status::from_str("pending ").is_err());
     }
 }
