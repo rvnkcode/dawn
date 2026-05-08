@@ -295,3 +295,27 @@ fn done_bulk_quit_aborts_remaining() {
         .success()
         .stdout(contains("2 tasks"));
 }
+
+// done's bulk-confirm diff DOES show "End will be set" — opposite of
+// modify --status completed. This anchors the cross-command UX split.
+#[test]
+fn done_bulk_shows_end_will_be_set_diff_line() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
+
+    let mut p = dawn_pty(&db, &["1,2,3", "done"]);
+    let (prelude, _) = p
+        .exp_regex("Complete task")
+        .expect("first bulk-confirm prompt");
+    assert!(
+        prelude.contains("End will be set to "),
+        "done's diff should include 'End will be set' line: {prelude}"
+    );
+    assert!(
+        prelude.contains("Status will be changed from 'pending' to 'completed'."),
+        "done's diff should also include status change line: {prelude}"
+    );
+    select_option(&mut p, "All");
+    p.exp_string("Completed 3 tasks.").expect("footer");
+    assert_pty_exit(&mut p, 0);
+}

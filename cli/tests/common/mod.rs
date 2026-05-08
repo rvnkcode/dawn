@@ -74,6 +74,20 @@ pub fn assert_pty_exit(p: &mut PtySession, expected_code: i32) {
     }
 }
 
+// Drain remaining PTY output up to EOF and assert exit code. Returns the
+// trailing buffer so callers can count occurrences (e.g. footnote lines).
+pub fn drain_pty_and_assert_exit(p: &mut PtySession, expected_code: i32) -> String {
+    let trailing = p.exp_eof().expect("eof");
+    match p.process().wait().expect("wait") {
+        WaitStatus::Exited(_, code) => assert_eq!(
+            code, expected_code,
+            "expected exit {expected_code}, got {code}"
+        ),
+        other => panic!("expected exit {expected_code}, got {other:?}"),
+    }
+    trailing
+}
+
 // Tasks share `entry` seconds, so the Index↔description mapping is not stable
 // (tiebreaker is the random UUID lex order). Tests must not assume that the
 // i-th description receives Index i; filter on all seeded indices, or assert

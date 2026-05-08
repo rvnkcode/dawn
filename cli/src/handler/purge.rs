@@ -69,7 +69,7 @@ fn collect_approved_ids_for_purge(
         if i != 0 {
             println!();
         }
-        match confirm_bulk(&display_id, &task.description, action)? {
+        match confirm_bulk(task, action)? {
             ConfirmResult::Yes => approved_ids.push(task.uuid),
             ConfirmResult::No => continue,
             ConfirmResult::All => {

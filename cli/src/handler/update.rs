@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use colored::Colorize;
 use inquire::{Confirm, Select};
 
@@ -89,12 +87,17 @@ pub(crate) fn print_result(action: &Action, count: usize) {
     }
 }
 
-pub(crate) fn collect_approved_ids(
+pub(crate) struct UserDecisions<'a> {
+    pub approved: Vec<Uuid>,
+    pub attempted: Vec<&'a Task>,
+}
+
+pub(crate) fn collect_decisions<'a>(
     action: &Action,
-    candidates: &[&Task],
+    candidates: &[&'a Task],
     modification: &TaskModification,
     original_count: usize,
-) -> anyhow::Result<Vec<Uuid>> {
+) -> anyhow::Result<UserDecisions<'a>> {
     let needs_confirm = original_count >= BULK_CONFIRM_THRESHOLD;
     process_confirmations(action, candidates, modification, |i, task| {
         if !needs_confirm {
@@ -103,70 +106,60 @@ pub(crate) fn collect_approved_ids(
         if i != 0 {
             println!();
         }
-        print_diff(task, modification)?;
-        confirm_bulk(&get_display_id(task), &task.description, action)
+        print_diff(action, task, modification)?;
+        confirm_bulk(task, action)
     })
 }
 
-pub(crate) fn process_confirmations<F>(
+// Delete command has a different confirm threshold from modify/done
+pub(crate) fn collect_decisions_with_prompt<'a>(
     action: &Action,
-    candidates: &[&Task],
+    candidates: &[&'a Task],
     modification: &TaskModification,
-    mut confirm: F,
-) -> anyhow::Result<Vec<Uuid>>
-where
-    F: FnMut(usize, &Task) -> anyhow::Result<ConfirmResult>,
-{
-    let mut approved: Vec<Uuid> = Vec::new();
-    for (i, task) in candidates.iter().enumerate() {
-        match confirm(i, task)? {
-            ConfirmResult::Yes => {
-                print_action(action, task, modification);
-                approved.push(task.uuid);
-            }
-            ConfirmResult::No => println!("{}", action.not_done_msg()),
-            ConfirmResult::All => {
-                for remaining in &candidates[i..] {
-                    print_action(action, remaining, modification);
-                    approved.push(remaining.uuid);
-                }
-                break;
-            }
-            ConfirmResult::Quit => {
-                println!("{}", action.not_done_msg());
-                break;
-            }
+    original_count: usize,
+    single_prompt: impl Fn(&Task) -> String,
+) -> anyhow::Result<UserDecisions<'a>> {
+    let is_single = original_count == 1;
+    process_confirmations(action, candidates, modification, |i, task| {
+        if is_single {
+            let prompt = single_prompt(task);
+            return Ok(if Confirm::new(&prompt).with_default(false).prompt()? {
+                ConfirmResult::Yes
+            } else {
+                ConfirmResult::No
+            });
         }
-    }
-    Ok(approved)
-}
-
-pub(crate) fn get_display_id(task: &Task) -> String {
-    match &task.index {
-        Some(index) => index.to_string(),
-        None => get_prefix(&task.uuid),
-    }
+        if i != 0 {
+            println!();
+        }
+        confirm_bulk(task, action)
+    })
 }
 
 // Print diff for a task before confirmation (3+ tasks mode)
-fn print_diff(task: &Task, modification: &TaskModification) -> anyhow::Result<()> {
-    if let Some(new_desc) = &modification.description {
+fn print_diff(action: &Action, task: &Task, modification: &TaskModification) -> anyhow::Result<()> {
+    if let Some(new_desc) = &modification.description
+        && new_desc != &task.description
+    {
         println!(
             "  - Description will be changed from '{}' to '{}'.",
             task.description, new_desc
         );
     }
 
-    // "End will be set" message for complete action
-    if let Some(Some(timestamp)) = &modification.completed
+    // "End will be set" only fires via `done` command
+    if matches!(action, Action::Complete)
+        && let Some(Some(timestamp)) = &modification.completed
         && task.completed.is_none()
     {
         let date = format_absolute(timestamp, &Local, DATE_FMT)?;
         println!("  - End will be set to '{}'.", date);
     }
 
+    // if deleted timestamp set
     let new_status = if matches!(&modification.deleted, Some(Some(_))) {
         Some("deleted")
+    // else if completed timestamp set
     } else if matches!(&modification.completed, Some(Some(_))) {
         Some("completed")
     } else if modification.completed == Some(None) || modification.deleted == Some(None) {
@@ -176,10 +169,12 @@ fn print_diff(task: &Task, modification: &TaskModification) -> anyhow::Result<()
     };
     if let Some(status) = new_status {
         let old_status = task.status().to_string().to_lowercase();
-        println!(
-            "  - Status will be changed from '{}' to '{}'.",
-            old_status, status
-        );
+        if old_status != status {
+            println!(
+                "  - Status will be changed from '{}' to '{}'.",
+                old_status, status
+            );
+        }
     }
 
     Ok(())
@@ -192,16 +187,13 @@ pub(crate) enum ConfirmResult {
     Quit, // Skip all remaining tasks
 }
 
-pub(crate) fn confirm_bulk(
-    display_id: &impl Display,
-    description: &Description,
-    action: &Action,
-) -> anyhow::Result<ConfirmResult> {
+pub(crate) fn confirm_bulk(task: &Task, action: &Action) -> anyhow::Result<ConfirmResult> {
+    let display_id = get_display_id(task);
     let prompt = format!(
         "{} task {} '{}'?",
         action.verb_present(),
         display_id,
-        description
+        task.description
     );
     let options = vec!["Yes", "No", "All", "Quit"];
     let selection = Select::new(&prompt, options).prompt()?;
@@ -211,6 +203,54 @@ pub(crate) fn confirm_bulk(
         "All" => Ok(ConfirmResult::All),
         "Quit" => Ok(ConfirmResult::Quit),
         _ => unreachable!(),
+    }
+}
+
+pub(crate) fn process_confirmations<'a, F>(
+    action: &Action,
+    candidates: &[&'a Task],
+    modification: &TaskModification,
+    mut confirm: F,
+) -> anyhow::Result<UserDecisions<'a>>
+where
+    F: FnMut(usize, &Task) -> anyhow::Result<ConfirmResult>,
+{
+    let mut approved: Vec<Uuid> = Vec::new();
+    let mut attempted: Vec<&'a Task> = Vec::new();
+    for (i, &task) in candidates.iter().enumerate() {
+        attempted.push(task);
+        match confirm(i, task)? {
+            ConfirmResult::Yes => {
+                approved.push(task.uuid);
+                print_action(action, task, modification);
+            }
+            ConfirmResult::No => println!("{}", action.not_done_msg()),
+            ConfirmResult::All => {
+                approved.push(task.uuid);
+                print_action(action, task, modification);
+                for &remaining in &candidates[i + 1..] {
+                    attempted.push(remaining);
+                    approved.push(remaining.uuid);
+                    print_action(action, remaining, modification);
+                }
+                break;
+            }
+            ConfirmResult::Quit => {
+                println!("{}", action.not_done_msg());
+                break;
+            }
+        }
+    }
+    Ok(UserDecisions {
+        approved,
+        attempted,
+    })
+}
+
+pub(crate) fn get_display_id(task: &Task) -> String {
+    match &task.index {
+        Some(index) => index.to_string(),
+        None => get_prefix(&task.uuid),
     }
 }
 
@@ -224,11 +264,13 @@ pub(crate) fn print_action(action: &Action, task: &Task, modification: &TaskModi
     println!("{} task {} '{}'.", action.verb_ing(), display_id, desc);
 }
 
-pub(crate) fn print_not_pending_for_ids(tasks: &[Task], modified_ids: &[Uuid]) {
-    tasks
+pub(crate) fn print_not_pending(attempted: &[&Task], new_status: Option<&Status>) {
+    attempted
         .iter()
-        .filter(|t| modified_ids.contains(&t.uuid))
-        .filter(|t| t.completed.is_some() || t.deleted.is_some())
+        .filter(|t| {
+            (t.completed.is_some() || t.deleted.is_some())
+                && new_status.is_none_or(|s| s == &t.status())
+        })
         .for_each(|t| {
             let status = t.status();
             let uuid_prefix = get_display_id(t);
