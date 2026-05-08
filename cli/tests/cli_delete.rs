@@ -1,8 +1,8 @@
 mod common;
 
 use common::{
-    assert_no_pending_tasks, assert_pty_exit, dawn_pty, delete_via_pty, extract_uuid, run_stdout,
-    select_option,
+    assert_no_pending_tasks, assert_pty_exit, dawn_pty, delete_via_pty, drain_pty_and_assert_exit,
+    extract_uuid, run_stdout, select_option,
 };
 use predicates::{
     prelude::PredicateBooleanExt,
@@ -305,4 +305,76 @@ fn delete_bulk_quit_aborts_remaining() {
         .assert()
         .success()
         .stdout(contains("1 task"));
+}
+
+// Quit prints "Task not deleted." for the Quit-task only and breaks; tasks
+// after Quit are neither prompted nor printed. Locks the count invariant.
+#[test]
+fn delete_bulk_quit_emits_not_deleted_exactly_once() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["a", "b", "c"]);
+
+    let mut p = dawn_pty(&db, &["1,2,3", "delete"]);
+    p.exp_string("This command will alter 3 tasks.")
+        .expect("alter header");
+    p.exp_string("Delete task").expect("first prompt");
+    select_option(&mut p, "Yes");
+    p.exp_string("Deleting task").expect("first action");
+    p.exp_string("Delete task").expect("second prompt");
+    select_option(&mut p, "Quit");
+
+    let trailing = drain_pty_and_assert_exit(&mut p, 1);
+    assert_eq!(
+        trailing.matches("Task not deleted.").count(),
+        1,
+        "Quit should emit not-deleted exactly once: {trailing}"
+    );
+    assert_eq!(
+        trailing.matches("Deleting task").count(),
+        0,
+        "no action line should fire after Quit: {trailing}"
+    );
+    assert!(
+        trailing.contains("Deleted 1 task."),
+        "footer should report 1 deletion: {trailing}"
+    );
+}
+
+// Deleting a completed task succeeds silently: status transitions to deleted,
+// stderr is empty (no TW-style "Note: Modified task X is completed..." footnote).
+// This intentional divergence treats `delete` as a deliberate transition; the
+// footnote stays only on `modify` where the user's intent is ambiguous.
+#[test]
+fn delete_completed_task_succeeds_without_footnote() {
+    let (_dir, db) = common::test_db();
+    common::execute_dawn(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+    let uuid = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    common::execute_dawn(&db)
+        .args([&uuid, "done"])
+        .assert()
+        .success();
+
+    let mut p = dawn_pty(&db, &[&uuid, "delete"]);
+    p.exp_string("Delete task").expect("delete prompt");
+    p.send_line("y").expect("send y");
+
+    let trailing = drain_pty_and_assert_exit(&mut p, 0);
+    assert!(
+        trailing.contains("Deleted 1 task."),
+        "footer should report 1 deletion: {trailing}"
+    );
+    assert_eq!(
+        trailing.matches("Note: Modified task").count(),
+        0,
+        "delete on completed task must not emit footnote: {trailing}"
+    );
+
+    let info_after = run_stdout(common::execute_dawn(&db).arg(&uuid));
+    assert!(
+        info_after.contains("Deleted"),
+        "info Status row should be Deleted: {info_after}"
+    );
 }
