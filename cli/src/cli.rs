@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 use dawn::domain::task::port::TaskService;
 
 use crate::{
-    arg::{Creation, Modification},
+    arg::{Creation, Modification, ModificationOnly},
     error::CliError,
     handler::Handler,
 };
@@ -23,13 +23,13 @@ enum Command {
     /// Modifies the existing task with provided arguments
     Modify(Modification),
     /// Marks the specified task as completed
-    Done(Modification),
+    Done(ModificationOnly),
     /// Deletes the specified task
-    Delete(Modification),
+    Delete(ModificationOnly),
     /// All tasks
     All(Modification),
     /// Removes the specified tasks from the data files. Causes permanent loss of data
-    Purge(Modification),
+    Purge(ModificationOnly),
 }
 
 impl Cli {

@@ -13,6 +13,11 @@ pub(crate) struct Modification {
     pub(crate) status: Option<Status>,
 }
 
+#[derive(Args)]
+pub(crate) struct ModificationOnly {
+    pub(crate) mods: Vec<String>,
+}
+
 fn parse_status(s: &str) -> Result<Status, String> {
     match s.to_lowercase().as_str() {
         "pending" => Ok(Status::Pending),
