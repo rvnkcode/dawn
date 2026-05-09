@@ -1,7 +1,7 @@
 use dawn::domain::task::{Description, Index, Status, Task};
 use tabled::Tabled;
 
-use crate::table::{Age, base::TableRow, get_prefix};
+use crate::table::{Age, base::TableRow, display_index, get_prefix};
 
 #[derive(Tabled, Debug)]
 #[tabled(rename_all = "PascalCase")]
@@ -16,13 +16,6 @@ pub(crate) struct AllRow {
     #[tabled(display("display_done"))]
     done: Option<Age>,
     description: Description,
-}
-
-fn display_index(val: &Option<Index>) -> String {
-    match val {
-        Some(index) => index.to_string(),
-        None => String::from("-"),
-    }
 }
 
 fn display_status(val: &Status) -> String {

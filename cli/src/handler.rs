@@ -7,7 +7,8 @@ mod update;
 
 use chrono::Local;
 use dawn::domain::task::{
-    Description, Filter, Status, Task, TaskModification, Timestamp, port::TaskService,
+    Description, Direction, Filter, SortKey, Status, Task, TaskModification, Timestamp,
+    port::TaskService,
 };
 use tabled::Tabled;
 use uuid::Uuid;
@@ -15,7 +16,7 @@ use uuid::Uuid;
 use crate::{
     error::CliError,
     filter::{self, DefaultCommand},
-    table::{AllRow, BaseTable, InfoTable, NextRow, base::TableRow},
+    table::{AllRow, BaseTable, InfoTable, NextRow, base::TableRow, completed::CompletedRow},
 };
 
 pub(crate) struct Handler<TS: TaskService> {
@@ -32,6 +33,14 @@ impl<TS: TaskService> Handler<TS> {
         let filter = filter::parse_report(pre, post);
         let tasks = self.task_service.list(&filter)?;
         display_list_table::<AllRow>(tasks)
+    }
+
+    pub(crate) fn completed(&self, pre: &[String], post: &[String]) -> Result<(), CliError> {
+        let filter = filter::parse_report(pre, post)
+            .with_report_status(Status::Completed)
+            .with_sort_key(SortKey::Completed(Direction::Asc));
+        let tasks = self.task_service.list(&filter)?;
+        display_list_table::<CompletedRow>(tasks)
     }
 
     pub(crate) fn default(&self, raw_filters: &[String]) -> Result<(), CliError> {

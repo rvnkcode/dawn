@@ -30,6 +30,8 @@ enum Command {
     All(Modification),
     /// Removes the specified tasks from the data files. Causes permanent loss of data
     Purge(ModificationOnly),
+    /// Completed tasks
+    Completed(ModificationOnly),
 }
 
 impl Cli {
@@ -47,6 +49,9 @@ impl Cli {
             Some(Command::Delete(modification)) => handler.delete(&self.filter, &modification.mods),
             Some(Command::All(modification)) => handler.all(&self.filter, &modification.mods),
             Some(Command::Purge(modification)) => handler.purge(&self.filter, &modification.mods),
+            Some(Command::Completed(modification)) => {
+                handler.completed(&self.filter, &modification.mods)
+            }
             None => handler.default(&self.filter),
         }
     }
