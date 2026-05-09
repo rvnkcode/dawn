@@ -24,6 +24,8 @@ CREATE INDEX IF NOT EXISTS idx_task_pending
 ON task (entry, id)
 WHERE deleted IS NULL AND completed IS NULL;
 
+-- TODO: add a partial index on (completed, id) WHERE deleted IS NULL AND completed IS NOT NULL if `completed` listings get slow.
+
 CREATE VIEW IF NOT EXISTS vw_task_pending_row_id AS
 SELECT
     id,
