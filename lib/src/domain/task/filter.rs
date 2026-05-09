@@ -111,6 +111,16 @@ mod tests {
         assert_eq!(filter.uuids().len(), 1);
     }
 
+    #[test]
+    fn with_uuids_extends() {
+        let filter = Filter::default()
+            .with_uuids([uuid(1)])
+            .with_uuids([uuid(2)]);
+        assert_eq!(filter.uuids().len(), 2);
+        assert!(filter.uuids().contains(&uuid(1)));
+        assert!(filter.uuids().contains(&uuid(2)));
+    }
+
     // Indices
 
     #[test]
@@ -134,6 +144,16 @@ mod tests {
         let filter =
             Filter::default().with_indices([Index::new(1).unwrap(), Index::new(1).unwrap()]);
         assert_eq!(filter.indices().len(), 1);
+    }
+
+    #[test]
+    fn with_indices_extends() {
+        let filter = Filter::default()
+            .with_indices([Index::new(1).unwrap()])
+            .with_indices([Index::new(2).unwrap()]);
+        assert_eq!(filter.indices().len(), 2);
+        assert!(filter.indices().contains(&Index::new(1).unwrap()));
+        assert!(filter.indices().contains(&Index::new(2).unwrap()));
     }
 
     // Index ranges
@@ -165,68 +185,6 @@ mod tests {
         assert_eq!(filter.index_ranges().len(), 1);
     }
 
-    // Report status
-
-    #[test]
-    fn with_report_status_some() {
-        let filter = Filter::default().with_report_status(Status::Pending);
-        assert_eq!(filter.report_status(), Some(&Status::Pending));
-    }
-
-    // is_empty()
-
-    #[test]
-    fn is_empty_with_uids_only() {
-        let filter = Filter::default().with_uuids([uuid(1)]);
-        assert!(!filter.is_empty());
-    }
-
-    #[test]
-    fn is_empty_with_indices_only() {
-        let filter = Filter::default().with_indices([Index::new(1).unwrap()]);
-        assert!(!filter.is_empty());
-    }
-
-    #[test]
-    fn is_empty_with_index_ranges_only() {
-        let filter = Filter::default().with_index_ranges([range(1, 3)]);
-        assert!(!filter.is_empty());
-    }
-
-    #[test]
-    fn is_empty_with_report_status_only() {
-        let filter = Filter::default().with_report_status(Status::Pending);
-        assert!(!filter.is_empty());
-    }
-
-    #[test]
-    fn is_empty_with_words_only() {
-        let filter = Filter::default().with_words(["example"]);
-        assert!(!filter.is_empty());
-    }
-
-    // with_*()
-
-    #[test]
-    fn with_uuids_extends() {
-        let filter = Filter::default()
-            .with_uuids([uuid(1)])
-            .with_uuids([uuid(2)]);
-        assert_eq!(filter.uuids().len(), 2);
-        assert!(filter.uuids().contains(&uuid(1)));
-        assert!(filter.uuids().contains(&uuid(2)));
-    }
-
-    #[test]
-    fn with_indices_extends() {
-        let filter = Filter::default()
-            .with_indices([Index::new(1).unwrap()])
-            .with_indices([Index::new(2).unwrap()]);
-        assert_eq!(filter.indices().len(), 2);
-        assert!(filter.indices().contains(&Index::new(1).unwrap()));
-        assert!(filter.indices().contains(&Index::new(2).unwrap()));
-    }
-
     #[test]
     fn with_index_ranges_extends() {
         let filter = Filter::default()
@@ -237,6 +195,14 @@ mod tests {
         assert!(filter.index_ranges().contains(&range(5, 7)));
     }
 
+    // Report status
+
+    #[test]
+    fn with_report_status_some() {
+        let filter = Filter::default().with_report_status(Status::Pending);
+        assert_eq!(filter.report_status(), Some(&Status::Pending));
+    }
+
     #[test]
     fn with_report_status_overrides() {
         let filter = Filter::default()
@@ -244,6 +210,8 @@ mod tests {
             .with_report_status(Status::Completed);
         assert_eq!(filter.report_status(), Some(&Status::Completed));
     }
+
+    // Words
 
     #[test]
     fn with_words_extends() {
@@ -295,4 +263,36 @@ mod tests {
 
         assert_eq!(filter.words(), &["foo".to_string()]);
     }
+    // is_empty()
+
+    #[test]
+    fn is_empty_with_uids_only() {
+        let filter = Filter::default().with_uuids([uuid(1)]);
+        assert!(!filter.is_empty());
+    }
+
+    #[test]
+    fn is_empty_with_indices_only() {
+        let filter = Filter::default().with_indices([Index::new(1).unwrap()]);
+        assert!(!filter.is_empty());
+    }
+
+    #[test]
+    fn is_empty_with_index_ranges_only() {
+        let filter = Filter::default().with_index_ranges([range(1, 3)]);
+        assert!(!filter.is_empty());
+    }
+
+    #[test]
+    fn is_empty_with_report_status_only() {
+        let filter = Filter::default().with_report_status(Status::Pending);
+        assert!(!filter.is_empty());
+    }
+
+    #[test]
+    fn is_empty_with_words_only() {
+        let filter = Filter::default().with_words(["example"]);
+        assert!(!filter.is_empty());
+    }
+
 }
