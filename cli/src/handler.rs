@@ -27,6 +27,7 @@ impl<TS: TaskService> Handler<TS> {
         Self { task_service }
     }
 
+    // TODO: status filter
     pub(crate) fn all(&self, pre: &[String], post: &[String]) -> Result<(), CliError> {
         let filter = filter::parse_report(pre, post);
         let tasks = self.task_service.list(&filter)?;
