@@ -131,7 +131,7 @@ impl TaskRepository for SQLite {
         let select_clause = "SELECT t.id, tpr.row_id, t.description, t.entry, t.completed, t.deleted, t.modified \
             FROM task AS t \
                 LEFT JOIN vw_task_pending_row_id AS tpr ON tpr.id = t.id";
-        let order_clause = "ORDER BY t.entry, t.id";
+        let order_clause = query::build_order_clause(filter);
         let (query, params) = match query::build_where_clause(filter)? {
             Some((where_clause, params)) => (
                 format!("{select_clause} {where_clause} {order_clause}"),

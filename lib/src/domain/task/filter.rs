@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::domain::task::{Index, IndexRange, Status, UuidPrefix};
+use crate::domain::task::{Index, IndexRange, SortKey, Status, UuidPrefix};
 
 #[derive(Debug, Default, PartialEq)]
 pub struct Filter {
@@ -10,6 +10,7 @@ pub struct Filter {
     // No status filter from user, only list command for each individual status
     report_status: Option<Status>,
     words: Vec<String>,
+    sort_key: Option<SortKey>,
 }
 
 impl Filter {
@@ -45,6 +46,11 @@ impl Filter {
         self
     }
 
+    pub fn with_sort_key(mut self, key: SortKey) -> Self {
+        self.sort_key = Some(key);
+        self
+    }
+
     pub fn uuids(&self) -> &HashSet<UuidPrefix> {
         &self.uuids
     }
@@ -65,6 +71,11 @@ impl Filter {
         &self.words
     }
 
+    pub fn sort_key(&self) -> Option<&SortKey> {
+        self.sort_key.as_ref()
+    }
+
+    // sort_key is intentionally excluded — it never contributes to WHERE.
     pub fn is_empty(&self) -> bool {
         self.uuids.is_empty()
             && self.indices.is_empty()
@@ -79,6 +90,7 @@ mod tests {
     use uuid::Uuid;
 
     use super::*;
+    use crate::domain::task::Direction;
 
     fn uuid(n: u128) -> UuidPrefix {
         UuidPrefix::from(Uuid::from_u128(n))
@@ -263,6 +275,26 @@ mod tests {
 
         assert_eq!(filter.words(), &["foo".to_string()]);
     }
+
+    // Sort key
+
+    #[test]
+    fn with_sort_key_some() {
+        let filter = Filter::default().with_sort_key(SortKey::Completed(Direction::Asc));
+        assert_eq!(filter.sort_key(), Some(&SortKey::Completed(Direction::Asc)));
+    }
+
+    #[test]
+    fn with_sort_key_overrides() {
+        let filter = Filter::default()
+            .with_sort_key(SortKey::Entry(Direction::Asc))
+            .with_sort_key(SortKey::Completed(Direction::Desc));
+        assert_eq!(
+            filter.sort_key(),
+            Some(&SortKey::Completed(Direction::Desc)),
+        );
+    }
+
     // is_empty()
 
     #[test]
@@ -295,4 +327,10 @@ mod tests {
         assert!(!filter.is_empty());
     }
 
+    // sort_key never contributes to WHERE — must be ignored by is_empty.
+    #[test]
+    fn is_empty_with_sort_key_only_returns_true() {
+        let filter = Filter::default().with_sort_key(SortKey::Entry(Direction::Asc));
+        assert!(filter.is_empty());
+    }
 }
