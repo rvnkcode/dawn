@@ -159,7 +159,7 @@ fn escape_like(term: &str) -> String {
 }
 
 pub(crate) fn build_order_clause(filter: &Filter) -> String {
-    const DEFAULT_ORDER: &str = "ORDER BY t.entry, t.id";
+    const DEFAULT_ORDER: &str = "ORDER BY t.entry ASC, t.id ASC";
     const ID_TIEBREAKER: &str = "t.id ASC";
 
     match filter.sort_key() {

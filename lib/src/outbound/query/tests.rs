@@ -717,7 +717,10 @@ fn build_update_clause_with_multiple_targets() {
 #[test]
 fn build_order_clause_empty_returns_default() {
     let filter = Filter::default();
-    assert_eq!(build_order_clause(&filter), "ORDER BY t.entry, t.id");
+    assert_eq!(
+        build_order_clause(&filter),
+        "ORDER BY t.entry ASC, t.id ASC"
+    );
 }
 
 #[test]
