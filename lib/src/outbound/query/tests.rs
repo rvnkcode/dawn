@@ -711,3 +711,29 @@ fn build_update_clause_with_multiple_targets() {
     assert_eq!(to_value(params[1].as_ref()), Value::Text(uuid1_str));
     assert_eq!(to_value(params[2].as_ref()), Value::Text(uuid2_str));
 }
+
+// build_order_clause
+
+#[test]
+fn build_order_clause_empty_returns_default() {
+    let filter = Filter::default();
+    assert_eq!(build_order_clause(&filter), "ORDER BY t.entry, t.id");
+}
+
+#[test]
+fn build_order_clause_completed_asc_appends_id_tiebreaker() {
+    let filter = Filter::default().with_sort_key(SortKey::Completed(Direction::Asc));
+    assert_eq!(
+        build_order_clause(&filter),
+        "ORDER BY t.completed ASC, t.id ASC",
+    );
+}
+
+#[test]
+fn build_order_clause_entry_desc_appends_id_tiebreaker() {
+    let filter = Filter::default().with_sort_key(SortKey::Entry(Direction::Desc));
+    assert_eq!(
+        build_order_clause(&filter),
+        "ORDER BY t.entry DESC, t.id ASC",
+    );
+}

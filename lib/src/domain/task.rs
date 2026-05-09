@@ -4,6 +4,7 @@ pub mod index;
 pub mod index_range;
 pub mod port;
 pub mod service;
+pub mod sort;
 pub mod timestamp;
 pub mod uuid_prefix;
 
@@ -13,6 +14,7 @@ pub use description::Description;
 pub use filter::Filter;
 pub use index::Index;
 pub use index_range::IndexRange;
+pub use sort::{Direction, SortKey};
 pub use timestamp::Timestamp;
 use uuid::Uuid;
 pub use uuid_prefix::UuidPrefix;

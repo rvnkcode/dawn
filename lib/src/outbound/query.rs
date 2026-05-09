@@ -2,7 +2,7 @@ use anyhow::Context;
 use rusqlite::ToSql;
 use uuid::Uuid;
 
-use crate::domain::task::{Filter, Status, TaskModification, UuidPrefix};
+use crate::domain::task::{Direction, Filter, SortKey, Status, TaskModification, UuidPrefix};
 
 type Clause = (String, Vec<Box<dyn ToSql>>);
 
@@ -156,6 +156,29 @@ fn escape_like(term: &str) -> String {
         out.push(c);
     }
     out
+}
+
+pub(crate) fn build_order_clause(filter: &Filter) -> String {
+    const DEFAULT_ORDER: &str = "ORDER BY t.entry, t.id";
+    const ID_TIEBREAKER: &str = "t.id ASC";
+
+    match filter.sort_key() {
+        // Always tiebreak on t.id ASC for deterministic ordering when the key ties.
+        Some(key) => format!("ORDER BY {}, {ID_TIEBREAKER}", serialize_sort_key(key)),
+        None => DEFAULT_ORDER.to_string(),
+    }
+}
+
+fn serialize_sort_key(key: &SortKey) -> String {
+    let (column, direction) = match key {
+        SortKey::Entry(d) => ("t.entry", d),
+        SortKey::Completed(d) => ("t.completed", d),
+    };
+    let direction = match direction {
+        Direction::Asc => "ASC",
+        Direction::Desc => "DESC",
+    };
+    format!("{column} {direction}")
 }
 
 pub(crate) fn build_update_clause(
