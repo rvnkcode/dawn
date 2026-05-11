@@ -28,7 +28,7 @@ pub enum SQLiteError {
 }
 
 impl SQLite {
-    // Excluded from coverage because it depends on the filesystem
+    // Excluded from the test coverage because it depends on the file system
     #[cfg(not(coverage))]
     pub fn new() -> Result<Self, SQLiteError> {
         let db_path = get_db_path()?;
@@ -42,7 +42,7 @@ impl SQLite {
         Ok(Self { conn })
     }
 
-    // mut self to use transaction
+    // mut self for transaction
     pub fn initialize(&mut self) -> Result<(), SQLiteError> {
         let user_version = self.get_user_version()?;
         match user_version.cmp(&DB_VERSION) {
@@ -71,7 +71,7 @@ impl SQLite {
     }
 }
 
-// Excluded from coverage because it depends on the filesystem
+// Excluded from the test coverage because it depends on the file system
 #[cfg(not(coverage))]
 fn get_db_path() -> Result<PathBuf, SQLiteError> {
     // Uses env var for E2E tests to isolate test data from real data
@@ -93,10 +93,11 @@ fn get_db_path() -> Result<PathBuf, SQLiteError> {
     Ok(path)
 }
 
-// Excluded from coverage because it depends on the filesystem
+// Excluded from the test coverage because it depends on the file system
 #[cfg(not(coverage))]
 fn ensure_parent_dir(path: &Path) -> Result<(), SQLiteError> {
     if let Some(parent) = path.parent() {
+        // Create parent directory
         std::fs::create_dir_all(parent).map_err(|e| {
             SQLiteError::InitializationError(format!(
                 "failed to create directory '{}': {}",
