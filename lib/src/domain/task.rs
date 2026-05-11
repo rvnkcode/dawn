@@ -5,16 +5,16 @@ pub mod index_range;
 pub mod port;
 pub mod service;
 pub mod sort;
+pub mod status;
 pub mod timestamp;
 pub mod uuid_prefix;
-
-use std::fmt::{self, Display, Formatter};
 
 pub use description::Description;
 pub use filter::Filter;
 pub use index::Index;
 pub use index_range::IndexRange;
 pub use sort::{Direction, SortKey};
+pub use status::Status;
 pub use timestamp::Timestamp;
 use uuid::Uuid;
 pub use uuid_prefix::UuidPrefix;
@@ -56,23 +56,6 @@ impl Task {
             return Status::Completed;
         }
         Status::Pending
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Status {
-    Pending,
-    Completed,
-    Deleted,
-}
-
-impl Display for Status {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Status::Pending => write!(f, "Pending"),
-            Status::Completed => write!(f, "Completed"),
-            Status::Deleted => write!(f, "Deleted"),
-        }
     }
 }
 
