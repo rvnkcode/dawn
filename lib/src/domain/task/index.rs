@@ -60,13 +60,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn index_new_valid() {
+    fn new_valid() {
         let index = Index::new(1).unwrap();
         assert_eq!(index.to_string(), "1");
     }
 
     #[test]
-    fn index_new_zero() {
+    fn new_zero() {
         let result = Index::new(0);
         assert_eq!(result, Err(IndexError::TooSmall(0)));
     }
