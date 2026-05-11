@@ -33,47 +33,17 @@ fn build_id_clause(filter: &Filter) -> anyhow::Result<Option<Clause>> {
     let mut clauses: Vec<String> = Vec::new();
     let mut params: Vec<Box<dyn ToSql>> = Vec::new();
 
-    let uuids = filter.uuids();
-    if !uuids.is_empty() {
-        let (full, prefix): (Vec<&UuidPrefix>, Vec<&UuidPrefix>) =
-            uuids.iter().partition(|u| u.is_full());
-
-        let mut sub_clauses: Vec<String> = Vec::new();
-        if !full.is_empty() {
-            sub_clauses.push(format!("t.id IN ({})", repeat_vars(full.len())));
-            for uuid in &full {
-                params.push(Box::new(uuid.to_string()) as Box<dyn ToSql>);
-            }
-        }
-        for uuid in &prefix {
-            sub_clauses.push("t.id LIKE ?".to_string());
-            // No LIKE escape needed: UuidPrefix [0-9a-f-] excludes %, _, \
-            params.push(Box::new(format!("{uuid}%")) as Box<dyn ToSql>);
-        }
-
-        let clause = if sub_clauses.len() == 1 {
-            sub_clauses.remove(0)
-        } else {
-            format!("({})", sub_clauses.join(" OR "))
-        };
-        clauses.push(clause);
+    if let Some((uuid_clause, uuid_params)) = build_uuid_clause(filter) {
+        clauses.push(uuid_clause);
+        params.extend(uuid_params);
     }
-
-    let indices = filter.indices();
-    if !indices.is_empty() {
-        clauses.push(format!("tpr.row_id IN ({})", repeat_vars(indices.len())));
-        for index in indices {
-            let v = i64::try_from(index.get()).context("task index exceeds i64 range")?;
-            params.push(Box::new(v) as Box<dyn ToSql>);
-        }
+    if let Some((indices_clause, indices_params)) = build_indices_clause(filter)? {
+        clauses.push(indices_clause);
+        params.extend(indices_params);
     }
-
-    for range in filter.index_ranges() {
-        clauses.push("tpr.row_id BETWEEN ? AND ?".to_string());
-        let start = i64::try_from(range.start().get()).context("task index exceeds i64 range")?;
-        let end = i64::try_from(range.end().get()).context("task index exceeds i64 range")?;
-        params.push(Box::new(start) as Box<dyn ToSql>);
-        params.push(Box::new(end) as Box<dyn ToSql>);
+    for (range_clause, range_params) in build_index_range_clauses(filter)? {
+        clauses.push(range_clause);
+        params.extend(range_params);
     }
 
     Ok(match clauses.len() {
@@ -81,6 +51,74 @@ fn build_id_clause(filter: &Filter) -> anyhow::Result<Option<Clause>> {
         1 => Some((clauses.remove(0), params)),
         _ => Some((format!("({})", clauses.join(" OR ")), params)),
     })
+}
+
+fn build_uuid_clause(filter: &Filter) -> Option<Clause> {
+    let uuids = filter.uuids();
+    if uuids.is_empty() {
+        return None;
+    }
+
+    let (full, prefix): (Vec<&UuidPrefix>, Vec<&UuidPrefix>) =
+        uuids.iter().partition(|u| u.is_full());
+
+    let mut sub_clauses: Vec<String> = Vec::new();
+    let mut params: Vec<Box<dyn ToSql>> = Vec::new();
+
+    // Full UUID no need for LIKE: exact match on t.id
+    if !full.is_empty() {
+        sub_clauses.push(format!("t.id IN ({})", repeat_vars(full.len())));
+        params.extend(
+            full.iter()
+                .map(|u| Box::new(u.to_string()) as Box<dyn ToSql>),
+        );
+    }
+    for uuid in &prefix {
+        sub_clauses.push("t.id LIKE ?".to_string());
+        // No LIKE escape needed: UuidPrefix [0-9a-f-] excludes %, _, \
+        params.push(Box::new(format!("{uuid}%")) as Box<dyn ToSql>);
+    }
+
+    let clause = if sub_clauses.len() == 1 {
+        sub_clauses.remove(0)
+    } else {
+        format!("({})", sub_clauses.join(" OR "))
+    };
+    Some((clause, params))
+}
+
+fn build_indices_clause(filter: &Filter) -> anyhow::Result<Option<Clause>> {
+    let indices = filter.indices();
+    if indices.is_empty() {
+        return Ok(None);
+    }
+
+    let clause = format!("tpr.row_id IN ({})", repeat_vars(indices.len()));
+    let params: Vec<Box<dyn ToSql>> = indices
+        .iter()
+        .map(|index| {
+            let v = i64::try_from(index.get()).context("task index exceeds i64 range")?;
+            Ok(Box::new(v) as Box<dyn ToSql>)
+        })
+        .collect::<anyhow::Result<_>>()?;
+    Ok(Some((clause, params)))
+}
+
+fn build_index_range_clauses(filter: &Filter) -> anyhow::Result<Vec<Clause>> {
+    filter
+        .index_ranges()
+        .iter()
+        .map(|range| {
+            let start =
+                i64::try_from(range.start().get()).context("task index exceeds i64 range")?;
+            let end = i64::try_from(range.end().get()).context("task index exceeds i64 range")?;
+            let params: Vec<Box<dyn ToSql>> = vec![
+                Box::new(start) as Box<dyn ToSql>,
+                Box::new(end) as Box<dyn ToSql>,
+            ];
+            Ok(("tpr.row_id BETWEEN ? AND ?".to_string(), params))
+        })
+        .collect()
 }
 
 fn build_status_clause(filter: &Filter) -> Option<String> {
