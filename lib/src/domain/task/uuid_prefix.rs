@@ -8,7 +8,7 @@ use regex::Regex;
 use thiserror::Error;
 use uuid::Uuid;
 
-// 8-char minimum, up to 8-4-4-4-12: prefix matches via SQL LIKE
+/// 8-char minimum, up to 8-4-4-4-12: prefix matches via SQL LIKE
 pub const UUID_PREFIX_PATTERN: &str =
     r"[0-9a-f]{8}(?:-[0-9a-f]{0,4}(?:-[0-9a-f]{0,4}(?:-[0-9a-f]{0,4}(?:-[0-9a-f]{0,12})?)?)?)?";
 
