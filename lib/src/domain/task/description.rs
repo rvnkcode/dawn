@@ -47,25 +47,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn description_new_valid() {
+    fn new_valid() {
         let result = Description::new("Valid description");
         assert!(result.is_ok());
     }
 
     #[test]
-    fn description_new_empty_string() {
+    fn new_empty_string() {
         let result = Description::new("");
         assert!(result.is_err());
     }
 
     #[test]
-    fn description_new_whitespace_only() {
+    fn new_whitespace_only() {
         let result = Description::new("   ");
         assert!(result.is_err());
     }
 
     #[test]
-    fn description_new_trims_whitespace() {
+    fn new_trims_whitespace() {
         let result = Description::new("  hello world  ");
         assert!(result.is_ok());
         let desc = result.unwrap();
