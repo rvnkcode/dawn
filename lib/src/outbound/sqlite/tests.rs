@@ -31,8 +31,7 @@ fn get_modified(db: &SQLite, id: &str) -> i64 {
         .expect("get_modified: failed to query modified timestamp")
 }
 
-/* Sets `modified` to a sentinel value (0) without firing the trigger,
- * since the WHEN clause only watches description/entry/completed/deleted. */
+// Sets `modified` to a sentinel value (0) without firing the trigger
 fn reset_modified(db: &SQLite, id: &str) {
     db.conn
         .execute(
