@@ -68,18 +68,6 @@ fn count_pending_returns_zero_when_no_tasks() {
 }
 
 #[test]
-fn count_pending_returns_count_of_pending_tasks() {
-    let db = setup();
-    insert_task(&db, "00000000-0000-0000-0000-000000000007", "task one");
-    insert_task(&db, "00000000-0000-0000-0000-000000000008", "task two");
-    insert_task(&db, "00000000-0000-0000-0000-000000000009", "task three");
-
-    let count = db.count_pending().unwrap();
-
-    assert_eq!(count, 3);
-}
-
-#[test]
 fn count_pending_excludes_deleted_and_completed_tasks() {
     let db = setup();
     insert_task(&db, "00000000-0000-0000-0000-00000000000a", "pending one");

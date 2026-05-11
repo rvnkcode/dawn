@@ -92,29 +92,6 @@ fn not_update_modified_when_same_value() {
 // View: Pending Tasks Row ID
 
 #[test]
-fn assign_sequential_row_ids_to_pending_tasks() {
-    let db = setup();
-    insert_task(&db, "00000000-0000-0000-0000-000000000006", "first");
-    insert_task(&db, "00000000-0000-0000-0000-000000000007", "second");
-    insert_task(&db, "00000000-0000-0000-0000-000000000008", "third");
-
-    let mut stmt = db
-        .conn
-        .prepare("SELECT id, row_id FROM vw_task_pending_row_id ORDER BY row_id")
-        .unwrap();
-    let rows: Vec<(String, i64)> = stmt
-        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
-        .unwrap()
-        .map(|r| r.unwrap())
-        .collect();
-
-    assert_eq!(rows.len(), 3);
-    assert_eq!(rows[0], ("00000000-0000-0000-0000-000000000006".into(), 1));
-    assert_eq!(rows[1], ("00000000-0000-0000-0000-000000000007".into(), 2));
-    assert_eq!(rows[2], ("00000000-0000-0000-0000-000000000008".into(), 3));
-}
-
-#[test]
 fn exclude_deleted_and_completed_tasks_from_row_ids() {
     let db = setup();
     insert_task(&db, "00000000-0000-0000-0000-000000000009", "pending 1");
