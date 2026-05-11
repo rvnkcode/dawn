@@ -172,19 +172,15 @@ fn build_words_clause(filter: &Filter) -> Option<Clause> {
     Some((joined, params))
 }
 
-/*
-* Escapes a term for FTS5 query by wrapping in double quotes
-* and escaping internal double quotes
-*/
+// Escapes a term for FTS5 query by wrapping in double quotes
+// and escaping internal double quotes
 fn escape_fts5_term(term: &str) -> String {
     let escaped = term.replace('"', "\"\"");
     format!("\"{escaped}\"")
 }
 
-/*
-* Escapes `%`, `_`, and `\` in a SQLite LIKE pattern.
-* Use with `LIKE ? ESCAPE '\'`.
-*/
+// Escapes `%`, `_`, and `\` in a SQLite LIKE pattern.
+// Use with `LIKE ? ESCAPE '\'`.
 fn escape_like(term: &str) -> String {
     let mut out = String::new();
     for c in term.chars() {
