@@ -24,7 +24,7 @@ fn update_modified_when_description_changes() {
 #[test]
 fn update_modified_when_completed_changes() {
     let db = setup();
-    let id = "00000000-0000-0000-0000-000000000005";
+    let id = "00000000-0000-0000-0000-000000000002";
     insert_task(&db, id, "task to complete");
     reset_modified(&db, id);
 
@@ -41,7 +41,7 @@ fn update_modified_when_completed_changes() {
 #[test]
 fn update_modified_when_deleted_changes() {
     let db = setup();
-    let id = "00000000-0000-0000-0000-000000000006";
+    let id = "00000000-0000-0000-0000-000000000003";
     insert_task(&db, id, "task to delete");
     reset_modified(&db, id);
 
@@ -58,7 +58,7 @@ fn update_modified_when_deleted_changes() {
 #[test]
 fn update_modified_when_entry_changes() {
     let db = setup();
-    let id = "00000000-0000-0000-0000-000000000006";
+    let id = "00000000-0000-0000-0000-000000000004";
     insert_task(&db, id, "task to re-date");
     reset_modified(&db, id);
 
@@ -75,7 +75,7 @@ fn update_modified_when_entry_changes() {
 #[test]
 fn not_update_modified_when_same_value() {
     let db = setup();
-    let id = "00000000-0000-0000-0000-00000000000f";
+    let id = "00000000-0000-0000-0000-000000000005";
     insert_task(&db, id, "unchanged");
     reset_modified(&db, id);
 
@@ -94,9 +94,9 @@ fn not_update_modified_when_same_value() {
 #[test]
 fn assign_sequential_row_ids_to_pending_tasks() {
     let db = setup();
-    insert_task(&db, "00000000-0000-0000-0000-000000000013", "first");
-    insert_task(&db, "00000000-0000-0000-0000-000000000014", "second");
-    insert_task(&db, "00000000-0000-0000-0000-000000000015", "third");
+    insert_task(&db, "00000000-0000-0000-0000-000000000006", "first");
+    insert_task(&db, "00000000-0000-0000-0000-000000000007", "second");
+    insert_task(&db, "00000000-0000-0000-0000-000000000008", "third");
 
     let mut stmt = db
         .conn
@@ -109,30 +109,30 @@ fn assign_sequential_row_ids_to_pending_tasks() {
         .collect();
 
     assert_eq!(rows.len(), 3);
-    assert_eq!(rows[0], ("00000000-0000-0000-0000-000000000013".into(), 1));
-    assert_eq!(rows[1], ("00000000-0000-0000-0000-000000000014".into(), 2));
-    assert_eq!(rows[2], ("00000000-0000-0000-0000-000000000015".into(), 3));
+    assert_eq!(rows[0], ("00000000-0000-0000-0000-000000000006".into(), 1));
+    assert_eq!(rows[1], ("00000000-0000-0000-0000-000000000007".into(), 2));
+    assert_eq!(rows[2], ("00000000-0000-0000-0000-000000000008".into(), 3));
 }
 
 #[test]
 fn exclude_deleted_and_completed_tasks_from_row_ids() {
     let db = setup();
-    insert_task(&db, "00000000-0000-0000-0000-000000000016", "pending 1");
-    insert_task(&db, "00000000-0000-0000-0000-000000000017", "to delete");
-    insert_task(&db, "00000000-0000-0000-0000-000000000018", "pending 2");
-    insert_task(&db, "00000000-0000-0000-0000-000000000019", "to complete");
-    insert_task(&db, "00000000-0000-0000-0000-00000000001a", "pending 3");
+    insert_task(&db, "00000000-0000-0000-0000-000000000009", "pending 1");
+    insert_task(&db, "00000000-0000-0000-0000-000000000010", "to delete");
+    insert_task(&db, "00000000-0000-0000-0000-000000000011", "pending 2");
+    insert_task(&db, "00000000-0000-0000-0000-000000000012", "to complete");
+    insert_task(&db, "00000000-0000-0000-0000-000000000013", "pending 3");
 
     db.conn
         .execute(
             "UPDATE task SET deleted = unixepoch() WHERE id = ?1",
-            params!["00000000-0000-0000-0000-000000000017"],
+            params!["00000000-0000-0000-0000-000000000010"],
         )
         .unwrap();
     db.conn
         .execute(
             "UPDATE task SET completed = unixepoch() WHERE id = ?1",
-            params!["00000000-0000-0000-0000-000000000019"],
+            params!["00000000-0000-0000-0000-000000000012"],
         )
         .unwrap();
 
@@ -147,9 +147,9 @@ fn exclude_deleted_and_completed_tasks_from_row_ids() {
         .collect();
 
     assert_eq!(rows.len(), 3);
-    assert_eq!(rows[0], ("00000000-0000-0000-0000-000000000016".into(), 1));
-    assert_eq!(rows[1], ("00000000-0000-0000-0000-000000000018".into(), 2));
-    assert_eq!(rows[2], ("00000000-0000-0000-0000-00000000001a".into(), 3));
+    assert_eq!(rows[0], ("00000000-0000-0000-0000-000000000009".into(), 1));
+    assert_eq!(rows[1], ("00000000-0000-0000-0000-000000000011".into(), 2));
+    assert_eq!(rows[2], ("00000000-0000-0000-0000-000000000013".into(), 3));
 }
 
 // FTS triggers
@@ -159,7 +159,7 @@ fn sync_insert_to_fts() {
     let db = setup();
     insert_task(
         &db,
-        "00000000-0000-0000-0000-00000000001b",
+        "00000000-0000-0000-0000-000000000014",
         "searchable task",
     );
 
@@ -178,7 +178,7 @@ fn sync_insert_to_fts() {
 #[test]
 fn sync_update_to_fts() {
     let db = setup();
-    let id = "00000000-0000-0000-0000-00000000001c";
+    let id = "00000000-0000-0000-0000-000000000015";
     insert_task(&db, id, "original text");
 
     db.conn
@@ -205,6 +205,7 @@ fn sync_update_to_fts() {
         )
         .unwrap();
 
+    // 'original' not found, 'replacement' found
     assert_eq!(old_count, 0);
     assert_eq!(new_count, 1);
 }
@@ -212,7 +213,7 @@ fn sync_update_to_fts() {
 #[test]
 fn sync_delete_to_fts() {
     let db = setup();
-    let id = "00000000-0000-0000-0000-00000000001d";
+    let id = "00000000-0000-0000-0000-000000000016";
     insert_task(&db, id, "ephemeral task");
 
     db.conn
