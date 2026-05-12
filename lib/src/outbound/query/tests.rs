@@ -50,7 +50,7 @@ fn build_where_clause_with_single_uuid() {
 }
 
 #[test]
-fn build_where_clause_with_multiple_uids() {
+fn build_where_clause_with_multiple_uuids() {
     use uuid::Uuid;
 
     let uuid1_str = Uuid::new_v4().to_string();
@@ -430,7 +430,7 @@ fn build_where_clause_with_uuid_and_status() {
 }
 
 #[test]
-fn build_where_clause_with_status_and_words() {
+fn build_where_clause_with_status_and_long_words() {
     let filter = Filter::default()
         .with_report_status(Status::Pending)
         .with_words(["hello"]);
@@ -448,7 +448,7 @@ fn build_where_clause_with_status_and_words() {
 }
 
 #[test]
-fn build_where_clause_with_uuid_and_words() {
+fn build_where_clause_with_uuid_and_short_words() {
     use uuid::Uuid;
 
     let uuid = Uuid::new_v4();
@@ -513,7 +513,7 @@ fn escape_fts5_term_doubles_internal_quotes() {
 // escape_like
 
 #[test]
-fn escape_like_passthrough_when_no_metachars() {
+fn escape_like_passthrough_when_no_meta_chars() {
     assert_eq!(escape_like(""), "");
     assert_eq!(escape_like("abc"), "abc");
     assert_eq!(escape_like("한글"), "한글");
