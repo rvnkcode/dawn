@@ -166,122 +166,6 @@ fn update_tasks_clears_completed() {
     assert!(tasks[0].completed.is_none());
 }
 
-// IFNULL guard: a second `completed` write must not overwrite the original
-// timestamp. Mirrors the row-level semantics of `completed = IFNULL(completed, ?)`
-// in `build_update_clause`.
-#[test]
-fn update_tasks_preserves_existing_completed_timestamp() {
-    let db = setup();
-    let id: Uuid = "00000000-0000-0000-0000-00000000004a".parse().unwrap();
-    insert_task(&db, "00000000-0000-0000-0000-00000000004a", "task");
-    db.update_tasks(
-        &TaskModification {
-            description: None,
-            completed: Some(Some(Timestamp::new(1700000000).unwrap())),
-            deleted: None,
-        },
-        &[id],
-    )
-    .unwrap();
-
-    db.update_tasks(
-        &TaskModification {
-            description: None,
-            completed: Some(Some(Timestamp::new(1900000000).unwrap())),
-            deleted: None,
-        },
-        &[id],
-    )
-    .unwrap();
-
-    let tasks = db
-        .list_tasks(&Filter::default().with_report_status(Status::Completed))
-        .unwrap();
-    assert_eq!(tasks.len(), 1);
-    assert_eq!(
-        tasks[0].completed,
-        Some(Timestamp::new(1700000000).unwrap())
-    );
-}
-
-// IFNULL guard for `deleted`: a second write must not overwrite the original
-// timestamp. Mirrors `deleted = IFNULL(deleted, ?)`.
-#[test]
-fn update_tasks_preserves_existing_deleted_timestamp() {
-    let db = setup();
-    let id: Uuid = "00000000-0000-0000-0000-00000000004b".parse().unwrap();
-    insert_task(&db, "00000000-0000-0000-0000-00000000004b", "task");
-    db.update_tasks(
-        &TaskModification {
-            description: None,
-            completed: None,
-            deleted: Some(Some(Timestamp::new(1700000000).unwrap())),
-        },
-        &[id],
-    )
-    .unwrap();
-
-    db.update_tasks(
-        &TaskModification {
-            description: None,
-            completed: None,
-            deleted: Some(Some(Timestamp::new(1900000000).unwrap())),
-        },
-        &[id],
-    )
-    .unwrap();
-
-    let tasks = db
-        .list_tasks(&Filter::default().with_report_status(Status::Deleted))
-        .unwrap();
-    assert_eq!(tasks.len(), 1);
-    assert_eq!(tasks[0].deleted, Some(Timestamp::new(1700000000).unwrap()));
-}
-
-// In a batch update, IFNULL is evaluated per-row: rows without a prior
-// timestamp receive the new one; rows with a prior value keep theirs.
-#[test]
-fn update_tasks_ifnull_is_per_row_in_batch_completed() {
-    let db = setup();
-    let id_existing: Uuid = "00000000-0000-0000-0000-00000000004c".parse().unwrap();
-    let id_fresh: Uuid = "00000000-0000-0000-0000-00000000004d".parse().unwrap();
-    insert_task(&db, "00000000-0000-0000-0000-00000000004c", "existing");
-    insert_task(&db, "00000000-0000-0000-0000-00000000004d", "fresh");
-    db.update_tasks(
-        &TaskModification {
-            description: None,
-            completed: Some(Some(Timestamp::new(1700000000).unwrap())),
-            deleted: None,
-        },
-        &[id_existing],
-    )
-    .unwrap();
-
-    db.update_tasks(
-        &TaskModification {
-            description: None,
-            completed: Some(Some(Timestamp::new(1900000000).unwrap())),
-            deleted: None,
-        },
-        &[id_existing, id_fresh],
-    )
-    .unwrap();
-
-    let tasks = db
-        .list_tasks(&Filter::default().with_report_status(Status::Completed))
-        .unwrap();
-    let by_id: std::collections::HashMap<Uuid, Option<Timestamp>> =
-        tasks.into_iter().map(|t| (t.uuid, t.completed)).collect();
-    assert_eq!(
-        by_id.get(&id_existing),
-        Some(&Some(Timestamp::new(1700000000).unwrap()))
-    );
-    assert_eq!(
-        by_id.get(&id_fresh),
-        Some(&Some(Timestamp::new(1900000000).unwrap()))
-    );
-}
-
 #[test]
 fn update_tasks_sets_deleted() {
     let db = setup();
@@ -326,6 +210,121 @@ fn update_tasks_clears_deleted() {
         .unwrap();
     assert_eq!(tasks.len(), 1);
     assert!(tasks[0].deleted.is_none());
+}
+
+// IFNULL guard: a second `completed` write must not overwrite the original timestamp
+#[test]
+fn update_tasks_preserves_existing_completed_timestamp() {
+    let db = setup();
+    let id: Uuid = "00000000-0000-0000-0000-00000000004a".parse().unwrap();
+    insert_task(&db, "00000000-0000-0000-0000-00000000004a", "task");
+    db.update_tasks(
+        &TaskModification {
+            description: None,
+            completed: Some(Some(Timestamp::new(1700000000).unwrap())),
+            deleted: None,
+        },
+        &[id],
+    )
+    .unwrap();
+
+    db.update_tasks(
+        &TaskModification {
+            description: None,
+            completed: Some(Some(Timestamp::new(1900000000).unwrap())),
+            deleted: None,
+        },
+        &[id],
+    )
+    .unwrap();
+
+    let tasks = db
+        .list_tasks(&Filter::default().with_report_status(Status::Completed))
+        .unwrap();
+    assert_eq!(tasks.len(), 1);
+    assert_eq!(
+        tasks[0].completed,
+        Some(Timestamp::new(1700000000).unwrap())
+    );
+}
+
+// IFNULL guard for `deleted`: a second write must not overwrite the original timestamp
+#[test]
+fn update_tasks_preserves_existing_deleted_timestamp() {
+    let db = setup();
+    let id: Uuid = "00000000-0000-0000-0000-00000000004b".parse().unwrap();
+    insert_task(&db, "00000000-0000-0000-0000-00000000004b", "task");
+    db.update_tasks(
+        &TaskModification {
+            description: None,
+            completed: None,
+            deleted: Some(Some(Timestamp::new(1700000000).unwrap())),
+        },
+        &[id],
+    )
+    .unwrap();
+
+    db.update_tasks(
+        &TaskModification {
+            description: None,
+            completed: None,
+            deleted: Some(Some(Timestamp::new(1900000000).unwrap())),
+        },
+        &[id],
+    )
+    .unwrap();
+
+    let tasks = db
+        .list_tasks(&Filter::default().with_report_status(Status::Deleted))
+        .unwrap();
+    assert_eq!(tasks.len(), 1);
+    assert_eq!(tasks[0].deleted, Some(Timestamp::new(1700000000).unwrap()));
+}
+
+// In a batch update, IFNULL is evaluated per-row
+#[test]
+fn update_tasks_ifnull_is_per_row_in_batch_completed() {
+    let db = setup();
+    let id_existing: Uuid = "00000000-0000-0000-0000-00000000004c".parse().unwrap();
+    let id_fresh: Uuid = "00000000-0000-0000-0000-00000000004d".parse().unwrap();
+    insert_task(&db, "00000000-0000-0000-0000-00000000004c", "existing");
+    insert_task(&db, "00000000-0000-0000-0000-00000000004d", "fresh");
+    db.update_tasks(
+        &TaskModification {
+            description: None,
+            completed: Some(Some(Timestamp::new(1700000000).unwrap())),
+            deleted: None,
+        },
+        &[id_existing],
+    )
+    .unwrap();
+
+    db.update_tasks(
+        &TaskModification {
+            description: None,
+            completed: Some(Some(Timestamp::new(1900000000).unwrap())),
+            deleted: None,
+        },
+        &[id_existing, id_fresh],
+    )
+    .unwrap();
+
+    // Set completed for both tasks
+    let tasks = db
+        .list_tasks(&Filter::default().with_report_status(Status::Completed))
+        .unwrap();
+    let by_id: std::collections::HashMap<Uuid, Option<Timestamp>> =
+        tasks.into_iter().map(|t| (t.uuid, t.completed)).collect();
+    // Existing task's timestamp is preserved
+    assert_eq!(
+        by_id.get(&id_existing),
+        Some(&Some(Timestamp::new(1700000000).unwrap()))
+    );
+    // Fresh task gets new timestamp
+    assert_eq!(
+        by_id.get(&id_fresh),
+        Some(&Some(Timestamp::new(1900000000).unwrap()))
+    );
 }
 
 #[test]
