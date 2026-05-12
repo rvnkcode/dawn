@@ -43,14 +43,18 @@ mod tests {
             now,
         )
         .unwrap();
+
         let fields: Vec<String> = row.fields().iter().map(|c| c.to_string()).collect();
+
         assert_eq!(fields, vec!["1", "30s", "buy milk"]);
     }
 
     #[test]
     fn new_returns_missing_index_when_index_is_none() {
         let now = 1_000_000;
+
         let err = NextRow::new(task(None, "buy milk", now), now).unwrap_err();
+
         assert!(matches!(
             err.downcast_ref::<NextRowError>(),
             Some(NextRowError::MissingIndex)
