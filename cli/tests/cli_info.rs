@@ -6,6 +6,8 @@ use predicates::{
     str::{contains, is_empty},
 };
 
+// dawn add "buy milk"
+// dawn 1
 #[test]
 fn info_single_index_renders_all_base_rows() {
     let (_dir, db) = common::test_db();
@@ -33,6 +35,9 @@ fn info_single_index_renders_all_base_rows() {
         .stderr(is_empty());
 }
 
+// dawn add "buy milk"
+// dawn 1 done
+// dawn <uuid>
 #[test]
 fn info_completed_task_renders_end_row_and_completed_status() {
     let (_dir, db) = common::test_db();
@@ -60,6 +65,9 @@ fn info_completed_task_renders_end_row_and_completed_status() {
         );
 }
 
+// dawn add "buy milk"
+// dawn 1 delete
+// dawn <uuid>
 #[test]
 fn info_deleted_task_renders_deleted_row_and_deleted_status() {
     let (_dir, db) = common::test_db();
@@ -71,7 +79,7 @@ fn info_deleted_task_renders_deleted_row_and_deleted_status() {
     let info_before = run_stdout(common::execute_dawn(&db).arg("1"));
     let uuid = extract_uuid(&info_before);
 
-    delete_via_pty(&db, &uuid);
+    delete_via_pty(&db, "1");
 
     // "Deleted" appears twice: once as Status value, once as row label.
     common::execute_dawn(&db)
@@ -86,6 +94,10 @@ fn info_deleted_task_renders_deleted_row_and_deleted_status() {
         );
 }
 
+// dawn add "buy milk"
+// dawn 1 done
+// dawn <uuid> delete
+// dawn <uuid>
 #[test]
 fn info_completed_then_deleted_task_renders_both_end_and_deleted_rows() {
     let (_dir, db) = common::test_db();
@@ -115,6 +127,8 @@ fn info_completed_then_deleted_task_renders_both_end_and_deleted_rows() {
         );
 }
 
+// (added 2 tasks  via add command)
+// dawn 1 2
 #[test]
 fn info_multiple_bare_args_renders_each_task() {
     let (_dir, db) = common::test_db();
@@ -127,6 +141,9 @@ fn info_multiple_bare_args_renders_each_task() {
         .stdout(contains("one").and(contains("two")));
 }
 
+// dawn add "only"
+// dawn 99
+// No matches.
 #[test]
 fn info_nonexistent_index_prints_no_matches() {
     let (_dir, db) = common::test_db();
@@ -142,6 +159,9 @@ fn info_nonexistent_index_prints_no_matches() {
         .stderr("No matches.\n");
 }
 
+// dawn add "only"
+// dawn 00000000-0000-0000-0000-000000000099
+// No matches.
 #[test]
 fn info_nonexistent_uuid_prints_no_matches() {
     let (_dir, db) = common::test_db();
@@ -159,6 +179,8 @@ fn info_nonexistent_uuid_prints_no_matches() {
 
 // ── Taskwarrior-style dispatch: any bare id/uuid → info with merged filter ──
 
+// (added 3 tasks via add command)
+// dawn 1,2 3
 #[test]
 fn mixed_set_and_bare_resolves_to_info_with_merged_ids() {
     let (_dir, db) = common::test_db();
@@ -178,6 +200,10 @@ fn mixed_set_and_bare_resolves_to_info_with_merged_ids() {
         );
 }
 
+// dawn add "investigate flaky build"
+// dawn add "buy milk"
+// dawn investigate
+// → should route to next view
 #[test]
 fn non_id_bare_routes_to_next_with_word_filter() {
     let (_dir, db) = common::test_db();
@@ -201,6 +227,8 @@ fn non_id_bare_routes_to_next_with_word_filter() {
         );
 }
 
+// (added 3 tasks via add command)
+// dawn 1, 2-3
 #[test]
 fn bare_index_with_range_routes_to_info_with_merged_filter() {
     let (_dir, db) = common::test_db();
@@ -220,6 +248,9 @@ fn bare_index_with_range_routes_to_info_with_merged_filter() {
         );
 }
 
+// (added 2 tasks via add command)
+// dawn 1,2 99
+// → should route to info with filter for 1 and 2, ignoring nonexistent 99
 #[test]
 fn bare_with_nonexistent_id_and_set_filter_exits_cleanly() {
     let (_dir, db) = common::test_db();
