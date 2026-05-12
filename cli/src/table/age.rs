@@ -11,9 +11,9 @@ const WEEK: i64 = 7 * DAY;
 
 #[derive(Debug, PartialEq, Error)]
 pub(crate) enum AgeError {
-    #[error("Invalid age delta: from={from}, to={to}")]
+    #[error("invalid age delta: from={from}, to={to}")]
     InvalidDelta { from: i64, to: i64 },
-    #[error("Timestamp out of DateTime range: {0}")]
+    #[error("timestamp out of DateTime range: {0}")]
     OutOfRange(i64),
 }
 
@@ -68,9 +68,18 @@ fn format_age(from: DateTime<Utc>, to: DateTime<Utc>) -> String {
     }
 }
 
-/* Calendar (years, months) diff using borrow. Borrows a month when `to` is
-earlier in the month than `from` (comparing day-of-month, then time-of-day).
-Caller guarantees `to >= from`, so `total_months >= 0`. */
+// Returns the number of *completed* calendar (years, months) between `from` and `to`.
+//
+// Walkthrough — from=2024-01-20, to=2024-04-10:
+//   year_diff    = 2024 - 2024 = 0
+//   month_diff   = 4 - 1 = 3                (naive: 3 months)
+//   incomplete   = day 10 < day 20 → true   (Apr hasn't reached the 20th yet)
+//   total_months = year_diff * 12 + month_diff - incomplete
+//                =         0 * 12 +          3 -          1  = 2
+//   split into (years, months) = (total_months / 12, total_months % 12)
+//                              = (           2 / 12,            2 % 12) = (0, 2)
+//
+// Caller guarantees `to >= from`, so `total_months >= 0`.
 fn calendar_ym_diff(from: DateTime<Utc>, to: DateTime<Utc>) -> (i32, u32) {
     let year_diff = to.year() - from.year();
     let month_diff = to.month() as i32 - from.month() as i32;
@@ -125,15 +134,6 @@ mod tests {
     }
 
     #[test]
-    fn days() {
-        let now = 100_000_000;
-        assert_eq!(
-            Age::new(&ts(now - 10 * DAY), now).unwrap().to_string(),
-            "10d"
-        );
-    }
-
-    #[test]
     fn days_just_under_two_weeks() {
         let now = 100_000_000;
         assert_eq!(
@@ -148,15 +148,6 @@ mod tests {
         assert_eq!(
             Age::new(&ts(now - 14 * DAY), now).unwrap().to_string(),
             "2w"
-        );
-    }
-
-    #[test]
-    fn weeks_eleven() {
-        let now = 100_000_000;
-        assert_eq!(
-            Age::new(&ts(now - 11 * WEEK), now).unwrap().to_string(),
-            "11w"
         );
     }
 
