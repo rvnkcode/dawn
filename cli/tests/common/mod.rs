@@ -13,7 +13,7 @@ use tempfile::TempDir;
 const PTY_TIMEOUT_MS: u64 = 5000;
 const SELECT_DOWN: &str = "\x1b[B";
 
-// Return `TempDir` to ensure temp dir and DB alive until test end
+// Return `TempDir` to ensure temp dir and DB alive until test ends
 pub fn test_db() -> (TempDir, PathBuf) {
     let dir = TempDir::new().expect("tempdir");
     let db = dir.path().join("dawn.db");
@@ -34,9 +34,7 @@ pub fn dawn_pty(db: &Path, args: &[&str]) -> PtySession {
     spawn_command(cmd, Some(PTY_TIMEOUT_MS)).expect("spawn dawn under PTY")
 }
 
-// Drives a single-task delete flow under PTY (Yes on the Confirm prompt) and
-// waits for the success footer. Used by tests that need a deleted task as
-// fixture rather than as the system under test.
+// Delete a task under PTY (Yes on the prompt) and waits for the success footer
 pub fn delete_via_pty(db: &Path, target: &str) {
     let mut p = dawn_pty(db, &[target, "delete"]);
     p.exp_string("Delete task").expect("delete confirm prompt");
@@ -46,8 +44,8 @@ pub fn delete_via_pty(db: &Path, target: &str) {
 }
 
 // Picks an option from inquire's `Select` list (Yes/No/All/Quit ordering).
-// Sent as N down-arrows + Enter; the LineWriter requires explicit flush
-// because `\r` is not a newline.
+// Sent as N down-arrows + Enter;
+// the LineWriter requires explicit flush because `\r` is not a newline
 pub fn select_option(p: &mut PtySession, choice: &str) {
     let down_count = match choice {
         "Yes" => 0,
@@ -74,8 +72,6 @@ pub fn assert_pty_exit(p: &mut PtySession, expected_code: i32) {
     }
 }
 
-// Drain remaining PTY output up to EOF and assert exit code. Returns the
-// trailing buffer so callers can count occurrences (e.g. footnote lines).
 pub fn drain_pty_and_assert_exit(p: &mut PtySession, expected_code: i32) -> String {
     let trailing = p.exp_eof().expect("eof");
     match p.process().wait().expect("wait") {
@@ -89,16 +85,17 @@ pub fn drain_pty_and_assert_exit(p: &mut PtySession, expected_code: i32) -> Stri
 }
 
 // Tasks share `entry` seconds, so the Index↔description mapping is not stable
-// (tiebreaker is the random UUID lex order). Tests must not assume that the
-// i-th description receives Index i; filter on all seeded indices, or assert
-// on counts rather than on which description maps to which index.
+// (tiebreaker is the random UUID lex order)
+// Tests must not assume that the i-th description receives Index i;
+// filter on all seeded indices, or assert on counts
+// rather than on which description maps to which index.
 pub fn setup_tasks(db: &Path, descriptions: &[&str]) {
     for desc in descriptions {
         execute_dawn(db).args(["add", desc]).assert().success();
     }
 }
 
-// extract UUID from `info` output
+/// Extract UUID from `info` output
 pub fn extract_uuid(stdout: &str) -> String {
     for line in stdout.lines() {
         let trimmed = line.trim_start();
