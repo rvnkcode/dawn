@@ -2,6 +2,7 @@ pub mod description;
 pub mod filter;
 pub mod index;
 pub mod index_range;
+pub mod modification;
 pub mod port;
 pub mod service;
 pub mod sort;
@@ -13,6 +14,7 @@ pub use description::Description;
 pub use filter::Filter;
 pub use index::Index;
 pub use index_range::IndexRange;
+pub use modification::TaskModification;
 pub use sort::{Direction, SortKey};
 pub use status::Status;
 pub use timestamp::Timestamp;
@@ -21,19 +23,6 @@ pub use uuid_prefix::UuidPrefix;
 
 pub struct TaskCreation {
     pub description: Description,
-}
-
-pub struct TaskModification {
-    pub description: Option<Description>,
-    // TODO: entry
-    pub completed: Option<Option<Timestamp>>,
-    pub deleted: Option<Option<Timestamp>>,
-}
-
-impl TaskModification {
-    pub fn is_empty(&self) -> bool {
-        self.description.is_none() && self.completed.is_none() && self.deleted.is_none()
-    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -79,6 +68,7 @@ mod tests {
     #[test]
     fn status_is_pending_when_not_completed_or_deleted() {
         let task = task_with(None, None);
+
         assert_eq!(task.status(), Status::Pending);
         assert_eq!(task.status().to_string(), "Pending");
     }
@@ -86,6 +76,7 @@ mod tests {
     #[test]
     fn status_is_completed_when_completed_is_some() {
         let task = task_with(Some(Timestamp::new(1700000001).unwrap()), None);
+
         assert_eq!(task.status(), Status::Completed);
         assert_eq!(task.status().to_string(), "Completed");
     }
@@ -93,6 +84,7 @@ mod tests {
     #[test]
     fn status_is_deleted_when_deleted_is_some() {
         let task = task_with(None, Some(Timestamp::new(1700000001).unwrap()));
+
         assert_eq!(task.status(), Status::Deleted);
         assert_eq!(task.status().to_string(), "Deleted");
     }
@@ -104,65 +96,5 @@ mod tests {
             Some(Timestamp::new(1700000002).unwrap()),
         );
         assert_eq!(task.status(), Status::Deleted);
-    }
-
-    #[test]
-    fn task_modification_is_empty_when_all_none() {
-        let modification = TaskModification {
-            description: None,
-            completed: None,
-            deleted: None,
-        };
-        assert!(modification.is_empty());
-    }
-
-    #[test]
-    fn task_modification_is_not_empty_with_description() {
-        let modification = TaskModification {
-            description: Some(Description::new("test").unwrap()),
-            completed: None,
-            deleted: None,
-        };
-        assert!(!modification.is_empty());
-    }
-
-    #[test]
-    fn task_modification_is_not_empty_with_completed() {
-        let modification = TaskModification {
-            description: None,
-            completed: Some(Some(Timestamp::new(1700000000).unwrap())),
-            deleted: None,
-        };
-        assert!(!modification.is_empty());
-    }
-
-    #[test]
-    fn task_modification_is_not_empty_with_completed_cleared() {
-        let modification = TaskModification {
-            description: None,
-            completed: Some(None),
-            deleted: None,
-        };
-        assert!(!modification.is_empty());
-    }
-
-    #[test]
-    fn task_modification_is_not_empty_with_deleted() {
-        let modification = TaskModification {
-            description: None,
-            completed: None,
-            deleted: Some(Some(Timestamp::new(1700000000).unwrap())),
-        };
-        assert!(!modification.is_empty());
-    }
-
-    #[test]
-    fn task_modification_is_not_empty_with_deleted_cleared() {
-        let modification = TaskModification {
-            description: None,
-            completed: None,
-            deleted: Some(None),
-        };
-        assert!(!modification.is_empty());
     }
 }
