@@ -425,6 +425,7 @@ fn empty_input_yields_next_with_empty_filter() {
 }
 
 // ── mutation: no promotion (pre is non-empty) ──
+
 #[test]
 fn mutation_pre_index_post_id_shaped_stays_in_description() {
     // pre is non-empty, so promotion does not trigger; post's "2" is folded into the description
@@ -464,24 +465,12 @@ fn mutation_empty_pre_promotes_index() {
 }
 
 #[test]
-fn mutation_blank_pre_strings_treated_as_empty() {
-    // raw Vec is non-empty but trim leaves only empty fragments → promotion triggers
+fn mutation_empty_pre_promotes_range() {
     assert_eq!(
-        parse_mutation(&raw(&[""]), &raw(&["1", "foo"])),
-        (Filter::default().with_indices([idx(1)]), Some(desc("foo")),),
-    );
-}
-
-#[test]
-fn mutation_whitespace_only_pre_promotes_uuid() {
-    assert_eq!(
-        parse_mutation(
-            &raw(&["", "  "]),
-            &raw(&["550e8400-e29b-41d4-a716-446655440000", "new"])
-        ),
+        parse_mutation(&raw(&[]), &raw(&["5-10", "foo"])),
         (
-            Filter::default().with_uuids([uuid("550e8400-e29b-41d4-a716-446655440000")]),
-            Some(desc("new")),
+            Filter::default().with_index_ranges([range(5, 10)]),
+            Some(desc("foo")),
         ),
     );
 }
@@ -498,8 +487,28 @@ fn mutation_empty_pre_promotes_set() {
 }
 
 #[test]
+fn mutation_blank_pre_strings_treated_as_empty() {
+    // raw Vec is non-empty but trim leaves only empty fragments → promotion triggers
+    assert_eq!(
+        parse_mutation(&raw(&[""]), &raw(&["1", "foo"])),
+        (Filter::default().with_indices([idx(1)]), Some(desc("foo")),),
+    );
+}
+
+#[test]
+fn mutation_whitespace_only_pre_promotes_uuid_prefix() {
+    assert_eq!(
+        parse_mutation(&raw(&["", "  "]), &raw(&["550e8400", "new"])),
+        (
+            Filter::default().with_uuids([uuid("550e8400")]),
+            Some(desc("new")),
+        ),
+    );
+}
+
+// taskwarrior parity: `task modify text modification` — all goes to description
+#[test]
 fn mutation_empty_pre_word_only_does_not_promote() {
-    // taskwarrior parity: `task modify text modification` — all goes to description
     assert_eq!(
         parse_mutation(&raw(&[]), &raw(&["text", "modification"])),
         (Filter::default(), Some(desc("text modification"))),
@@ -519,17 +528,6 @@ fn mutation_empty_pre_and_post() {
     assert_eq!(
         parse_mutation(&raw(&[]), &raw(&[])),
         (Filter::default(), None),
-    );
-}
-
-#[test]
-fn mutation_empty_pre_promotes_range() {
-    assert_eq!(
-        parse_mutation(&raw(&[]), &raw(&["5-10", "foo"])),
-        (
-            Filter::default().with_index_ranges([range(5, 10)]),
-            Some(desc("foo")),
-        ),
     );
 }
 
