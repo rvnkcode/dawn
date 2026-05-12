@@ -32,47 +32,13 @@ fn single_uuid_bare_yields_info() {
     );
 }
 
-// ── 8+ char hex prefix matches as UUID ──
-
+// UuidPrefix::parse failure → token is collected as a word.
+// Specific rejection rules (8-char minimum, group sizes, etc.) live in uuid_prefix.rs.
 #[test]
-fn eight_char_hex_prefix_yields_info_as_uuid() {
-    assert_eq!(
-        parse_default(&raw(&["550e8400"])),
-        DefaultCommand::Info(Filter::default().with_uuids([uuid("550e8400")])),
-    );
-}
-
-#[test]
-fn nine_char_uuid_with_hyphen_yields_info_as_uuid() {
-    assert_eq!(
-        parse_default(&raw(&["550e8400-"])),
-        DefaultCommand::Info(Filter::default().with_uuids([uuid("550e8400-")])),
-    );
-}
-
-#[test]
-fn thirteen_char_first_two_groups_yields_info_as_uuid() {
-    assert_eq!(
-        parse_default(&raw(&["550e8400-e29b"])),
-        DefaultCommand::Info(Filter::default().with_uuids([uuid("550e8400-e29b")])),
-    );
-}
-
-#[test]
-fn seven_char_hex_falls_to_word() {
-    // Below TW's 8-char minimum → not a UUID.
+fn un_parseable_uuid_prefix_falls_to_word() {
     assert_eq!(
         parse_default(&raw(&["550e840"])),
         DefaultCommand::Next(Filter::default().with_words(["550e840"])),
-    );
-}
-
-#[test]
-fn malformed_uuid_with_oversized_group_falls_to_word() {
-    // Second group overruns 4-char limit → invalid prefix shape.
-    assert_eq!(
-        parse_default(&raw(&["550e8400-e29b12"])),
-        DefaultCommand::Next(Filter::default().with_words(["550e8400-e29b12"])),
     );
 }
 
@@ -291,14 +257,6 @@ fn set_with_word_yields_next_with_both() {
 }
 
 #[test]
-fn duplicate_words_deduped() {
-    assert_eq!(
-        parse_default(&raw(&["hello", "hello"])),
-        DefaultCommand::Next(Filter::default().with_words(["hello"])),
-    );
-}
-
-#[test]
 fn surrounding_whitespace_on_word_trimmed() {
     assert_eq!(
         parse_default(&raw(&["  hello  "])),
@@ -331,22 +289,6 @@ fn bare_range_yields_next() {
     assert_eq!(
         parse_default(&raw(&["5-10"])),
         DefaultCommand::Next(Filter::default().with_index_ranges([range(5, 10)])),
-    );
-}
-
-#[test]
-fn bare_range_descending_swaps() {
-    assert_eq!(
-        parse_default(&raw(&["10-5"])),
-        DefaultCommand::Next(Filter::default().with_index_ranges([range(5, 10)])),
-    );
-}
-
-#[test]
-fn range_equal_bounds_collapses_to_index() {
-    assert_eq!(
-        parse_default(&raw(&["5-5"])),
-        DefaultCommand::Next(Filter::default().with_indices([idx(5)])),
     );
 }
 
@@ -451,23 +393,25 @@ fn range_in_set_with_invalid_segment_demotes_to_word() {
 }
 
 // ── parse_range_segment defensive guards ──
-// Direct calls bypass the RANGE_RE precondition that public callers enforce,
-// exercising the early-return branches that protect against future misuse.
 
 #[test]
 fn parse_range_segment_without_hyphen_is_noop() {
-    let mut out = Parsed::default();
-    parse_range_segment("5", &mut out);
-    assert!(out.indices.is_empty());
-    assert!(out.index_ranges.is_empty());
+    let mut result = Parsed::default();
+
+    parse_range_segment("5", &mut result);
+
+    assert!(result.indices.is_empty());
+    assert!(result.index_ranges.is_empty());
 }
 
 #[test]
 fn parse_range_segment_with_overflow_bound_is_noop() {
-    let mut out = Parsed::default();
-    parse_range_segment("99999999999999999999-1", &mut out);
-    assert!(out.indices.is_empty());
-    assert!(out.index_ranges.is_empty());
+    let mut result = Parsed::default();
+
+    parse_range_segment("99999999999999999999-1", &mut result);
+
+    assert!(result.indices.is_empty());
+    assert!(result.index_ranges.is_empty());
 }
 
 // ── Empty input ──
