@@ -1096,3 +1096,73 @@ fn modify_bulk_status_deleted_diff_announces_status_only() {
         assert_eq!(cols[1], "D", "{desc} should be deleted: {row}");
     }
 }
+
+// dawn 1 modify renamed --status completed
+// Modifying task 1 'renamed'.
+// Modified 1 task.
+#[test]
+fn modify_description_and_status_together_single_task() {
+    let (_dir, db) = common::test_db();
+    common::execute_dawn(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+    let uuid = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+
+    common::execute_dawn(&db)
+        .args(["1", "modify", "renamed", "--status", "completed"])
+        .assert()
+        .success()
+        .stdout(contains("Modifying task 1 'renamed'.\nModified 1 task."));
+
+    let prefix = &uuid[..8];
+    let info_after = run_stdout(common::execute_dawn(&db).arg(prefix));
+    assert!(
+        info_after.contains("renamed"),
+        "description should be updated: {info_after}"
+    );
+    assert!(
+        info_after.contains("Completed"),
+        "status should be Completed: {info_after}"
+    );
+    common::assert_no_pending_tasks(&db);
+}
+
+// dawn 1,2,3 modify --status completed renamed
+// This command will alter 3 tasks.
+// - Description will be changed from '<old>' to 'renamed'.
+// - Status will be changed from 'pending' to 'completed'.
+// Modify task 1 'renamed'? (Yes/No/All/Quit) → All
+// Modified 3 tasks.
+#[test]
+fn modify_bulk_description_and_status_diff_announces_both() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
+
+    let mut p = dawn_pty(
+        &db,
+        &["1,2,3", "modify", "--status", "completed", "renamed"],
+    );
+    let (prelude, _) = p
+        .exp_regex("Modify task")
+        .expect("first bulk-confirm prompt");
+    assert!(
+        prelude.contains("- Description will be changed from"),
+        "diff should announce description change: {prelude}"
+    );
+    assert!(
+        prelude.contains("- Status will be changed from 'pending' to 'completed'."),
+        "diff should announce status change: {prelude}"
+    );
+    select_option(&mut p, "All");
+    p.exp_string("Modified 3 tasks.").expect("footer");
+    assert_pty_exit(&mut p, 0);
+
+    common::assert_no_pending_tasks(&db);
+    let all_view = run_stdout(common::execute_dawn(&db).arg("all"));
+    assert_eq!(
+        all_view.matches("renamed").count(),
+        3,
+        "all three should be renamed: {all_view}"
+    );
+}
