@@ -107,7 +107,7 @@ pub(crate) fn collect_decisions<'a>(
             println!();
         }
         print_diff(action, task, modification)?;
-        confirm_bulk(task, action)
+        confirm_bulk(task, action, modification)
     })
 }
 
@@ -132,7 +132,7 @@ pub(crate) fn collect_decisions_with_prompt<'a>(
         if i != 0 {
             println!();
         }
-        confirm_bulk(task, action)
+        confirm_bulk(task, action, modification)
     })
 }
 
@@ -187,14 +187,17 @@ pub(crate) enum ConfirmResult {
     Quit, // Skip all remaining tasks
 }
 
-pub(crate) fn confirm_bulk(task: &Task, action: &Action) -> anyhow::Result<ConfirmResult> {
+pub(crate) fn confirm_bulk(
+    task: &Task,
+    action: &Action,
+    modification: &TaskModification,
+) -> anyhow::Result<ConfirmResult> {
     let display_id = get_display_id(task);
-    let prompt = format!(
-        "{} task {} '{}'?",
-        action.verb_present(),
-        display_id,
-        task.description
-    );
+    let desc = match &modification.description {
+        Some(d) => d,
+        None => &task.description,
+    };
+    let prompt = format!("{} task {} '{}'?", action.verb_present(), display_id, desc);
     let options = vec!["Yes", "No", "All", "Quit"];
     let selection = Select::new(&prompt, options).prompt()?;
     match selection {
