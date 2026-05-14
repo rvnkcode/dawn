@@ -448,6 +448,14 @@ fn modify_no_filter_tty_accept_modifies_all() {
 
 // ── Group E: Bulk-confirm route (3+ tasks, per-task Select) ──
 
+// dawn 1,2,3 modify renamed
+// This command will alter 3 tasks.
+// - Description will be changed from '<old>' to 'renamed'.
+// Modify task <id> 'renamed'? (Yes/No/All/Quit) → sent All
+// Modifying task 1 'renamed'.
+// Modifying task 2 'renamed'.
+// Modifying task 3 'renamed'.
+// Modified 3 tasks.
 #[test]
 fn modify_bulk_three_tasks_all_modified() {
     let (_dir, db) = common::test_db();
@@ -456,12 +464,14 @@ fn modify_bulk_three_tasks_all_modified() {
     let mut p = dawn_pty(&db, &["1,2,3", "modify", "renamed"]);
     p.exp_string("This command will alter 3 tasks.")
         .expect("alter header");
-    p.exp_string("Description will be changed from")
+    p.exp_string("- Description will be changed from")
         .expect("first diff");
-    p.exp_string("Modify task").expect("first prompt");
+    p.exp_string("Modify task 1 'renamed'?")
+        .expect("first prompt");
     select_option(&mut p, "All");
-    for _ in 0..3 {
-        p.exp_string("Modifying task").expect("action line");
+    for i in 0..3 {
+        p.exp_string(&format!("Modifying task {} 'renamed'.", i + 1))
+            .expect(&format!("action for task {}", i + 1));
     }
     p.exp_string("Modified 3 tasks.").expect("footer");
     assert_pty_exit(&mut p, 0);
@@ -475,6 +485,18 @@ fn modify_bulk_three_tasks_all_modified() {
     );
 }
 
+// dawn 1,2,3 modify renamed
+// This command will alter 3 tasks.
+// - Description will be changed from '<old>' to 'renamed'.
+// Modify task 1 'renamed'? (Yes/No/All/Quit) → Y
+// Modifying task 1 'renamed'.
+// - Description will be changed from '<old>' to 'renamed'.
+// Modify task 2 'renamed'? (Yes/No/All/Quit) → N
+// Task not modified.
+// - Description will be changed from '<old>' to 'renamed'.
+// Modify task 3 'renamed'? (Yes/No/All/Quit) → Y
+// Modifying task 3 'renamed'.
+// Modified 2 tasks.
 #[test]
 fn modify_bulk_no_skips_one_partial() {
     let (_dir, db) = common::test_db();
@@ -483,16 +505,29 @@ fn modify_bulk_no_skips_one_partial() {
     let mut p = dawn_pty(&db, &["1,2,3", "modify", "renamed"]);
     p.exp_string("This command will alter 3 tasks.")
         .expect("alter header");
-    p.exp_string("Modify task").expect("first prompt");
+    p.exp_string("- Description will be changed from")
+        .expect("first diff");
+    p.exp_string("Modify task 1 'renamed'?")
+        .expect("first prompt");
     select_option(&mut p, "Yes");
-    p.exp_string("Modifying task").expect("first action");
-    p.exp_string("Modify task").expect("second prompt");
+    p.exp_string("Modifying task 1 'renamed'.")
+        .expect("first action");
+
+    p.exp_string("- Description will be changed from")
+        .expect("second diff");
+    p.exp_string("Modify task 2 'renamed'?")
+        .expect("second prompt");
     select_option(&mut p, "No");
     p.exp_string("Task not modified.")
         .expect("not-modified msg");
-    p.exp_string("Modify task").expect("third prompt");
+
+    p.exp_string("- Description will be changed from")
+        .expect("third diff");
+    p.exp_string("Modify task 3 'renamed'?")
+        .expect("third prompt");
     select_option(&mut p, "Yes");
-    p.exp_string("Modifying task").expect("third action");
+    p.exp_string("Modifying task 3 'renamed'.")
+        .expect("third action");
     p.exp_string("Modified 2 tasks.").expect("footer");
     assert_pty_exit(&mut p, 1);
 
@@ -509,6 +544,15 @@ fn modify_bulk_no_skips_one_partial() {
     assert_eq!(untouched, 1, "expected 1 untouched task: {next}");
 }
 
+// dawn 1,2,3 modify renamed
+// This command will alter 3 tasks.
+// - Description will be changed from '<old>' to 'renamed'.
+// Modify task 1 'renamed'? (Yes/No/All/Quit) → Y
+// Modifying task 1 'renamed'.
+// - Description will be changed from '<old>' to 'renamed'.
+// Modify task 2 'renamed'? (Yes/No/All/Quit) → Quit
+// Task not modified.
+// Modified 1 task.
 #[test]
 fn modify_bulk_quit_aborts_remaining() {
     let (_dir, db) = common::test_db();
@@ -517,10 +561,18 @@ fn modify_bulk_quit_aborts_remaining() {
     let mut p = dawn_pty(&db, &["1,2,3", "modify", "renamed"]);
     p.exp_string("This command will alter 3 tasks.")
         .expect("alter header");
-    p.exp_string("Modify task").expect("first prompt");
+    p.exp_string("- Description will be changed from")
+        .expect("first diff");
+    p.exp_string("Modify task 1 'renamed'?")
+        .expect("first prompt");
     select_option(&mut p, "Yes");
-    p.exp_string("Modifying task").expect("first action");
-    p.exp_string("Modify task").expect("second prompt");
+    p.exp_string("Modifying task 1 'renamed'.")
+        .expect("first action");
+
+    p.exp_string("- Description will be changed from")
+        .expect("second diff");
+    p.exp_string("Modify task 2 'renamed'?")
+        .expect("second prompt");
     select_option(&mut p, "Quit");
     p.exp_string("Task not modified.")
         .expect("not-modified msg");
