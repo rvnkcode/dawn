@@ -592,6 +592,82 @@ fn modify_bulk_quit_aborts_remaining() {
     assert_eq!(untouched, 2, "expected 2 untouched tasks: {next}");
 }
 
+// dawn 1,2,3 modify renamed
+// This command will alter 3 tasks.
+// - Description will be changed from '<old>' to 'renamed'.
+// Modify task 1 'renamed'? (Yes/No/All/Quit) → Quit
+// Task not modified.
+// Modified 0 tasks.
+#[test]
+fn modify_bulk_quit_on_first_modifies_nothing() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
+
+    let mut p = dawn_pty(&db, &["1,2,3", "modify", "renamed"]);
+    p.exp_string("This command will alter 3 tasks.")
+        .expect("alter header");
+    p.exp_string("- Description will be changed from")
+        .expect("first diff");
+    p.exp_string("Modify task 1 'renamed'?")
+        .expect("first prompt");
+    select_option(&mut p, "Quit");
+    p.exp_string("Task not modified.")
+        .expect("not-modified msg");
+    p.exp_string("Modified 0 tasks.").expect("footer");
+    assert_pty_exit(&mut p, 1);
+
+    let next = run_stdout(&mut common::execute_dawn(&db));
+    assert_eq!(
+        next.matches("renamed").count(),
+        0,
+        "nothing should be renamed: {next}"
+    );
+    let untouched = ["alpha", "beta", "gamma"]
+        .iter()
+        .filter(|w| next.contains(*w))
+        .count();
+    assert_eq!(untouched, 3, "all 3 tasks should be untouched: {next}");
+}
+
+// dawn 1,2,3 modify renamed
+// This command will alter 3 tasks.
+// Modify task 1/2/3 'renamed'? (Yes/No/All/Quit) → No, No, No
+// Modified 0 tasks.
+#[test]
+fn modify_bulk_no_on_all_modifies_nothing() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
+
+    let mut p = dawn_pty(&db, &["1,2,3", "modify", "renamed"]);
+    p.exp_string("This command will alter 3 tasks.")
+        .expect("alter header");
+    for i in 0..3 {
+        p.exp_string("- Description will be changed from")
+            .expect("diff");
+        p.exp_string(&format!("Modify task {} 'renamed'?", i + 1))
+            .expect("prompt");
+        select_option(&mut p, "No");
+        p.exp_string("Task not modified.")
+            .expect("not-modified msg");
+    }
+    p.exp_string("Modified 0 tasks.").expect("footer");
+    assert_pty_exit(&mut p, 1);
+
+    let next = run_stdout(&mut common::execute_dawn(&db));
+    assert_eq!(
+        next.matches("renamed").count(),
+        0,
+        "nothing should be renamed: {next}"
+    );
+    let untouched = ["alpha", "beta", "gamma"]
+        .iter()
+        .filter(|w| next.contains(*w))
+        .count();
+    assert_eq!(untouched, 3, "all 3 tasks should be untouched: {next}");
+}
+
+// TODO: cover partial-candidate case — candidates.len() < tasks.len() but non-empty; verify "alter N tasks" header count vs. per-task prompt count.
+
 // ── Completed/deleted footnote — single task ──
 
 // dawn <completed_prefix> modify renamed
@@ -1166,3 +1242,5 @@ fn modify_bulk_description_and_status_diff_announces_both() {
         "all three should be renamed: {all_view}"
     );
 }
+
+// TODO: cover --status idempotency (pending→pending, deleted→deleted) and cross-transitions (completed↔deleted) — only completed→completed is covered today.
