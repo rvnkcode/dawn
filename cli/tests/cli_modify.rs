@@ -6,7 +6,7 @@ use common::{
 };
 use predicates::{prelude::PredicateBooleanExt, str::contains};
 
-// ── Group A: Pre-filter route ──
+// ── Description modify — pre-filter route ──
 
 // dawn 1 modify pick up milk
 // Modifying task 1 'pick up milk'.
@@ -148,7 +148,7 @@ fn modify_pre_filter_with_id_shaped_mod_joins_into_description() {
     );
 }
 
-// ── Group B: Promotion route ──
+// ── Description modify — promotion route ──
 
 // dawn modify 1 pick up milk
 // Modifying task 1 'pick up milk'.
@@ -250,7 +250,7 @@ fn modify_promotes_range_from_mods() {
     );
 }
 
-// ── Group C: No-op (0-count) ──
+// ── No-op (0 tasks modified) ──
 
 // dawn 1 modify
 // Modified 0 tasks.
@@ -338,7 +338,7 @@ fn modify_promotion_with_id_only_mods_is_noop() {
         .stdout(contains("one"));
 }
 
-// ── Group D: Errors ──
+// ── Filter errors (No tasks specified) ──
 
 // dawn 99 modify "foo"
 // No tasks specified.
@@ -387,7 +387,7 @@ fn modify_nonexistent_uuid_prints_no_tasks_specified() {
         .stderr("No tasks specified.\n");
 }
 
-// ── Empty-filter prompt (TTY) ──
+// ── Empty-filter confirmation (TTY) ──
 
 // dawn modify "renamed"
 // This command has no filter, ...Are you sure? (y/N) → sent N
@@ -446,7 +446,7 @@ fn modify_no_filter_tty_accept_modifies_all() {
     );
 }
 
-// ── Group E: Bulk-confirm route (3+ tasks, per-task Select) ──
+// ── Bulk-confirm — 3+ tasks ──
 
 // dawn 1,2,3 modify renamed
 // This command will alter 3 tasks.
@@ -592,7 +592,7 @@ fn modify_bulk_quit_aborts_remaining() {
     assert_eq!(untouched, 2, "expected 2 untouched tasks: {next}");
 }
 
-// ── Modify on completed/deleted tasks ──
+// ── Completed/deleted footnote — single task ──
 
 // dawn <completed_prefix> modify renamed
 // Modifying task <prefix> 'renamed'.
@@ -667,7 +667,7 @@ fn modify_deleted_task_by_uuid_emits_note() {
         .stdout(contains("renamed").and(contains("buy milk").not()));
 }
 
-// ── Group F: Bulk-confirm footnote on completed/deleted attempts ──
+// ── Completed/deleted footnote — bulk-confirm ──
 
 // dawn <prefix1>,<prefix2>,<prefix3> modify "renamed"
 // This command will alter 3 tasks.
