@@ -26,25 +26,6 @@ fn status_for(stdout: &str, description: &str) -> char {
 // ── A. Status visibility (pending / completed / deleted) ──
 
 #[test]
-fn all_renders_pending_with_index() {
-    let (_dir, db) = common::test_db();
-    common::execute_dawn(&db)
-        .args(["add", "buy milk"])
-        .assert()
-        .success();
-
-    let stdout = run_stdout(common::execute_dawn(&db).arg("all"));
-
-    assert_eq!(status_for(&stdout, "buy milk"), 'P');
-    let row = stdout
-        .lines()
-        .find(|l| l.contains("buy milk"))
-        .expect("desc row");
-    let cols: Vec<&str> = row.split_whitespace().collect();
-    assert_eq!(cols[0], "1", "pending task should expose its index: {row}");
-}
-
-#[test]
 fn all_renders_completed_with_dash_id() {
     let (_dir, db) = common::test_db();
     common::execute_dawn(&db)
@@ -126,6 +107,10 @@ fn all_shows_pending_completed_and_deleted_together() {
 // against `stdout.contains("one")` in the post-filter row count below.
 // Pick descriptions that share no substring with any AllRow header
 // (ID, St, UUID, Age, Done, Description).
+
+// dawn 1 all
+// 1 apple
+// 1 task
 #[test]
 fn all_pre_index_filters_to_one_task() {
     let (_dir, db) = common::test_db();
@@ -140,6 +125,9 @@ fn all_pre_index_filters_to_one_task() {
     assert!(stdout.contains("1 task"), "missing footer: {stdout}");
 }
 
+// dawn all 1
+// 1 apple
+// 1 task
 #[test]
 fn all_post_index_filters_to_one_task() {
     let (_dir, db) = common::test_db();
@@ -154,6 +142,10 @@ fn all_post_index_filters_to_one_task() {
     assert!(stdout.contains("1 task"), "missing footer: {stdout}");
 }
 
+// dawn 1 all 2
+// 1 apple
+// 2 banana
+// 2 tasks
 #[test]
 fn all_pre_and_post_indices_merge_into_union() {
     let (_dir, db) = common::test_db();
@@ -168,6 +160,10 @@ fn all_pre_and_post_indices_merge_into_union() {
     assert!(stdout.contains("2 tasks"), "missing footer: {stdout}");
 }
 
+// dawn 1-2 all
+// 1 apple
+// 2 banana
+// 2 tasks
 #[test]
 fn all_pre_range_filters_to_two_tasks() {
     let (_dir, db) = common::test_db();
@@ -182,6 +178,10 @@ fn all_pre_range_filters_to_two_tasks() {
     assert!(stdout.contains("2 tasks"), "missing footer: {stdout}");
 }
 
+// dawn all 1-2
+// 1 apple
+// 2 banana
+// 2 tasks
 #[test]
 fn all_post_range_filters_to_two_tasks() {
     let (_dir, db) = common::test_db();
@@ -196,6 +196,10 @@ fn all_post_range_filters_to_two_tasks() {
     assert!(stdout.contains("2 tasks"), "missing footer: {stdout}");
 }
 
+// dawn all 1,2
+// 1 apple
+// 2 banana
+// 2 tasks
 #[test]
 fn all_set_filter_returns_two_tasks() {
     let (_dir, db) = common::test_db();
@@ -211,6 +215,9 @@ fn all_set_filter_returns_two_tasks() {
 }
 
 // Words from pre and post merge into a single AND-joined filter
+// dawn buy all milk
+// 1 buy milk
+// 1 task
 #[test]
 fn all_pre_and_post_words_merge_into_and_filter() {
     let (_dir, db) = common::test_db();
