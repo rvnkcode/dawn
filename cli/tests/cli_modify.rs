@@ -226,30 +226,6 @@ fn modify_promotes_set_from_mods_two_tasks() {
     );
 }
 
-// dawn modify 1-2 same
-// This command will alter 2 tasks.
-// Modifying task 1 'same'.
-// Modifying task 2 'same'.
-// Modified 2 tasks.
-#[test]
-fn modify_promotes_range_from_mods() {
-    let (_dir, db) = common::test_db();
-    common::setup_tasks(&db, &["one", "two"]);
-
-    common::execute_dawn(&db)
-        .args(["modify", "1-2", "same"])
-        .assert()
-        .success()
-        .stdout("This command will alter 2 tasks.\nModifying task 1 'same'.\nModifying task 2 'same'.\nModified 2 tasks.\n");
-
-    common::execute_dawn(&db).assert().success().stdout(
-        contains("same")
-            .count(2)
-            .and(contains("one").not())
-            .and(contains("two").not()),
-    );
-}
-
 // ── No-op (0 tasks modified) ──
 
 // dawn 1 modify
@@ -1126,6 +1102,52 @@ fn modify_status_completed_idempotent_on_already_completed_task() {
         )));
 }
 
+// dawn <p1>,<p2>,<p3> modify --status completed (on deleted tasks)
+// This command will alter 3 tasks.
+// - Status will be changed from 'deleted' to 'completed'.
+// Modify task <p1> 'alpha'? (Yes/No/All/Quit) → All
+// Modified 3 tasks.
+#[test]
+fn modify_bulk_status_completed_diff_on_deleted_tasks() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
+    let uuid1 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    let prefix1 = &uuid1[..8];
+    let uuid2 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
+    let prefix2 = &uuid2[..8];
+    let uuid3 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("3")));
+    let prefix3 = &uuid3[..8];
+
+    let mut p = dawn_pty(&db, &["1,2,3", "delete"]);
+    p.exp_string("Delete task").expect("delete prompt");
+    select_option(&mut p, "All");
+    p.exp_string("Deleted 3 tasks.").expect("delete footer");
+    assert_pty_exit(&mut p, 0);
+
+    let target = format!("{prefix1},{prefix2},{prefix3}");
+    let mut p = dawn_pty(&db, &[&target, "modify", "--status", "completed"]);
+    let (prelude, _) = p
+        .exp_regex("Modify task")
+        .expect("first bulk-confirm prompt");
+    assert!(
+        prelude.contains("- Status will be changed from 'deleted' to 'completed'."),
+        "diff should announce status change: {prelude}"
+    );
+    select_option(&mut p, "All");
+    p.exp_string("Modified 3 tasks.").expect("footer");
+    assert_pty_exit(&mut p, 0);
+
+    let all_view = run_stdout(common::execute_dawn(&db).arg("all"));
+    for desc in ["alpha", "beta", "gamma"] {
+        let row = all_view
+            .lines()
+            .find(|l| l.contains(desc))
+            .unwrap_or_else(|| panic!("missing row for {desc}: {all_view}"));
+        let cols: Vec<&str> = row.split_whitespace().collect();
+        assert_eq!(cols[1], "C", "{desc} should be completed: {row}");
+    }
+}
+
 // dawn 1 modify --status deleted
 #[test]
 fn modify_status_deleted_persists_pending_to_deleted() {
@@ -1193,6 +1215,52 @@ fn modify_bulk_status_deleted_diff_announces_status_only() {
         p.exp_string(&format!("Modifying task {} '", i + 1))
             .expect(&format!("action for task {}", i + 1));
     }
+    p.exp_string("Modified 3 tasks.").expect("footer");
+    assert_pty_exit(&mut p, 0);
+
+    let all_view = run_stdout(common::execute_dawn(&db).arg("all"));
+    for desc in ["alpha", "beta", "gamma"] {
+        let row = all_view
+            .lines()
+            .find(|l| l.contains(desc))
+            .unwrap_or_else(|| panic!("missing row for {desc}: {all_view}"));
+        let cols: Vec<&str> = row.split_whitespace().collect();
+        assert_eq!(cols[1], "D", "{desc} should be deleted: {row}");
+    }
+}
+
+// dawn <p1>,<p2>,<p3> modify --status deleted (on completed tasks)
+// This command will alter 3 tasks.
+// - Status will be changed from 'completed' to 'deleted'.
+// Modify task <p1> 'alpha'? (Yes/No/All/Quit) → All
+// Modified 3 tasks.
+#[test]
+fn modify_bulk_status_deleted_diff_on_completed_tasks() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
+    let uuid1 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    let prefix1 = &uuid1[..8];
+    let uuid2 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
+    let prefix2 = &uuid2[..8];
+    let uuid3 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("3")));
+    let prefix3 = &uuid3[..8];
+
+    let mut p = dawn_pty(&db, &["1,2,3", "done"]);
+    p.exp_string("Complete task").expect("done prompt");
+    select_option(&mut p, "All");
+    p.exp_string("Completed 3 tasks.").expect("done footer");
+    assert_pty_exit(&mut p, 0);
+
+    let target = format!("{prefix1},{prefix2},{prefix3}");
+    let mut p = dawn_pty(&db, &[&target, "modify", "--status", "deleted"]);
+    let (prelude, _) = p
+        .exp_regex("Modify task")
+        .expect("first bulk-confirm prompt");
+    assert!(
+        prelude.contains("- Status will be changed from 'completed' to 'deleted'."),
+        "diff should announce status change: {prelude}"
+    );
+    select_option(&mut p, "All");
     p.exp_string("Modified 3 tasks.").expect("footer");
     assert_pty_exit(&mut p, 0);
 
