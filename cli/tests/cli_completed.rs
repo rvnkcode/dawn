@@ -5,10 +5,8 @@ use predicates::{boolean::PredicateBooleanExt, str::contains};
 
 // ── A. Empty / footer rendering ──
 
-/*
- * dawn completed
- * No matches.
- */
+// dawn completed
+// No matches.
 #[test]
 fn completed_with_no_tasks_prints_no_matches() {
     let (_dir, db) = common::test_db();
@@ -21,12 +19,10 @@ fn completed_with_no_tasks_prints_no_matches() {
         .stderr(contains("No matches."));
 }
 
-/*
- * dawn add alpha
- * dawn add beta
- * dawn completed
- * No matches.
- */
+// dawn add alpha
+// dawn add beta
+// dawn completed
+// No matches.
 #[test]
 fn completed_with_only_pending_prints_no_matches() {
     let (_dir, db) = common::test_db();
@@ -40,12 +36,10 @@ fn completed_with_only_pending_prints_no_matches() {
         .stderr(contains("No matches."));
 }
 
-/*
- * dawn add "buy milk"
- * dawn 1 done
- * dawn "nonexistent" completed
- * No matches.
- */
+// dawn add "buy milk"
+// dawn 1 done
+// dawn "nonexistent" completed
+// No matches.
 #[test]
 fn completed_filter_with_no_match_prints_no_matches() {
     let (_dir, db) = common::test_db();
@@ -66,15 +60,13 @@ fn completed_filter_with_no_match_prints_no_matches() {
         .stderr(contains("No matches."));
 }
 
-/*
- * dawn add apple
- * dawn add banana
- * dawn 1-2 done
- * dawn completed
- * - apple
- * - banana
- * 2 tasks
- */
+// dawn add apple
+// dawn add banana
+// dawn 1-2 done
+// dawn completed
+// - apple
+// - banana
+// 2 tasks
 #[test]
 fn completed_renders_multiple_tasks_with_plural_footer() {
     let (_dir, db) = common::test_db();
@@ -95,16 +87,14 @@ fn completed_renders_multiple_tasks_with_plural_footer() {
 
 // ── B. Status restriction ──
 
-/*
- * dawn add "done-task"
- * dawn add "pending-task"
- * dawn add "deleted-task"
- * dawn "done-" done
- * dawn "delete-" delete
- * dawn completed
- * - done-task
- * 1 task
- */
+// dawn add "done-task"
+// dawn add "pending-task"
+// dawn add "deleted-task"
+// dawn "done-" done
+// dawn "delete-" delete
+// dawn completed
+// - done-task
+// 1 task
 #[test]
 fn completed_excludes_pending_and_deleted_tasks() {
     let (_dir, db) = common::test_db();
@@ -127,18 +117,16 @@ fn completed_excludes_pending_and_deleted_tasks() {
 
 // ── C. Sort order ──
 
-/*
- * dawn add alpha
- * dawn add bravo
- * dawn add charlie
- * dawn 2 done
- * dawn 1 done
- * dawn 1 done
- * dawn completed
- * - bravo
- * - alpha
- * - charlie
- */
+// dawn add alpha
+// dawn add bravo
+// dawn add charlie
+// dawn 2 done
+// dawn 1 done
+// dawn 1 done
+// dawn completed
+// - bravo
+// - alpha
+// - charlie
 #[test]
 fn completed_sorted_by_completion_time_ascending() {
     let (_dir, db) = common::test_db();
@@ -177,16 +165,14 @@ fn completed_sorted_by_completion_time_ascending() {
 
 // ── D. Filter matching ──
 
-/*
- * dawn add "shared apple"
- * dawn add "shared banana"
- * dawn add "lonely cherry"
- * dawn 1-3 done       (PTY: "All" on bulk confirm)
- * dawn completed "shared"
- * - shared apple
- * - shared banana
- * 2 tasks
- */
+// dawn add "shared apple"
+// dawn add "shared banana"
+// dawn add "lonely cherry"
+// dawn 1-3 done       (PTY: "All" on bulk confirm)
+// dawn completed "shared"
+// - shared apple
+// - shared banana
+// 2 tasks
 #[test]
 fn completed_filter_returns_matching_subset() {
     let (_dir, db) = common::test_db();
