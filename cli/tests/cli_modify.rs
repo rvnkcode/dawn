@@ -666,7 +666,41 @@ fn modify_bulk_no_on_all_modifies_nothing() {
     assert_eq!(untouched, 3, "all 3 tasks should be untouched: {next}");
 }
 
-// TODO: cover partial-candidate case — candidates.len() < tasks.len() but non-empty; verify "alter N tasks" header count vs. per-task prompt count.
+// Task with no changes should be skipped
+// dawn 1,2,3 modify alpha
+// This command will alter 3 tasks.
+// - Description will be changed from '<old>' to 'alpha'.
+// Modify task 2 'beta'? (Yes/No/All/Quit) → Y
+// Modifying task 2 'alpha'.
+// - Description will be changed from '<old>' to 'alpha'.
+// Modify task 3 'gamma'? (Yes/No/All/Quit) → Y
+// Modifying task 3 'alpha'.
+// Modified 2 tasks.
+#[test]
+fn modify_bulk_partial_candidates() {
+    let (_dir, db) = common::test_db();
+    common::setup_tasks(&db, &["alpha", "beta", "gamma"]);
+
+    let mut p = dawn_pty(&db, &["1,2,3", "modify", "alpha"]);
+
+    p.exp_string("This command will alter 3 tasks.")
+        .expect("alter header");
+    for _ in 0..2 {
+        p.exp_string("- Description will be changed from")
+            .expect("diff");
+        p.exp_string("Modify task").expect("prompt");
+        select_option(&mut p, "Yes");
+        p.exp_string("Modifying task").expect("action");
+    }
+    p.exp_string("Modified 2 tasks.").expect("footer");
+    assert_pty_exit(&mut p, 0);
+    let next = run_stdout(&mut common::execute_dawn(&db));
+    assert_eq!(
+        next.matches("alpha").count(),
+        3,
+        "expected 3 renamed: {next}"
+    );
+}
 
 // ── Completed/deleted footnote — single task ──
 
@@ -1173,6 +1207,54 @@ fn modify_bulk_status_deleted_diff_announces_status_only() {
     }
 }
 
+// dawn <deleted_prefix> modify --status deleted
+// Modified 0 tasks.
+// Note: Modified task <prefix> is deleted...
+#[test]
+fn modify_status_idempotent_on_already_deleted_task() {
+    let (_dir, db) = common::test_db();
+    common::execute_dawn(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+    let uuid = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    let prefix = &uuid[..8];
+    delete_via_pty(&db, &uuid);
+
+    common::execute_dawn(&db)
+        .args([prefix, "modify", "--status", "deleted"])
+        .assert()
+        .success()
+        .stdout(contains("Modified 0 tasks."))
+        .stderr(contains(format!(
+            "Note: Modified task {prefix} is deleted. You may wish to make this task pending with: task {prefix} modify --status pending",
+        )));
+}
+
+// dawn <deleted_prefix> modify --status completed
+// Modifying task <prefix> 'buy milk'.
+// Modified 1 task.
+#[test]
+fn modify_status_completed_on_deleted_task_without_footnote() {
+    let (_dir, db) = common::test_db();
+    common::execute_dawn(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+    let uuid = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    let prefix = &uuid[..8];
+    delete_via_pty(&db, &uuid);
+
+    common::execute_dawn(&db)
+        .args([prefix, "modify", "--status", "completed"])
+        .assert()
+        .success()
+        .stdout(contains(format!(
+            "Modifying task {prefix} 'buy milk'.\nModified 1 task."
+        )))
+        .stderr(contains(format!("Note: Modified task",)).not());
+}
+
 // dawn 1 modify renamed --status completed
 // Modifying task 1 'renamed'.
 // Modified 1 task.
@@ -1242,5 +1324,3 @@ fn modify_bulk_description_and_status_diff_announces_both() {
         "all three should be renamed: {all_view}"
     );
 }
-
-// TODO: cover --status idempotency (pending→pending, deleted→deleted) and cross-transitions (completed↔deleted) — only completed→completed is covered today.
