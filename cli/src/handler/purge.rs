@@ -55,11 +55,7 @@ fn collect_approved_ids_for_purge(
 ) -> anyhow::Result<Vec<Uuid>> {
     let is_single = original_count == 1;
     let mut approved_ids = Vec::new();
-    let modification = TaskModification {
-        description: None,
-        completed: None,
-        deleted: None,
-    };
+    let modification = TaskModification::default();
     for (i, task) in candidates.iter().enumerate() {
         let display_id = get_display_id(task);
         if is_single {
