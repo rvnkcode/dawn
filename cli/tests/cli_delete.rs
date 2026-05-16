@@ -433,3 +433,70 @@ fn delete_completed_task_succeeds_without_footnote() {
         "info Status row should be Deleted: {info_after}"
     );
 }
+
+// dawn delete
+// This command has no filter, ... Are you sure? (y/N) n
+// Command prevented from running.
+#[test]
+fn delete_empty_filter_declined_aborts() {
+    let (_dir, db) = common::test_db();
+    common::execute_dawn(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+
+    let mut p = dawn_pty(&db, &["delete"]);
+    p.exp_string("Are you sure?")
+        .expect("empty-filter confirm prompt");
+    p.send_line("n").expect("send n");
+    assert_pty_exit(&mut p, 2);
+
+    common::execute_dawn(&db)
+        .assert()
+        .success()
+        .stdout(contains("buy milk"));
+}
+
+// dawn delete
+// This command has no filter, ... Are you sure? (y/N) y
+// Delete task 1 'buy milk'? (y/n) y
+// Deleting task 1 'buy milk'.
+// Deleted 1 task.
+#[test]
+fn delete_empty_filter_confirmed_deletes_all_pending() {
+    let (_dir, db) = common::test_db();
+    common::execute_dawn(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+
+    let mut p = dawn_pty(&db, &["delete"]);
+    p.exp_string("Are you sure?")
+        .expect("empty-filter confirm prompt");
+    p.send_line("y").expect("send y");
+    p.exp_string("Delete task 1 'buy milk'?")
+        .expect("delete prompt");
+    p.send_line("y").expect("send y");
+    p.exp_string("Deleted 1 task.").expect("footer");
+    assert_pty_exit(&mut p, 0);
+    assert_no_pending_tasks(&db);
+}
+
+// dawn nomatch delete
+// No tasks specified.
+#[test]
+fn delete_filter_matches_no_tasks_no_specified() {
+    let (_dir, db) = common::test_db();
+    common::execute_dawn(&db)
+        .args(["add", "buy milk"])
+        .assert()
+        .success();
+
+    common::execute_dawn(&db)
+        .args(["nomatch", "delete"])
+        .assert()
+        .failure()
+        .code(1)
+        .stdout(is_empty())
+        .stderr(contains("No tasks specified."));
+}
