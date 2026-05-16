@@ -267,7 +267,7 @@ fn delete_already_deleted_task_skipped_partial() {
         .failure()
         .code(1)
         .stderr(is_empty())
-        .stdout(contains(&format!(
+        .stdout(contains(format!(
             "Task {prefix} 'buy milk' is not deletable.\nDeleted 0 tasks."
         )));
 }

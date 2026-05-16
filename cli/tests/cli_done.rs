@@ -218,7 +218,7 @@ fn done_already_completed_task_skipped_partial() {
         .code(1)
         .stderr(is_empty())
         .stdout(
-            contains(&format!(
+            contains(format!(
                 "Task {prefix} 'buy milk' is neither pending nor waiting."
             ))
             .and(contains("Completed 0 tasks.")),
@@ -247,7 +247,7 @@ fn done_already_deleted_task_skipped_partial() {
         .code(1)
         .stderr(is_empty())
         .stdout(
-            contains(&format!(
+            contains(format!(
                 "Task {prefix} 'buy milk' is neither pending nor waiting."
             ))
             .and(contains("Completed 0 tasks.")),
