@@ -683,8 +683,7 @@ fn modify_bulk_partial_candidates() {
 // dawn <completed_prefix> modify renamed
 // Modifying task <prefix> 'renamed'.
 // Modified 1 task.
-// Note: Modified task <prefix> is completed. You may wish to make this task pending with: task <prefix> modify
-// --status pending
+// Note: Modified task <prefix> is completed...
 #[test]
 fn modify_completed_task_by_uuid_emits_note() {
     let (_dir, db) = common::test_db();
@@ -721,8 +720,7 @@ fn modify_completed_task_by_uuid_emits_note() {
 // dawn <deleted_prefix> modify renamed
 // Modifying task <prefix> 'renamed'.
 // Modified 1 task.
-// Note: Modified task <prefix> is deleted. You may wish to make this task pending with: task
-// <prefix> modify --status pending
+// Note: Modified task <prefix> is deleted...
 #[test]
 fn modify_deleted_task_by_uuid_emits_note() {
     let (_dir, db) = common::test_db();
@@ -879,7 +877,6 @@ fn modify_bulk_quit_emits_footnote_through_quit_task_only() {
 // --status option
 
 // `modify --status pending` resurrects a completed task
-//
 // dawn <completed_prefix> modify --status pending
 // Modifying task <prefix> 'buy milk'.
 // Modified 1 task.
@@ -923,7 +920,6 @@ fn modify_status_pending_persists_completed_to_pending() {
 }
 
 // `modify --status pending` resurrects a deleted task
-//
 // dawn <deleted_prefix> modify --status pending
 // Modifying task <prefix> 'buy milk'.
 // Modified 1 task.
