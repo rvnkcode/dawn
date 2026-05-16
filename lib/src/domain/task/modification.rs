@@ -1,5 +1,6 @@
 use crate::domain::task::{Description, Timestamp};
 
+#[derive(Default)]
 pub struct TaskModification {
     pub description: Option<Description>,
     // TODO: entry
@@ -19,11 +20,7 @@ mod tests {
 
     #[test]
     fn task_modification_is_empty_when_all_none() {
-        let modification = TaskModification {
-            description: None,
-            completed: None,
-            deleted: None,
-        };
+        let modification = TaskModification::default();
         assert!(modification.is_empty());
     }
 
@@ -31,8 +28,7 @@ mod tests {
     fn task_modification_is_not_empty_with_description() {
         let modification = TaskModification {
             description: Some(Description::new("test").unwrap()),
-            completed: None,
-            deleted: None,
+            ..Default::default()
         };
         assert!(!modification.is_empty());
     }
@@ -40,9 +36,8 @@ mod tests {
     #[test]
     fn task_modification_is_not_empty_with_completed() {
         let modification = TaskModification {
-            description: None,
             completed: Some(Some(Timestamp::new(1700000000).unwrap())),
-            deleted: None,
+            ..Default::default()
         };
         assert!(!modification.is_empty());
     }
@@ -50,9 +45,8 @@ mod tests {
     #[test]
     fn task_modification_is_not_empty_with_completed_cleared() {
         let modification = TaskModification {
-            description: None,
             completed: Some(None),
-            deleted: None,
+            ..Default::default()
         };
         assert!(!modification.is_empty());
     }
@@ -60,9 +54,8 @@ mod tests {
     #[test]
     fn task_modification_is_not_empty_with_deleted() {
         let modification = TaskModification {
-            description: None,
-            completed: None,
             deleted: Some(Some(Timestamp::new(1700000000).unwrap())),
+            ..Default::default()
         };
         assert!(!modification.is_empty());
     }
@@ -70,9 +63,8 @@ mod tests {
     #[test]
     fn task_modification_is_not_empty_with_deleted_cleared() {
         let modification = TaskModification {
-            description: None,
-            completed: None,
             deleted: Some(None),
+            ..Default::default()
         };
         assert!(!modification.is_empty());
     }
