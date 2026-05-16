@@ -15,22 +15,35 @@ pub struct Cli {
     command: Option<Command>,
 }
 
-// TODO: help usage for each command
 #[derive(Subcommand)]
 enum Command {
     /// Adds a new task
     Add(Creation),
     /// Modifies the existing task with provided arguments
+    #[command(override_usage = "dawn [FILTER] modify [MODS]")]
     Modify(Modification),
     /// Marks the specified task as completed
+    #[command(override_usage = "dawn [FILTER] done")]
     Done(ModificationOnly),
     /// Deletes the specified task
+    #[command(override_usage = "dawn [FILTER] delete")]
     Delete(ModificationOnly),
     /// All tasks
+    #[command(
+        override_usage = "dawn [FILTER] all",
+        help_template = "\
+{about-with-newline}
+{usage-heading} {usage}
+
+Options:
+{options}{after-help}"
+    )]
     All(Modification),
     /// Removes the specified tasks from the data files. Causes permanent loss of data
+    #[command(override_usage = "dawn [FILTER] purge")]
     Purge(ModificationOnly),
     /// Completed tasks
+    #[command(override_usage = "dawn [FILTER] completed")]
     Completed(ModificationOnly),
 }
 
