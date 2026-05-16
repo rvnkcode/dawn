@@ -447,7 +447,7 @@ fn modify_bulk_three_tasks_all_modified() {
     select_option(&mut p, "All");
     for i in 0..3 {
         p.exp_string(&format!("Modifying task {} 'renamed'.", i + 1))
-            .expect(&format!("action for task {}", i + 1));
+            .unwrap_or_else(|_| panic!("action for task {}", i + 1));
     }
     p.exp_string("Modified 3 tasks.").expect("footer");
     assert_pty_exit(&mut p, 0);
@@ -704,7 +704,7 @@ fn modify_completed_task_by_uuid_emits_note() {
         .assert()
         .success()
         .stdout(
-            contains(&format!("Modifying task {prefix} 'renamed'.\nModified 1 task.\n"))
+            contains(format!("Modifying task {prefix} 'renamed'.\nModified 1 task.\n"))
         )
         .stderr(contains(format!(
             "Note: Modified task {prefix} is completed. You may wish to make this task pending with: task {prefix} modify --status pending",
@@ -738,7 +738,7 @@ fn modify_deleted_task_by_uuid_emits_note() {
         .assert()
         .success()
         .stdout(
-            contains(&format!("Modifying task {prefix} 'renamed'.\nModified 1 task.\n"))
+            contains(format!("Modifying task {prefix} 'renamed'.\nModified 1 task.\n"))
         )
         .stderr(contains(format!(
             "Note: Modified task {prefix} is deleted. You may wish to make this task pending with: task {prefix} modify --status pending",
@@ -899,7 +899,7 @@ fn modify_status_pending_persists_completed_to_pending() {
         .assert()
         .success()
         .stdout(
-            contains(&format!("Modifying task {prefix} 'buy milk'."))
+            contains(format!("Modifying task {prefix} 'buy milk'."))
                 .and(contains("Modified 1 task.")),
         );
 
@@ -938,7 +938,7 @@ fn modify_status_pending_persists_deleted_to_pending() {
         .args([prefix, "modify", "--status", "pending"])
         .assert()
         .success()
-        .stdout(contains(&format!(
+        .stdout(contains(format!(
             "Modifying task {prefix} 'buy milk'.\nModified 1 task.\n"
         )));
 
@@ -994,7 +994,7 @@ fn modify_bulk_explicit_status_suppresses_footnote_even_with_attempts() {
     select_option(&mut p, "All");
     for prefix in &[prefix1, prefix2, prefix3] {
         p.exp_string(&format!("Modifying task {prefix}"))
-            .expect(&format!("action for task {prefix}"));
+            .unwrap_or_else(|_| panic!("action for task {prefix}"));
     }
     p.exp_string("Modified 3 tasks.").expect("footer");
 
@@ -1021,9 +1021,7 @@ fn modify_status_completed_persists_pending_to_completed() {
         .args(["1", "modify", "--status", "completed"])
         .assert()
         .success()
-        .stdout(contains(&format!(
-            "Modifying task 1 'buy milk'.\nModified 1 task.\n"
-        )));
+        .stdout(contains("Modifying task 1 'buy milk'.\nModified 1 task.\n"));
 
     let prefix = &uuid[..8];
     let info_after = run_stdout(common::execute_dawn(&db).arg(prefix));
@@ -1209,7 +1207,7 @@ fn modify_bulk_status_deleted_diff_announces_status_only() {
     select_option(&mut p, "All");
     for i in 0..3 {
         p.exp_string(&format!("Modifying task {} '", i + 1))
-            .expect(&format!("action for task {}", i + 1));
+            .unwrap_or_else(|_| panic!("action for task {}", i + 1));
     }
     p.exp_string("Modified 3 tasks.").expect("footer");
     assert_pty_exit(&mut p, 0);
@@ -1316,7 +1314,7 @@ fn modify_status_completed_on_deleted_task_without_footnote() {
         .stdout(contains(format!(
             "Modifying task {prefix} 'buy milk'.\nModified 1 task."
         )))
-        .stderr(contains(format!("Note: Modified task",)).not());
+        .stderr(contains("Note: Modified task").not());
 }
 
 // dawn 1 modify renamed --status completed
