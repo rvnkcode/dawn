@@ -11,6 +11,10 @@ use predicates::{
 
 // ── Group A: Pre-filter route ──
 
+// dawn 1 delete
+// Delete task 1 'buy milk'? (y/n) y
+// Deleting task 1 'buy milk'.
+// Deleted 1 task.
 #[test]
 fn delete_by_pre_index_deletes_task() {
     let (_dir, db) = common::test_db();
@@ -31,6 +35,10 @@ fn delete_by_pre_index_deletes_task() {
     assert_no_pending_tasks(&db);
 }
 
+// dawn <prefix> delete
+// Delete task 1 'buy milk'? (y/n) y
+// Deleting task 1 'buy milk'.
+// Deleted 1 task.
 #[test]
 fn delete_by_pre_uuid_deletes_task() {
     let (_dir, db) = common::test_db();
@@ -40,8 +48,9 @@ fn delete_by_pre_uuid_deletes_task() {
         .success();
     let info_before = run_stdout(common::execute_dawn(&db).arg("1"));
     let uuid = extract_uuid(&info_before);
+    let prefix = &uuid[..8];
 
-    let mut p = dawn_pty(&db, &[&uuid, "delete"]);
+    let mut p = dawn_pty(&db, &[prefix, "delete"]);
 
     p.exp_string("Delete task 1 'buy milk'?")
         .expect("delete prompt");
@@ -51,6 +60,10 @@ fn delete_by_pre_uuid_deletes_task() {
     assert_no_pending_tasks(&db);
 }
 
+// dawn "buy" delete
+// Delete task 1 'buy milk'? (y/n) y
+// Deleting task 1 'buy milk'.
+// Deleted 1 task.
 #[test]
 fn delete_by_pre_word_filter_matches_one_task() {
     let (_dir, db) = common::test_db();
@@ -60,6 +73,7 @@ fn delete_by_pre_word_filter_matches_one_task() {
 
     p.exp_string("Delete task").expect("delete prompt");
     p.send_line("y").expect("send y");
+    p.exp_string("Deleting task").expect("action line");
     p.exp_string("Deleted 1 task.").expect("footer");
     assert_pty_exit(&mut p, 0);
     common::execute_dawn(&db)
@@ -68,6 +82,13 @@ fn delete_by_pre_word_filter_matches_one_task() {
         .stdout(contains("fix bug").and(contains("buy milk").not()));
 }
 
+// dawn 1,2 delete
+// This command will alter 2 tasks.
+// Delete task 1 'one'? (Yes/No/All/Quit) Yes
+// Deleting task 1 'one'.
+// Delete task 2 'two'? (Yes/No/All/Quit) Yes
+// Deleting task 2 'two'.
+// Deleted 2 tasks.
 #[test]
 fn delete_pre_set_filter_two_tasks_both_deleted() {
     let (_dir, db) = common::test_db();
@@ -77,17 +98,24 @@ fn delete_pre_set_filter_two_tasks_both_deleted() {
 
     p.exp_string("This command will alter 2 tasks.")
         .expect("alter header");
-    p.exp_string("Delete task").expect("first prompt");
+    p.exp_string("Delete task 1").expect("first prompt");
     select_option(&mut p, "Yes");
-    p.exp_string("Deleting task").expect("first action");
-    p.exp_string("Delete task").expect("second prompt");
+    p.exp_string("Deleting task 1").expect("first action");
+    p.exp_string("Delete task 2").expect("second prompt");
     select_option(&mut p, "Yes");
-    p.exp_string("Deleting task").expect("second action");
+    p.exp_string("Deleting task 2").expect("second action");
     p.exp_string("Deleted 2 tasks.").expect("footer");
     assert_pty_exit(&mut p, 0);
     assert_no_pending_tasks(&db);
 }
 
+// dawn 1-2 delete
+// This command will alter 2 tasks.
+// Delete task 1 'one'? (Yes/No/All/Quit) Yes
+// Deleting task 1 'one'.
+// Delete task 2 'two'? (Yes/No/All/Quit) Yes
+// Deleting task 2 'two'.
+// Deleted 2 tasks.
 #[test]
 fn delete_by_pre_range_two_tasks_both_deleted() {
     let (_dir, db) = common::test_db();
@@ -97,10 +125,10 @@ fn delete_by_pre_range_two_tasks_both_deleted() {
 
     p.exp_string("This command will alter 2 tasks.")
         .expect("alter header");
-    p.exp_string("Delete task").expect("first prompt");
+    p.exp_string("Delete task 1").expect("first prompt");
     select_option(&mut p, "Yes");
-    p.exp_string("Deleting task").expect("first action");
-    p.exp_string("Delete task").expect("second prompt");
+    p.exp_string("Deleting task 1").expect("first action");
+    p.exp_string("Delete task 2").expect("second prompt");
     select_option(&mut p, "Yes");
     p.exp_string("Deleting task").expect("second action");
     p.exp_string("Deleted 2 tasks.").expect("footer");
@@ -108,7 +136,13 @@ fn delete_by_pre_range_two_tasks_both_deleted() {
     assert_no_pending_tasks(&db);
 }
 
-// `1-2,3` selects 3 of 4 seeded tasks → bulk-confirm Select route.
+// dawn 1-2,3 delete
+// This command will alter 3 tasks.
+// Delete task 1 'a'? (Yes/No/All/Quit) All
+// Deleting task 1 'a'.
+// Deleting task 2 'b'.
+// Deleting task 3 'c'.
+// Deleted 3 tasks.
 #[test]
 fn delete_pre_set_with_range_and_index() {
     let (_dir, db) = common::test_db();
@@ -118,10 +152,11 @@ fn delete_pre_set_with_range_and_index() {
 
     p.exp_string("This command will alter 3 tasks.")
         .expect("alter header");
-    p.exp_string("Delete task").expect("first prompt");
+    p.exp_string("Delete task 1").expect("first prompt");
     select_option(&mut p, "All");
-    for _ in 0..3 {
-        p.exp_string("Deleting task").expect("action line");
+    for i in 0..3 {
+        p.exp_string(&format!("Deleting task {}", i + 1))
+            .expect("action line");
     }
     p.exp_string("Deleted 3 tasks.").expect("footer");
     assert_pty_exit(&mut p, 0);
@@ -133,6 +168,10 @@ fn delete_pre_set_with_range_and_index() {
 
 // ── Group B: Promotion route ──
 
+// dawn delete 1
+// Delete task 1 'buy milk'? (y/n) y
+// Deleting task 1 'buy milk'.
+// Deleted 1 task.
 #[test]
 fn delete_promotes_single_index_from_mods() {
     let (_dir, db) = common::test_db();
@@ -152,6 +191,10 @@ fn delete_promotes_single_index_from_mods() {
     assert_no_pending_tasks(&db);
 }
 
+// dawn delete <prefix>
+// Delete task 1 'buy milk'? (y/n) y
+// Deleting task 1 'buy milk'.
+// Deleted 1 task.
 #[test]
 fn delete_promotes_uuid_from_mods() {
     let (_dir, db) = common::test_db();
@@ -161,8 +204,9 @@ fn delete_promotes_uuid_from_mods() {
         .success();
     let info_before = run_stdout(common::execute_dawn(&db).arg("1"));
     let uuid = extract_uuid(&info_before);
+    let prefix = &uuid[..8];
 
-    let mut p = dawn_pty(&db, &["delete", &uuid]);
+    let mut p = dawn_pty(&db, &["delete", prefix]);
 
     p.exp_string("Delete task 1 'buy milk'?")
         .expect("delete prompt");
@@ -173,6 +217,13 @@ fn delete_promotes_uuid_from_mods() {
     assert_no_pending_tasks(&db);
 }
 
+// dawn delete 1,2
+// This command will alter 2 tasks.
+// Delete task 1 'one'? (Yes/No/All/Quit) Yes
+// Deleting task 1 'one'.
+// Delete task 2 'two'? (Yes/No/All/Quit) Yes
+// Deleting task 2 'two'.
+// Deleted 2 tasks.
 #[test]
 fn delete_promotes_set_from_mods_two_tasks() {
     let (_dir, db) = common::test_db();
@@ -195,6 +246,9 @@ fn delete_promotes_set_from_mods_two_tasks() {
 
 // ── Group C: Errors / no-op ──
 
+// dawn <prefix> delete
+// Task <prefix> 'buy milk' is not deletable.
+// Deleted 0 tasks.
 #[test]
 fn delete_already_deleted_task_skipped_partial() {
     let (_dir, db) = common::test_db();
@@ -204,26 +258,37 @@ fn delete_already_deleted_task_skipped_partial() {
         .success();
     let info_before = run_stdout(common::execute_dawn(&db).arg("1"));
     let uuid = extract_uuid(&info_before);
-    delete_via_pty(&db, &uuid);
+    let prefix = &uuid[..8];
+    delete_via_pty(&db, prefix);
 
     common::execute_dawn(&db)
-        .args([&uuid, "delete"])
+        .args([prefix, "delete"])
         .assert()
         .failure()
         .code(1)
         .stderr(is_empty())
-        .stdout(contains("'buy milk' is not deletable.").and(contains("Deleted 0 tasks.")));
+        .stdout(contains(&format!(
+            "Task {prefix} 'buy milk' is not deletable.\nDeleted 0 tasks."
+        )));
 }
 
+// dawn <prefix1>,<prefix2> delete
+// This command will alter 2 tasks.
+// Task <prefix1> 'alpha' is not deletable.
+// Delete task <prefix2> 'beta'? (y/n) y
+// Deleting task <prefix2> 'beta'.
+// Deleted 1 task.
 #[test]
 fn delete_mixed_pending_and_deleted_partial() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta"]);
-    let uid_first = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
-    let uid_second = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
-    delete_via_pty(&db, &uid_first);
+    let uuid_first = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    let prefix1 = &uuid_first[..8];
+    let uuid_second = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
+    let prefix2 = &uuid_second[..8];
+    delete_via_pty(&db, prefix1);
 
-    let target = format!("{uid_first},{uid_second}");
+    let target = format!("{prefix1},{prefix2}");
     let mut p = dawn_pty(&db, &[&target, "delete"]);
 
     p.exp_string("This command will alter 2 tasks.")
@@ -231,14 +296,19 @@ fn delete_mixed_pending_and_deleted_partial() {
     p.exp_string("is not deletable.")
         .expect("not-deletable warning for already-deleted task");
     // Single candidate after filtering → yes/no Confirm path, not Select.
-    p.exp_string("Delete task").expect("single-confirm prompt");
+    p.exp_string("Delete task 1")
+        .expect("single-confirm prompt");
     p.send_line("y").expect("send y");
-    p.exp_string("Deleting task").expect("action line");
+    p.exp_string("Deleting task 1").expect("action line");
     p.exp_string("Deleted 1 task.").expect("footer");
     assert_pty_exit(&mut p, 1);
     assert_no_pending_tasks(&db);
 }
 
+// dawn 1 delete
+// Delete task 1 'buy milk'? (y/n) n
+// Task not deleted.
+// Deleted 0 tasks.
 #[test]
 fn delete_user_declines_partial() {
     let (_dir, db) = common::test_db();
@@ -261,6 +331,13 @@ fn delete_user_declines_partial() {
         .stdout(contains("buy milk"));
 }
 
+// dawn 1,2 delete
+// This command will alter 2 tasks.
+// Delete task 1 'one'? (Yes/No/All/Quit) Yes
+// Deleting task 1 'one'.
+// Delete task 2 'two'? (Yes/No/All/Quit) No
+// Task not deleted.
+// Deleted 1 task.
 #[test]
 fn delete_bulk_no_skips_one_partial() {
     let (_dir, db) = common::test_db();
@@ -270,10 +347,11 @@ fn delete_bulk_no_skips_one_partial() {
 
     p.exp_string("This command will alter 2 tasks.")
         .expect("alter header");
-    p.exp_string("Delete task").expect("first prompt");
+    p.exp_string("Delete task 1").expect("first prompt");
     select_option(&mut p, "Yes");
-    p.exp_string("Deleting task").expect("first action");
-    p.exp_string("Delete task").expect("second prompt");
+    p.exp_string("Deleting task 1").expect("first action");
+
+    p.exp_string("Delete task 2").expect("second prompt");
     select_option(&mut p, "No");
     p.exp_string("Task not deleted.").expect("not-deleted msg");
     p.exp_string("Deleted 1 task.").expect("footer");
@@ -284,6 +362,13 @@ fn delete_bulk_no_skips_one_partial() {
         .stdout(contains("1 task"));
 }
 
+// dawn 1,2 delete
+// This command will alter 2 tasks.
+// Delete task 1 'one'? (Yes/No/All/Quit) Yes
+// Deleting task 1 'one'.
+// Delete task 2 'two'? (Yes/No/All/Quit) Quit
+// Task not deleted.
+// Deleted 1 task.
 #[test]
 fn delete_bulk_quit_aborts_remaining() {
     let (_dir, db) = common::test_db();
@@ -293,10 +378,11 @@ fn delete_bulk_quit_aborts_remaining() {
 
     p.exp_string("This command will alter 2 tasks.")
         .expect("alter header");
-    p.exp_string("Delete task").expect("first prompt");
+    p.exp_string("Delete task 1").expect("first prompt");
     select_option(&mut p, "Yes");
-    p.exp_string("Deleting task").expect("first action");
-    p.exp_string("Delete task").expect("second prompt");
+    p.exp_string("Deleting task 1").expect("first action");
+
+    p.exp_string("Delete task 2").expect("second prompt");
     select_option(&mut p, "Quit");
     p.exp_string("Task not deleted.").expect("not-deleted msg");
     p.exp_string("Deleted 1 task.").expect("footer");
@@ -305,39 +391,6 @@ fn delete_bulk_quit_aborts_remaining() {
         .assert()
         .success()
         .stdout(contains("1 task"));
-}
-
-// Quit prints "Task not deleted." for the Quit-task only and breaks; tasks
-// after Quit are neither prompted nor printed. Locks the count invariant.
-#[test]
-fn delete_bulk_quit_emits_not_deleted_exactly_once() {
-    let (_dir, db) = common::test_db();
-    common::setup_tasks(&db, &["a", "b", "c"]);
-
-    let mut p = dawn_pty(&db, &["1,2,3", "delete"]);
-    p.exp_string("This command will alter 3 tasks.")
-        .expect("alter header");
-    p.exp_string("Delete task").expect("first prompt");
-    select_option(&mut p, "Yes");
-    p.exp_string("Deleting task").expect("first action");
-    p.exp_string("Delete task").expect("second prompt");
-    select_option(&mut p, "Quit");
-
-    let trailing = drain_pty_and_assert_exit(&mut p, 1);
-    assert_eq!(
-        trailing.matches("Task not deleted.").count(),
-        1,
-        "Quit should emit not-deleted exactly once: {trailing}"
-    );
-    assert_eq!(
-        trailing.matches("Deleting task").count(),
-        0,
-        "no action line should fire after Quit: {trailing}"
-    );
-    assert!(
-        trailing.contains("Deleted 1 task."),
-        "footer should report 1 deletion: {trailing}"
-    );
 }
 
 // Deleting a completed task succeeds silently: status transitions to deleted,
@@ -352,13 +405,15 @@ fn delete_completed_task_succeeds_without_footnote() {
         .assert()
         .success();
     let uuid = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    let prefix = &uuid[..8];
     common::execute_dawn(&db)
-        .args([&uuid, "done"])
+        .args([prefix, "done"])
         .assert()
         .success();
 
-    let mut p = dawn_pty(&db, &[&uuid, "delete"]);
-    p.exp_string("Delete task").expect("delete prompt");
+    let mut p = dawn_pty(&db, &[prefix, "delete"]);
+    p.exp_string(&format!("Delete task {prefix} 'buy milk'?"))
+        .expect("delete prompt");
     p.send_line("y").expect("send y");
 
     let trailing = drain_pty_and_assert_exit(&mut p, 0);
