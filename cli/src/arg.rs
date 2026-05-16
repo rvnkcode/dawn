@@ -24,5 +24,6 @@ fn parse_status(s: &str) -> Result<Status, String> {
 
 #[derive(Args)]
 pub(crate) struct ModificationOnly {
+    #[arg(hide = true)]
     pub(crate) mods: Vec<String>,
 }
