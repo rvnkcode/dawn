@@ -19,6 +19,9 @@ fn assert_all_empty(db: &Path) {
 
 // ── Group A: Pre-filter route (filter before subcommand) ──
 
+// dawn <prefix> purge
+// Permanently remove task <prefix> 'buy milk'? (y/n) y
+// Purged 1 task.
 #[test]
 fn purge_by_pre_uuid_purges_deleted_task() {
     let (_dir, db) = common::test_db();
@@ -27,19 +30,20 @@ fn purge_by_pre_uuid_purges_deleted_task() {
         .assert()
         .success();
     let uuid = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
+    let prefix = &uuid[..8];
     delete_via_pty(&db, &uuid);
 
-    let mut p = dawn_pty(&db, &[&uuid, "purge"]);
+    let mut p = dawn_pty(&db, &[prefix, "purge"]);
 
-    p.exp_string("Permanently remove task")
+    p.exp_string(&format!("Permanently remove task {prefix} 'buy milk'?"))
         .expect("single confirm prompt");
-    p.exp_string("'buy milk'?").expect("description in prompt");
     p.send_line("y").expect("send y");
     p.exp_string("Purged 1 task.").expect("footer");
     assert_pty_exit(&mut p, 0);
     assert_all_empty(&db);
 }
 
+// dawn "buy" purge
 #[test]
 fn purge_by_pre_word_filter_matches_one_task() {
     let (_dir, db) = common::test_db();
@@ -47,16 +51,17 @@ fn purge_by_pre_word_filter_matches_one_task() {
     // Capture UUID of "buy milk" before deleting; index↔description mapping is unstable.
     let info1 = run_stdout(common::execute_dawn(&db).arg("1"));
     let info2 = run_stdout(common::execute_dawn(&db).arg("2"));
-    let buy_uid = if info1.contains("buy milk") {
+    let buy_uuid = if info1.contains("buy milk") {
         extract_uuid(&info1)
     } else {
         extract_uuid(&info2)
     };
-    delete_via_pty(&db, &buy_uid);
+    let prefix = &buy_uuid[..8];
+    delete_via_pty(&db, prefix);
 
     let mut p = dawn_pty(&db, &["buy", "purge"]);
 
-    p.exp_string("Permanently remove task")
+    p.exp_string(&format!("Permanently remove task {prefix} 'buy milk'?"))
         .expect("single confirm prompt");
     p.send_line("y").expect("send y");
     p.exp_string("Purged 1 task.").expect("footer");
@@ -68,17 +73,23 @@ fn purge_by_pre_word_filter_matches_one_task() {
         .stdout(contains("fix bug").and(contains("buy milk").not()));
 }
 
+// dawn <prefix1>,<prefix2> purge
+// Permanently remove task <prefix1> 'alpha'? (y/n) y
+// Permanently remove task <prefix2> 'beta'? (y/n) y
+// Purged 2 tasks.
 #[test]
-fn purge_pre_set_two_uids_both_purged() {
+fn purge_pre_set_two_uuids_both_purged() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta"]);
     let uuid1 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
     let uuid2 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
-    delete_via_pty(&db, &uuid1);
-    delete_via_pty(&db, &uuid2);
+    let prefix1 = &uuid1[..8];
+    let prefix2 = &uuid2[..8];
+    delete_via_pty(&db, prefix1);
+    delete_via_pty(&db, prefix2);
 
     // original_count == 2 > 1 → bulk Select fires per task.
-    let target = format!("{uuid1},{uuid2}");
+    let target = format!("{prefix1},{prefix2}");
     let mut p = dawn_pty(&db, &[&target, "purge"]);
 
     p.exp_string("Permanently remove task")
@@ -94,6 +105,8 @@ fn purge_pre_set_two_uids_both_purged() {
 
 // ── Group B: Filter resolves to nothing (`tasks.is_empty()`) ──
 
+// dawn "nonexistentword" purge
+// No tasks specified.
 #[test]
 fn purge_no_match_returns_no_specified() {
     let (_dir, db) = common::test_db();
@@ -112,6 +125,9 @@ fn purge_no_match_returns_no_specified() {
 
 // ── Group C: Filter matches only pending (`deleted.is_empty()`) ──
 
+// dawn "buy" purge
+// Purged 0 tasks.
+// No deleted tasks specified. Maybe you forgot to delete tasks first?
 #[test]
 fn purge_filter_matches_only_pending_prints_yellow() {
     let (_dir, db) = common::test_db();
@@ -125,18 +141,20 @@ fn purge_filter_matches_only_pending_prints_yellow() {
         .args(["buy", "purge"])
         .assert()
         .success()
-        .stderr(contains("No deleted tasks specified."));
+        .stdout(contains("Purged 0 tasks."))
+        .stderr(contains(
+            "No deleted tasks specified. Maybe you forgot to delete tasks first?",
+        ));
 
     common::execute_dawn(&db)
-        .arg("all")
         .assert()
         .success()
         .stdout(contains("buy milk"));
 }
 
-// Completed (non-deleted) status hits the same `deleted.is_empty()` branch as
-// pending, but a status-filter regression that special-cases pending could
-// slip past pending-only fixtures.
+// dawn "buy" purge (on a completed task)
+// Purged 0 tasks.
+// No deleted tasks specified. Maybe you forgot to delete tasks first?
 #[test]
 fn purge_filter_matches_only_completed_prints_yellow() {
     let (_dir, db) = common::test_db();
@@ -153,6 +171,7 @@ fn purge_filter_matches_only_completed_prints_yellow() {
         .args(["buy", "purge"])
         .assert()
         .success()
+        .stdout(contains("Purged 0 tasks."))
         .stderr(contains("No deleted tasks specified."));
 
     // Completed task remains in `all` view.
@@ -165,19 +184,24 @@ fn purge_filter_matches_only_completed_prints_yellow() {
 
 // Mixed filter (1 pending + 1 deleted): only the deleted task is offered for
 // purge; the pending task is silently skipped (no second prompt).
+// dawn <prefix1>,<prefix2> purge
+// Permanently remove task <prefix1> 'alpha'? (y/n) y
+// Purged 1 task.
 #[test]
 fn purge_mixed_pending_and_deleted_only_deleted_offered() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta"]);
     let uuid1 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
     let uuid2 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("2")));
-    delete_via_pty(&db, &uuid1);
+    let prefix1 = &uuid1[..8];
+    let prefix2 = &uuid2[..8];
+    delete_via_pty(&db, prefix1);
 
-    let target = format!("{uuid1},{uuid2}");
+    let target = format!("{prefix1},{prefix2}");
     let mut p = dawn_pty(&db, &[&target, "purge"]);
 
     // original_count == 2 → Select widget for the lone deleted candidate.
-    p.exp_string("Permanently remove task")
+    p.exp_string(&format!("Permanently remove task {prefix1}"))
         .expect("bulk prompt for deleted candidate");
     select_option(&mut p, "Yes");
 
@@ -189,11 +213,9 @@ fn purge_mixed_pending_and_deleted_only_deleted_offered() {
 
     // Exactly one survivor (the pending one); the purged uuid is gone.
     let all_view = run_stdout(common::execute_dawn(&db).arg("all"));
-    let alpha = all_view.contains("alpha");
-    let beta = all_view.contains("beta");
     assert!(
-        alpha ^ beta,
-        "expected exactly one survivor: alpha={alpha} beta={beta}"
+        all_view.contains(prefix2) && !all_view.contains(prefix1),
+        "expected pending survivor and purged uuid to be gone: {all_view}"
     );
 }
 
@@ -231,7 +253,8 @@ fn purge_no_filter_tty_accept_purges_deleted() {
     let (_dir, db) = common::test_db();
     common::setup_tasks(&db, &["alpha", "beta"]);
     let uuid1 = extract_uuid(&run_stdout(common::execute_dawn(&db).arg("1")));
-    delete_via_pty(&db, &uuid1);
+    let prefix1 = &uuid1[..8];
+    delete_via_pty(&db, prefix1);
 
     let mut p = dawn_pty(&db, &["purge"]);
     p.exp_string("This command has no filter")
@@ -239,7 +262,7 @@ fn purge_no_filter_tty_accept_purges_deleted() {
     p.send_line("y").expect("send y");
 
     // tasks.len() == 2 → Select widget for the 1 deleted candidate.
-    p.exp_string("Permanently remove task")
+    p.exp_string(&format!("Permanently remove task {prefix1}"))
         .expect("bulk prompt for deleted candidate");
     select_option(&mut p, "Yes");
 
