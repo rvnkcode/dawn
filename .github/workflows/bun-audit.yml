@@ -1,0 +1,22 @@
+name: Bun Audit
+
+on:
+  pull_request:
+    branches: [main, stable]
+    types: [opened, synchronize, reopened]
+    paths:
+      - "gui/package.json"
+      - "gui/bun.lock"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gui
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - uses: oven-sh/setup-bun@v2
+      - run: bun audit
