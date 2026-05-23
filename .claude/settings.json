@@ -41,6 +41,10 @@
           {
             "type": "command",
             "command": ".claude/hooks/markdownlint.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/gui-check.sh"
           }
         ]
       }
