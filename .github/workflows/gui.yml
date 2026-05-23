@@ -1,0 +1,44 @@
+name: GUI
+
+# Lightweight Rust checks for the Tauri crate (dawn-gui) on PRs.
+# Core CI (ci.yml) excludes dawn-gui because it needs webkit system deps;
+# the full bundle build runs only on release tags in tauri.yml. This job keeps
+# the GUI crate compiling/linting on every PR without building the bundle.
+on:
+  push:
+    branches: [main, stable]
+  pull_request:
+    branches: [main, stable]
+    types: [opened, synchronize, reopened]
+    paths:
+      - "gui/src-tauri/**"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      # Linux dependencies for Tauri
+      # https://tauri.app/start/prerequisites/#linux
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl wget file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: gui/src-tauri
+      - run: cargo clippy -p dawn-gui --all-targets -- -D warnings
