@@ -1,0 +1,26 @@
+# https://bun.com/docs/pm/cli/install#ci%2Fcd
+name: Frontend
+
+on:
+  push:
+    branches: [main, stable]
+  pull_request:
+    branches: [main, stable]
+    types: [opened, synchronize, reopened]
+    paths:
+      - "gui/**"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gui
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - uses: oven-sh/setup-bun@v2
+      - run: bun ci
+      - run: bunx svelte-check --tsconfig ./tsconfig.json
+      - run: bunx biome ci .

@@ -25,6 +25,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       # https://github.com/rust-lang/rustfmt?tab=readme-ov-file#checking-style-on-a-ci-server
       - run: cargo fmt --all -- --check
+      # Exclude GUI(Tauri) from core CI since it requires webkit system deps and built dist/,
+      # and verify it with a full build in tauri.yml
       # https://github.com/rust-lang/rust-clippy?tab=readme-ov-file#travis-ci
-      - run: cargo clippy --workspace --all-targets -- -D warnings
-      - run: cargo test --workspace
+      - run: cargo clippy --workspace --exclude dawn-gui --all-targets -- -D warnings
+      - run: cargo test --workspace --exclude dawn-gui
