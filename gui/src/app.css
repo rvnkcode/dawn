@@ -1,3 +1,7 @@
-body {
+#app {
   font-family: sans-serif;
+  /* iPhone status bar */
+  margin-top: 20px;
+  padding: 0 1rem;
+  height: calc(100vh - 20px);
 }
