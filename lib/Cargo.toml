@@ -12,7 +12,7 @@ path = "src/lib.rs"
 [dependencies]
 anyhow.workspace = true
 dirs = "6.0.0"
-rusqlite = { version = "0.39.0", features = ["bundled"] }
+rusqlite = { version = "0.40.1", features = ["bundled"] }
 thiserror.workspace = true
 regex.workspace = true
 uuid.workspace = true
