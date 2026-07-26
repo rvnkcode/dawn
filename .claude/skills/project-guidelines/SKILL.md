@@ -94,5 +94,4 @@ cargo test --workspace
 
 ## Related Skills
 
-- `/skills/coding-standards/` - General coding best practices
 - `/skills/taskwarrior/` - Domain knowledge for Taskwarrior integration

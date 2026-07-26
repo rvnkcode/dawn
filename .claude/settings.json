@@ -50,16 +50,7 @@
       }
     ]
   },
-  "extraKnownMarketplaces": {
-    "karpathy-skills": {
-      "source": {
-        "source": "github",
-        "repo": "forrestchang/andrej-karpathy-skills"
-      }
-    }
-  },
   "enabledPlugins": {
-    "rust-analyzer-lsp@claude-plugins-official": true,
-    "andrej-karpathy-skills@karpathy-skills": true
+    "rust-analyzer-lsp@claude-plugins-official": true
   }
 }
