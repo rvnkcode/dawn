@@ -2,8 +2,8 @@ name: GUI
 
 # Lightweight Rust checks for the Tauri crate (dawn-gui) on PRs.
 # Core CI (ci.yml) excludes dawn-gui because it needs webkit system deps;
-# the full bundle build runs only on release tags in tauri.yml. This job keeps
-# the GUI crate compiling/linting on every PR without building the bundle.
+# the full bundle build runs only on release tags in tauri.yml.
+# This job keeps the GUI crate compiling/linting on every PR without building the bundle.
 on:
   push:
     branches: [main, stable]
