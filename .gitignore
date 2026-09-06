@@ -1,0 +1,12 @@
+# https://www.toptal.com/developers/gitignore/api/xcode,swift,macos
+
+### macOS ###
+# General
+.DS_Store
+
+### Swift ###
+# Xcode
+## User settings
+xcuserdata/
+# Swift Package Manager
+.build/
