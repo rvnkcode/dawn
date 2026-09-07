@@ -1,0 +1,12 @@
+# https://github.com/DavidAnson/markdownlint?tab=readme-ov-file#rules--aliases
+# https://github.com/DavidAnson/markdownlint-cli2/blob/main/test/markdownlint-cli2-yaml-example/.markdownlint-cli2.yaml
+config:
+  line-length: false
+  no-duplicate-heading: false
+  no-trailing-punctuation: false
+  no-inline-html: false
+  MD041:
+    front_matter_title: "^\\s*title\\s*[:=]"
+
+fix: true
+gitignore: true
