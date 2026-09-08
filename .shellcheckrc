@@ -1,0 +1,4 @@
+# https://github.com/koalaman/shellcheck/wiki/Directive
+
+# Follow source into lib/hook.sh without -x
+external-sources=true

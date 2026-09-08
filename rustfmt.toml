@@ -1,0 +1,5 @@
+# https://rust-lang.github.io/rustfmt/
+
+# rustfmt is not workspace-aware and defaults to 2015
+edition = "2024"
+style_edition = "2024"
