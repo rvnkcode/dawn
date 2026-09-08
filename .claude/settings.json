@@ -6,11 +6,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/markdownlint.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/markdownlint.sh\""
           },
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/shellscript.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/shellscript.sh\""
           }
         ]
       }
