@@ -4,10 +4,6 @@ command -v jq >/dev/null || {
     echo "markdownlint hook: jq not found" >&2
     exit 1
 }
-command -v markdownlint-cli2 >/dev/null || {
-    echo "markdownlint hook: markdownlint-cli2 not found" >&2
-    exit 1
-}
 
 # Read stdin first (consumed by jq)
 INPUT=$(cat)
@@ -18,6 +14,11 @@ PROJECT_DIR=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 if [[ ! "$FILE_PATH" =~ \.md$ ]] || [[ "$FILE_PATH" != "$PROJECT_DIR"/* ]]; then
     exit 0
 fi
+
+command -v markdownlint-cli2 >/dev/null || {
+    echo "markdownlint hook: markdownlint-cli2 not found" >&2
+    exit 1
+}
 
 LINT_OUTPUT=$(markdownlint-cli2 "$FILE_PATH" 2>&1)
 LINT_EXIT_CODE=$?

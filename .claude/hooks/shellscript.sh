@@ -4,14 +4,6 @@ command -v jq >/dev/null || {
     echo "shellscript hook: jq not found" >&2
     exit 1
 }
-command -v shfmt >/dev/null || {
-    echo "shellscript hook: shfmt not found" >&2
-    exit 1
-}
-command -v shellcheck >/dev/null || {
-    echo "shellscript hook: shellcheck not found" >&2
-    exit 1
-}
 
 # Read stdin first (consumed by jq)
 INPUT=$(cat)
@@ -22,6 +14,15 @@ PROJECT_DIR=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 if [[ ! "$FILE_PATH" =~ \.sh$ ]] || [[ "$FILE_PATH" != "$PROJECT_DIR"/* ]]; then
     exit 0
 fi
+
+command -v shfmt >/dev/null || {
+    echo "shellscript hook: shfmt not found" >&2
+    exit 1
+}
+command -v shellcheck >/dev/null || {
+    echo "shellscript hook: shellcheck not found" >&2
+    exit 1
+}
 
 # Format: indent 4 spaces
 FMT_OUTPUT=$(shfmt -i 4 -w "$FILE_PATH" 2>&1)
