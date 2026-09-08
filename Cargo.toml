@@ -1,0 +1,14 @@
+# https://doc.rust-lang.org/cargo/reference/workspaces.html
+[workspace]
+resolver = "3"
+members = ["core", "cli"]
+
+# https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace.package]
+version = "0.1.0"
+authors = ["KSY <ksy@rvnk.dev>"]
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/rvnkcode/dawn"
+
+[workspace.dependencies]
