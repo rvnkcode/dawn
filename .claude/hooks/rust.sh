@@ -7,8 +7,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/hook.sh"
 hook_accept '\.rs$'
 hook_require rustfmt cargo
 
-# Format from the edited file
-FMT_OUTPUT=$(rustfmt "$FILE_PATH" 2>&1)
+# Format from the edited file, on nightly for the unstable import options
+FMT_OUTPUT=$(rustfmt +nightly "$FILE_PATH" 2>&1)
 FMT_EXIT_CODE=$?
 
 LINT_OUTPUT=$(cargo clippy --workspace --message-format=short -- -D warnings 2>&1)
