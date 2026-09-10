@@ -1,0 +1,32 @@
+# https://github.com/rustsec/audit-check?tab=readme-ov-file#audit-changes
+name: Cargo Audit
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cargo/advisory-db
+          key: advisory-db-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: advisory-db-
+      - uses: taiki-e/install-action@c3ec0de9ae7f1019cea21aa96aa0a895b9552063 # v2
+        with:
+          tool: cargo-audit
+      - run: cargo audit
