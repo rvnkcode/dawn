@@ -3,3 +3,7 @@
 # rustfmt is not workspace-aware and defaults to 2015
 edition = "2024"
 style_edition = "2024"
+
+# cargo +nightly fmt --all
+group_imports = "StdExternalCrate"
+imports_granularity = "Crate"
