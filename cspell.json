@@ -3,5 +3,5 @@
   "version": "0.2",
   "ignorePaths": [".git", ".jj", "Cargo.lock"],
   "useGitignore": true,
-  "words": ["taskwarrior"]
+  "words": ["clippy", "taskwarrior"]
 }
